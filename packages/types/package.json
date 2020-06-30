@@ -1,0 +1,17 @@
+{
+  "name": "@ts-utils/types",
+  "version": "0.1.0",
+  "description": "Typescript utils: types",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "npm install && rm -rf dist && tsc"
+  },
+  "devDependencies": {
+    "@types/node": "13.7.4"
+  }
+}

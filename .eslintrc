@@ -1,0 +1,93 @@
+{
+  "extends": ["airbnb-base", "plugin:@typescript-eslint/recommended", "plugin:import/typescript"],
+  "plugins": ["@typescript-eslint", "prettier", "import"],
+  "parser": "@typescript-eslint/parser",
+  "settings": {
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts"]
+    },
+    "import/resolver": {
+      "typescript": { }
+    }
+  },
+  "env": {
+    "node": "true",
+    "browser": "true"
+  },
+  "rules": {
+    # Necessary in order to have ability to use paths in tsconfig. It will work only for aliases which start w/ "@"
+    # "import/no-unresolved": "off",
+    "import/no-unresolved": [2,  { "ignore": ["^@.*"] }],
+
+    # Extra rule for us< as we have devs working on different
+    "linebreak-style": ["error", "unix"],
+
+    # Allow import from files without extensions ('./SomeService' instead of './SomeService.ts')
+    "import/extensions": [ "error", "ignorePackages", { "ts": "never", "js": "never" }],
+
+    # Bad practice to use default export
+    "import/prefer-default-export": "off",
+
+    # Function return (void). Disable early returns, deeper nesting is necessary.
+    "consistent-return": "off",
+
+    # JS convention for naming private vars. Example: _db
+    "no-underscore-dangle": "off",
+
+    # If there is no this. call in method -> make it static.
+    "class-methods-use-this": "off",
+
+    # For objects with more than 3 params.
+    "object-curly-newline": "off",
+
+    # This is fine.
+    "lines-between-class-members": "off",
+
+    # Irrelevant
+    "no-plusplus": "off",
+
+    # Allow ForOfStatement
+    "no-restricted-syntax": [ "error", "ForInStatement", "LabeledStatement", "WithStatement" ],
+
+    # Allow continue as we decided to allow ForOfStatement
+    "no-continue": "off",
+
+    # Specificall y to node
+    "no-console": "off",
+
+    # They are fine sometimes.
+    # "no-nested-ternary": "off"
+
+    # Up max-len to 140
+    "max-len": ["error", { "code": 140 }]
+  },
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx"],
+      "rules": {
+        # To allow method overloading
+        "no-dupe-class-members": "off",
+
+        # TS indentation
+        "@typescript-eslint/indent": [2, 2],
+
+        # Allow empty private constructor in order to implement Singleton pattern
+        "no-useless-constructor": "off",
+        "@typescript-eslint/no-useless-constructor": "off",
+        "@typescript-eslint/no-empty-function": ["error", { "allow": ["constructors"] }],
+
+        # Ensure interfaces name start with "I"
+        "@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "always" }],
+
+        # Ensure use of T[] for simple array annotations and Array<T> for complicated
+        "@typescript-eslint/array-type": ["error", {
+          "default" : "array-simple",
+          "readonly": "array-simple"
+        }],
+
+        # Ordering for class members. Just defaults
+        "@typescript-eslint/member-ordering": ["error", { default: ["signature", "field", "constructor", "method"] }]
+      }
+    }
+  ]
+}

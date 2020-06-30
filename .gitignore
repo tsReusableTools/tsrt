@@ -1,0 +1,10 @@
+### Dependencies
+node_modules
+**/node_modules/**
+
+### Bundle
+dist
+**/dist/**
+
+### JS
+**/*.js

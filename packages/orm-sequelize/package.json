@@ -1,0 +1,40 @@
+{
+  "name": "@ts-utils/orm-sequelize",
+  "version": "0.1.0",
+  "description": "Typescript utils: orm-sequelize",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "npm install && rm -rf dist && tsc"
+  },
+  "dependencies": {
+    "@ts-utils/types": "file:../types",
+    "@ts-utils/utils": "file:../utils",
+    "pluralize": "8.0.0"
+  },
+  "devDependencies": {
+    "@types/bluebird": "^3.5.32",
+    "@types/node": "13.7.4",
+    "@types/pluralize": "0.0.29",
+    "@types/validator": "^13.1.0",
+    "reflect-metadata": "^0.1.13",
+    "sequelize": "^5.22.2",
+    "sequelize-typescript": "^1.1.0"
+  },
+  "peerDependencies": {
+    "@types/bluebird": "*",
+    "@types/validator": "*",
+    "reflect-metadata": "*",
+    "sequelize": "^5.22.2",
+    "sequelize-typescript": "^1.1.0"
+  },
+  "optionalDependencies": {
+    "@types/pg": "^7.14.3",
+    "pg": "^8.2.1",
+    "pg-hstore": "^2.3.3"
+  }
+}
