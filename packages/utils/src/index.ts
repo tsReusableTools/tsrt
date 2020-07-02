@@ -1,4 +1,5 @@
 export * from './error';
+export * from './exceptionHandlers';
 export * from './log';
 export * from './msg';
 export * from './reorder';
