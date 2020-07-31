@@ -1,27 +1,9 @@
-import { Transaction, CreateOptions, UpdateOptions, DestroyOptions, WhereOptions } from 'sequelize';
-import '@ts-utils/types';
+import { CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash } from 'sequelize';
 
-/* eslint-disable-next-line */
-export type GenericWhere<T = any> = { where: WhereOptions } & GenericObject<T>;
-
-/** Interface for DB multiple response */
-export interface IDbMultipleResponse<T extends GenericObject = GenericObject> {
-  value: T[];
-  nextSkip?: number;
-  total?: number;
-}
-
-/** Interface for bulk API response */
-export interface ICrudBulkResponse<T extends GenericObject = GenericObject> {
-  created?: T[];
-  updated?: T[];
-}
-
-/** Inteface for Sequelize CRUD controller config */
-export interface IBaseSequelizeCrudRepositoryConfig {
+export interface IBaseRepositoryConfig {
   defaults: {
-    /** Removed property literal, which i used on DB models (for soft delete) */
-    isRemovedProp: string;
+    /** @deprecated. Old soft delete property name */
+    isRemovedProp?: string;
 
     /** Defalt limit param for read operations. Defaults to 10 */
     limit: number;
@@ -34,16 +16,23 @@ export interface IBaseSequelizeCrudRepositoryConfig {
   };
 }
 
+export interface IPagedData<T extends GenericObject = GenericObject> {
+  value: T[];
+  nextSkip?: number;
+  total?: number;
+}
+
+export interface IBaseRepositoryOptions extends IQueryParams {
+  where?: WhereAttributeHash;
+}
+
 /**
  *  Interface for CRUD controller method options, which influence on adding association data and
  *  response object (whether to create association between tables, or return JOINed result).
  */
-export interface IBaseSequelizeCrudRepositoryMethodOptions extends IQueryParams {
+export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
   /** Whether it is necessary to associate (create reference) if reference id list provided */
   associate?: boolean;
-
-  /** Transaction for this query */
-  transaction?: Transaction;
 
   /**
    *  Whether it should replace associatins w/ new reference list (delete and add).
@@ -63,11 +52,14 @@ export interface IBaseSequelizeCrudRepositoryMethodOptions extends IQueryParams 
   returnData?: boolean;
 }
 
-/** Interface for create options */
-export interface ICreateOptions extends IBaseSequelizeCrudRepositoryMethodOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+/** Interface for possible options of create method */
+export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
 
-/** Interface for update options */
-export interface IUpdateOptions extends IBaseSequelizeCrudRepositoryMethodOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
+/** Interface for possible options of update method */
+export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
 
-/** Interface for delete options */
-export interface IDeleteOptions extends Omit<IBaseSequelizeCrudRepositoryMethodOptions, 'limit'>, Omit<Partial<DestroyOptions>, 'where'> {}
+/** Interface for possible options of delete method */
+export interface IDeleteOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<DestroyOptions>, 'where'> {}
+
+/** Interface for possible options of restore method */
+export interface IRestoreOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<RestoreOptions>, 'where'> {}

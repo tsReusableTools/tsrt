@@ -38,7 +38,8 @@ const myFormat = format.printf((props) => {
 
   const lvlUpperCase = lvl.toUpperCase();
 
-  const title = `[${new Date().toISOString()}] [${customCaption || lvlUpperCase}]`;
+  // const title = `[${new Date().toISOString()}] [${customCaption || lvlUpperCase}]`;
+  const title = customCaption || lvlUpperCase;
 
   let type: string;
 
@@ -56,7 +57,9 @@ const myFormat = format.printf((props) => {
   //   ? JSON.stringify(message)
   //   : message}`;
 
-  console.log(`${type}\n`, message);
+  // console.log(`${type}`, message);
+  // console.log(`Time: ${new Date().toISOString()}; Type: ${type}. ${message ? 'Message:' : ''}`, message);
+  console.log(`${new Date().toISOString()} - ${type} ${message ? '-' : ''}`, message);
   return ' ';
 });
 

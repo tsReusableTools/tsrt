@@ -1,7 +1,5 @@
-import { Transaction, TransactionOptions } from 'sequelize';
 import { Sequelize, SequelizeOptions, Model } from 'sequelize-typescript';
-
-import { singleton } from '@ts-utils/utils';
+import { log } from '@ts-utils/utils';
 
 class OrmSequelizeSingleton {
   private _connection: Sequelize;
@@ -11,16 +9,6 @@ class OrmSequelizeSingleton {
   public async close(): Promise<void> {
     this.checkDatabaseConnection();
     await this._connection.close();
-  }
-
-  /**
-   *  Syncs models in code w/ database tables.
-   *
-   *  @param [force=false] - Wheteher fo sync in `force` mode. In `force` mode it will clear all data.
-   */
-  public async sync(force = false): Promise<void> {
-    this.checkDatabaseConnection();
-    await this._connection.sync({ force });
   }
 
   /** Current database connection */
@@ -36,19 +24,19 @@ class OrmSequelizeSingleton {
   }
 
   /**
-   *  DB connection initializer (to handle unique connection over app)
+   *  Inits database connection.
    *
    *  @param SequelizeInstance - Sequelize constructor. This one is necessary because for sequelize
    *  to work correctly, Sequelize constructor is needed to be such as that, used for models
-   *  definition
+   *  definition.
    *  @param [config] - Sequelize connection config.
    *  @param [checkConnection=true] - Whether to check connection after its creation.
-   *  @param [syncAfterConnection] - Whether to sync after connection creation - for DEV mode.
+   *  @param [shouldSyncAfterConnection] - Whether to sync after connection creation - for DEV mode.
    */
   public async init(
     SequelizeInstance: typeof Sequelize = Sequelize,
-    config: SequelizeOptions = { }, checkConnection = true, syncAfterConnection = false,
-  ): Promise<void> {
+    config: SequelizeOptions = { }, checkConnection = true, shouldSyncAfterConnection = false,
+  ): Promise<Sequelize> {
     if (this._connection) return;
 
     if (!config.host || !config.port || !config.database || !config.username || !config.password) {
@@ -60,39 +48,23 @@ class OrmSequelizeSingleton {
     if (checkConnection) {
       this._connection
         .authenticate()
-        .then(() => console.log(
-          'Database connection established: \n',
-          `host: ${config.host} \n`,
-          `port: ${config.port} \n`,
-          `database: ${config.database} \n`,
-          `username: ${config.username} \n`,
+        .then(() => log.info(
+          'Database connection established: \n'
+          + `host: ${config.host} \n`
+          + `port: ${config.port} \n`
+          + `database: ${config.database} \n`
+          + `username: ${config.username} \n`,
         ))
-        .catch((err: Error) => console.error('ERROR connecting to the PostgreSQL: \n', err));
+        .catch((err: Error) => console.error('ERROR connecting to the database: \n', err));
     }
 
-    if (syncAfterConnection) {
+    if (shouldSyncAfterConnection) {
       await this._connection
         .sync()
-        .catch((err: Error) => console.error('ERROR syncing PostgreSQL >>> \n', err));
+        .catch((err: Error) => console.error('ERROR syncing w/ database >>> \n', err));
     }
-  }
 
-  /**
-   *  Creates a transaction or executes a transaction callback
-   *
-   *  @param [options] - Transactions options
-   *  @param [cb] - Transaction callback to be executed for managed transactions
-   *
-   *  @see https://sequelize.org/master/manual/transactions
-   */
-  public async createTransaction(options?: TransactionOptions): Promise<Transaction>;
-  public async createTransaction<T>(options?: TransactionOptions, cb?: (t: Transaction) => PromiseLike<T>): Promise<T>;
-  public async createTransaction<T>(
-    options?: TransactionOptions, cb?: (t: Transaction) => PromiseLike<T>,
-  ): Promise<T | Transaction> {
-    if (!cb) return this._connection.transaction(options);
-
-    return this._connection.transaction(options, cb);
+    return this.connection;
   }
 
   private checkDatabaseConnection(): void {
@@ -100,5 +72,5 @@ class OrmSequelizeSingleton {
   }
 }
 
-/** Singleton service for managing database connection over app using Sequelize ORM */
-export const OrmSequelize = singleton(OrmSequelizeSingleton);
+/** Service for managing database connection over app using Sequelize ORM under the hood */
+export const OrmSequelize = new OrmSequelizeSingleton();

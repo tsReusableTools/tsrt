@@ -1,2 +1,3 @@
-export * from './crudRepository';
-export * from './ormSequelize';
+export * from './BaseRepository';
+export * from './OrmSequelize';
+export * from './interfaces';

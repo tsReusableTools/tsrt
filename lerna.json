@@ -4,8 +4,8 @@
   ],
   "version": "independent",
   "stream": true,
-  "command":{
-    "bootstrap":{
+  "command": {
+    "bootstrap": {
       "hoist": false
     }
 	}

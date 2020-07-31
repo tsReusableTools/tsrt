@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@ts-utils/types": "file:../types",
-    "@ts-utils/utils": "file:../utils"
+    "@ts-utils/utils": "file:../utils",
+    "busboy": "0.3.1"
   },
   "devDependencies": {
+    "@types/busboy": "0.2.3",
     "@types/express": "^4.17.6",
     "@types/node": "13.7.4",
     "express": "^4.17.1"

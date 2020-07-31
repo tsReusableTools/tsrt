@@ -21,9 +21,8 @@ declare global {
     select?: string;
     getBy?: string;
     sort?: string;
-    include?: string;
+    include?: string | string[];
     filter?: GenericObject;
-    where?: GenericObject;
   }
 
   /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -1,41 +1,38 @@
-/* eslint-disable max-classes-per-file */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import stc from 'http-status';
 
-/** Class for Http Error w/ details: status, message, statusText */
+/** Class for Http Error w/ details: status, data, data, statusText */
 export class HttpError extends Error implements IMsg {
   public message: string;
-  public data: string;
+  /* eslint-disable-next-line */
+  public data: any;
   public status: number;
   public statusText: string;
 
-  constructor(status = 500, message = (stc as GenericObject)[status] || 'Internal Server Error') {
-    super(message);
+  constructor(status = 500, data: any = (stc as GenericObject)[status] || 'Internal Server Error') {
+    super(data);
 
-    this.message = message;
-    this.data = message;
+    this.message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+    this.data = data;
     this.status = status;
     this.statusText = (stc as GenericObject)[status];
   }
 }
 
-declare global {
-  const HttpError: HttpError;
+/** Throws http error, w/ useful alias methods */
+export function throwHttpError<T = any>(status?: number, data?: T): void {
+  throw new HttpError(status, data);
 }
 
-/** Hepler for throwing http error, w/ useful alias methods */
-export function throwHttpError(status?: number, message?: string): void {
-  throw new HttpError(status, message);
-}
+throwHttpError.badRequest = (data?: any): void => throwHttpError(stc.BAD_REQUEST, data);
+throwHttpError.unAuthorized = (data?: any): void => throwHttpError(stc.UNAUTHORIZED, data);
+throwHttpError.forbidden = (data?: any): void => throwHttpError(stc.FORBIDDEN, data);
+throwHttpError.notFound = (data?: any): void => throwHttpError(stc.NOT_FOUND, data);
+throwHttpError.methodNotAllowed = (data?: any): void => throwHttpError(stc.METHOD_NOT_ALLOWED, data);
+throwHttpError.conflict = (data?: any): void => throwHttpError(stc.CONFLICT, data);
 
-throwHttpError.badRequest = (message?: string): void => throwHttpError(stc.BAD_REQUEST, message);
-throwHttpError.unAuthorized = (message?: string): void => throwHttpError(stc.UNAUTHORIZED, message);
-throwHttpError.forbidden = (message?: string): void => throwHttpError(stc.FORBIDDEN, message);
-throwHttpError.notFound = (message?: string): void => throwHttpError(stc.NOT_FOUND, message);
-throwHttpError.methodNotAllowed = (message?: string): void => throwHttpError(stc.METHOD_NOT_ALLOWED, message);
-throwHttpError.conflict = (message?: string): void => throwHttpError(stc.CONFLICT, message);
-
-throwHttpError.internalServerError = (message?: string): void => throwHttpError(stc.INTERNAL_SERVER_ERROR, message);
-throwHttpError.notImplemented = (message?: string): void => throwHttpError(stc.NOT_IMPLEMENTED, message);
-throwHttpError.badGateway = (message?: string): void => throwHttpError(stc.BAD_GATEWAY, message);
-throwHttpError.serviceUnavailable = (message?: string): void => throwHttpError(stc.SERVICE_UNAVAILABLE, message);
-throwHttpError.gatewayTimeout = (message?: string): void => throwHttpError(stc.GATEWAY_TIMEOUT, message);
+throwHttpError.internalServerError = (data?: any): void => throwHttpError(stc.INTERNAL_SERVER_ERROR, data);
+throwHttpError.notImplemented = (data?: any): void => throwHttpError(stc.NOT_IMPLEMENTED, data);
+throwHttpError.badGateway = (data?: any): void => throwHttpError(stc.BAD_GATEWAY, data);
+throwHttpError.serviceUnavailable = (data?: any): void => throwHttpError(stc.SERVICE_UNAVAILABLE, data);
+throwHttpError.gatewayTimeout = (data?: any): void => throwHttpError(stc.GATEWAY_TIMEOUT, data);
