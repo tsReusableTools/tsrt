@@ -1,0 +1,21 @@
+{
+  "name": "@tsu/mvc",
+  "version": "0.1.0",
+  "description": "Typescript utils: mvc",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "npm install && rm -rf dist && tsc"
+  },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "13.7.4"
+  }
+}

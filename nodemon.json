@@ -1,7 +1,5 @@
 {
-  "events": {
-    "crash": "exit"
-  },
+  "events": { "crash": "exit" },
   "watch": ["src"],
   "ext": "ts",
   "ignore": ["src/**/*.spec.ts"],

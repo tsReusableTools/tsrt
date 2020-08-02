@@ -1,5 +1,5 @@
 {
-  "name": "@ts-utils/orm-sequelize",
+  "name": "@tsu/orm-sequelize",
   "version": "0.1.0",
   "description": "Typescript utils: orm-sequelize",
   "keywords": [],
@@ -11,9 +11,13 @@
     "watch": "tsc --watch",
     "build": "npm install && rm -rf dist && tsc"
   },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
   "dependencies": {
-    "@ts-utils/types": "file:../types",
-    "@ts-utils/utils": "file:../utils",
+    "@tsu/types": "file:../types",
+    "@tsu/utils": "file:../utils",
     "pluralize": "8.0.0"
   },
   "devDependencies": {

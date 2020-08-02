@@ -1,5 +1,5 @@
 {
-  "name": "@ts-utils/utils",
+  "name": "@tsu/utils",
   "version": "0.1.0",
   "description": "Typescript utils: utils",
   "keywords": [],
@@ -11,8 +11,12 @@
     "watch": "tsc --watch",
     "build": "npm install && rm -rf dist && tsc"
   },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
   "dependencies": {
-    "@ts-utils/types": "file:../types",
+    "@tsu/types": "file:../types",
     "chalk": "4.1.0",
     "http-status": "1.4.2"
   },

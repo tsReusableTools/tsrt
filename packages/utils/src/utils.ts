@@ -1,6 +1,12 @@
-import { readFileSync, writeSync, closeSync, openSync, writeFileSync, existsSync } from 'fs';
+/** Checks whether environment is NodeJS */
+export function isNodeJsEnvironment(): void {
+  if (!process) throw Error('This method could be used only in NodeJS environment');
+}
 
-import { ISubstring } from './types';
+/** Checks whether environment is Browser */
+export function isBrowserEnvironment(): void {
+  if (!window) throw Error('This method could be used only in NodeJS environment');
+}
 
 /** Converts object into queryString */
 export const formUrlEncoded = (query: GenericObject): string => Object
@@ -27,7 +33,8 @@ export function getObjectValuesList<T extends GenericObject, K extends keyof T>(
 /**
  *  Parses data and corrects types: from string to boolean | number.
  *
- *  @param data - Data to parse.
+ *  @param input - Data to parse.
+ *  @param [deepness] - Recursion deepness fo data parsing.
  */
 export const parseTypes = <T extends GenericAny>(input: T, deepness?: number): T => {
   function parser(data: T, deepLevel = 0): T {
@@ -78,9 +85,7 @@ export const parseTypes = <T extends GenericAny>(input: T, deepness?: number): T
  *  @param prop - Property name to get from .env.
  *  @param [defaultValue] - Default value for prop. If it is provided - no error will be thrown.
  */
-export const getEnvProp = <T extends string | number | boolean = string>(
-  prop: string, defaultValue?: T,
-): T => {
+export const getEnvProp = <T extends string | number | boolean = string>(prop: string, defaultValue?: T): T => {
   if (process.env[prop]) return parseTypes(process.env[prop]) as T;
 
   if (
@@ -106,10 +111,7 @@ export const singleton = <S extends Constructor>(
     private static _instance: InstanceType<S>;
 
     public static get instance(): InstanceType<S> {
-      if (!this._instance) {
-        this._instance = new Singleton(...args);
-      }
-
+      if (!this._instance) this._instance = new Singleton(...args);
       return this._instance;
     }
 
@@ -123,8 +125,7 @@ export const singleton = <S extends Constructor>(
 /**
  *  Recursively parses data and converts arrayLiked objects into array
  *
- *  Example:
- *  { '0': 'asd', '1': 'sdf', '2': 'aaa' } -> ['asd', 'sdf', 'aaa']
+ *  Example: `{ '0': 'asd', '1': 'sdf', '2': 'aaa' } -> ['asd', 'sdf', 'aaa']`
  *
  *  @param data - Data to parse
  */
@@ -150,7 +151,7 @@ export const parseArrayLikeObjectIntoArray = (data: any): any => {
 /**
  *  Merges provided list of arrays and gets only unique values.
  *
- *  Example
+ *  Example:
  *  ```ts
  *  getUniqueValues([1, 2, 3], [2, 3, 4], [3, 4, 5], [5]) => [1, 2, 3, 4, 5]
  *  ```
@@ -168,85 +169,9 @@ export function getUniqueValues<I = any>(...lists: I[][]): I[] {
 }
 
 /**
- *  Gets file substring.
+ *  Creates structure for data (specifically for swagger - OpenAPI spec).
  *
- *  @param path - Dir / file path.
- *  @param substr - Substring to get.
- *  @param [file] - File, in order not to read manually.
- */
-export function getSubstring(path: string, substr: string | RegExp, providedFile?: string | Buffer): ISubstring {
-  if (!existsSync(path)) return;
-
-  const file = providedFile as string || readFileSync(path, 'utf8');
-
-  let start: number;
-  let length: number;
-  let end: number;
-
-  const match = file.match(substr);
-  const indexOf = file.indexOf(substr as string);
-
-  // If as RegExp found. Else -> if string found.
-  if (match && match[0] && match.index !== -1) {
-    start = match.index;
-    length = match[0].length;
-    end = start + length;
-  } else if (indexOf !== -1 && typeof substr === 'string') {
-    start = indexOf;
-    length = substr.length;
-    end = start + length;
-  }
-
-  return start !== undefined && length !== undefined && end !== undefined
-    ? { start, length, end }
-    : undefined;
-}
-
-/**
- *  Inserts (replaces) data into file.
- *
- *  @param path - File path.
- *  @param data - Data to insert.
- *  @param [substr] - String | RegExp, by which to get substring to define insert position.
- *  @param [mode='a'] - Defines mode: after substr, before or replace.
- *  @param [returnFile=false] - Whether to return updated file.
- */
-export function insert(
-  path: string, data: string, substr?: string | RegExp, mode: 'a' | 'b' | 'r' = 'a', returnFile = false,
-): string {
-  const file = readFileSync(path, 'utf8');
-  if (!file) return;
-
-  // Get position to insert (to the end of file by default)
-  let index = file.length;
-
-  if (mode === 'a' || mode === 'b') {
-    const { start, end } = getSubstring(path, substr, file) || { };
-
-    if (mode === 'a' && end) index = end;
-    else if (mode === 'b' && start) index = start;
-
-    // Get file text, which would be overwriten by new
-    const substring = file.substring(index);
-
-    const text = Buffer.from(data + substring);
-
-    const fd = openSync(path, 'r+');
-    writeSync(fd, text, 0, text.length, index);
-    closeSync(fd);
-  } else if (mode === 'r') {
-    const replaced = file.replace(substr, data);
-    writeFileSync(path, replaced, 'utf-8');
-  } else return;
-
-  if (returnFile) return readFileSync(path, 'utf8');
-}
-
-/**
- *  Creates structure for data (specifically for swagger)
- *
- *  @param data - Original data object, for which there would
- *  be created a structure
+ *  @param data - Original data object, for which there would be created a structure.
  */
 export const createDataStructure = <T extends GenericObject | string | number | boolean>(
   data: T,
@@ -274,9 +199,5 @@ export const createDataStructure = <T extends GenericObject | string | number | 
   return structure;
 };
 
-/**
- *  Gets file Extension from file name
- *
- *  @param filename - full file name
- */
+/** Gets file extension from provided fileName */
 export const getFileExtension = (filename: string): string => (filename ? filename.split('.').pop() : filename);

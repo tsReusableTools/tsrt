@@ -1,5 +1,6 @@
 import { IOrderedItem } from './types';
 import { parseTypes } from './utils';
+import { throwHttpError } from './HttpError';
 
 /**
  *  Checks whether array of ordered items has items withour order / with duplicating orders
@@ -97,22 +98,16 @@ export const reorderItemsWithDuplicatingOrders = <T extends GenericObject = IOrd
  */
 export const reorderItemsInArray = <I extends IOrderedItem>(
   reorderedArray: I[], originalData: I[],
-): IMsg<I[]> => {
+): I[] => {
   let result = [...parseTypes(originalData)];
-  let response: IMsg;
   let withoutOrders = false;
-
-  /* eslint-disable-next-line */
-  const respond = (status: number, data: any): IMsg => ({
-    status, data, statusText: status === 200 ? 'Ok' : 'Bad request',
-  });
 
   originalData.forEach((item) => {
     if (item.order === null) withoutOrders = true;
   });
 
   if (withoutOrders || !reorderedArray || !reorderedArray.length) {
-    return respond(200, reorderItemsWithDuplicatingOrders(provideOrderForItemsWithoutIt(originalData)));
+    return reorderItemsWithDuplicatingOrders(provideOrderForItemsWithoutIt(originalData));
   }
 
   let min = 0;
@@ -126,13 +121,13 @@ export const reorderItemsInArray = <I extends IOrderedItem>(
   reorderedArray.forEach((newReorderingItem) => {
     /* eslint-disable-next-line */
     if (!newReorderingItem || (!newReorderingItem.order && newReorderingItem.order !== 0) || !newReorderingItem.id) {
-      response = respond(400, 'Invalid new ordered array. Id and order are necessary fields for each item and should not be negative');
+      throwHttpError.badRequest('Invalid new ordered array. Id and order are necessary fields for each item and should not be negative');
       return;
     }
 
     const prevReorderingItem = result.find((item) => item.id === newReorderingItem.id);
     if (!prevReorderingItem) {
-      response = respond(400, `Invalid new ordered array. Provided invalid item id: ${newReorderingItem.id}`);
+      throwHttpError.badRequest(`Invalid new ordered array. Provided invalid item id: ${newReorderingItem.id}`);
       return;
     }
 
@@ -145,7 +140,7 @@ export const reorderItemsInArray = <I extends IOrderedItem>(
     // }
 
     if (newReorderingItem.order > max || newReorderingItem.order < min) {
-      response = respond(400, `Invalid new ordered array. Provided invalid item order: ${newReorderingItem.order}`);
+      throwHttpError.badRequest(`Invalid new ordered array. Provided invalid item order: ${newReorderingItem.order}`);
       return;
     }
 
@@ -168,9 +163,7 @@ export const reorderItemsInArray = <I extends IOrderedItem>(
 
     reordered.sort((a: GenericObject, b: GenericObject) => a.order - b.order);
     result = reorderItemsWithDuplicatingOrders(reordered);
-
-    response = respond(200, result);
   });
 
-  return response;
+  return result;
 };

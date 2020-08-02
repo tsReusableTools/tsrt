@@ -3,7 +3,6 @@ import chalk from 'chalk';
 import { createLogger, transports, format, LoggerOptions } from 'winston';
 
 import { ILogger, ICustomLogger } from './types';
-import { singleton } from './utils';
 
 /** Helper -> define standart chalk color */
 const defineColor = (lvl: string, title: string): string => {
@@ -64,7 +63,7 @@ const myFormat = format.printf((props) => {
 });
 
 /** Custom winston logger, for generating pretty logs over app */
-class Logger {
+export class Logger {
   private _log: ILogger;
 
   public info: ICustomLogger;
@@ -96,4 +95,4 @@ class Logger {
   }
 }
 
-export const log = singleton(Logger);
+export const log = new Logger();

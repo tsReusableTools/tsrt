@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./dist",
     "module": "commonjs",
     "target": "es2015",
+    "importHelpers": true,
     "alwaysStrict": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "sourceMap": true,
-    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "baseUrl": ".",
-    "outDir": "./dist"
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "declaration": true
   }
 }

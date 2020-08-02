@@ -1,124 +1,99 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import stc from 'http-status';
 
-import { isEmpty } from './utils';
+import { msgAlias } from './types';
 
-/** Creates basic note with default status (200) and statusText (Ok) */
-export const note = <T = string>(
-  status: number = stc.OK, data?: T, endPoint?: string,
-  method?: string, requestFrom?: string, params?: GenericObject,
-  text?: string,
-): IMsg<T> => {
-  const statusText = text || (stc as GenericObject)[status];
+/** Creates msg w/ same interface as HttpError */
+export function msg<T = any>(config: Partial<IHttpError<T>>): IHttpError<T>;
+export function msg<T = any>(statusCode: number, customData?: T, customCode?: number | string): IHttpError<T>;
+export function msg<T = any>(firstArg: number | Partial<IHttpError<T>>, customData?: T, customCode?: number | string): IHttpError<T> {
+  const status = (firstArg && typeof firstArg === 'object' ? firstArg.status : firstArg as number) || stc.OK;
+  const data = (firstArg && typeof firstArg === 'object' ? firstArg.data : customData) || (stc as GenericObject)[status];
+  const code = (firstArg && typeof firstArg === 'object' ? firstArg.code : customCode);
+  const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+  const statusText = (stc as GenericObject)[status];
+  return { message, data, status, statusText, code };
+}
 
-  const response: IMsg = { status, statusText };
+msg.ok = ((data, code) => msg(stc.OK, data, code)) as msgAlias;
+msg.created = ((data, code) => msg(stc.CREATED, data, code)) as msgAlias;
 
-  if (requestFrom) response.requestFrom = requestFrom;
-  if (method) response.method = method.toUpperCase();
-  if (endPoint) response.endPoint = endPoint;
-  if (params && !isEmpty(params)) response.params = params;
+msg.badRequest = ((data, code) => msg(stc.BAD_REQUEST, data, code)) as msgAlias;
+msg.unAuthorized = ((data, code) => msg(stc.UNAUTHORIZED, data, code)) as msgAlias;
+msg.forbidden = ((data, code) => msg(stc.FORBIDDEN, data, code)) as msgAlias;
+msg.notFound = ((data, code) => msg(stc.NOT_FOUND, data, code)) as msgAlias;
+msg.methodNotAllowed = ((data, code) => msg(stc.METHOD_NOT_ALLOWED, data, code)) as msgAlias;
+msg.conflict = ((data, code) => msg(stc.CONFLICT, data, code)) as msgAlias;
 
-  if (!data && (data as GenericAny) !== false && (data as GenericAny) !== 0) {
-    response.data = (stc as GenericObject)[status];
-  } else if ((data as GenericAny) === false || (data as GenericAny) === 0) {
-    response.data = data;
-  } else if (data && typeof data === 'object' && !isEmpty(data)) {
-    response.data = data;
-  } else if (data && typeof data !== 'object') {
-    response.data = data;
-  } else if (Array.isArray(data)) {
-    response.data = data;
-  }
+msg.internalServerError = ((data, code) => msg(stc.INTERNAL_SERVER_ERROR, data, code)) as msgAlias;
+msg.notImplemented = ((data, code) => msg(stc.NOT_IMPLEMENTED, data, code)) as msgAlias;
+msg.badGateway = ((data, code) => msg(stc.BAD_GATEWAY, data, code)) as msgAlias;
+msg.serviceUnavailable = ((data, code) => msg(stc.SERVICE_UNAVAILABLE, data, code)) as msgAlias;
+msg.gatewayTimeout = ((data, code) => msg(stc.GATEWAY_TIMEOUT, data, code)) as msgAlias;
 
-  return response;
-};
-/* eslint-enable @typescript-eslint/no-explicit-any */
+/** Checks whether provided value is valid HttpError like object */
+msg.isValidConfig = (data: any): boolean => !!(data
+  && Object.hasOwnProperty.call(data, 'status')
+  && Object.hasOwnProperty.call(data, 'data')
+  // && Object.hasOwnProperty.call(data, 'code')
+  // && Object.hasOwnProperty.call(data, 'message')
+  // && Object.hasOwnProperty.call(data, 'statusText')
+);
 
-/** Holds common msg methods */
-export const msg = {
-  /** Alias for note with custom status, data, etc... */
-  note,
+// msg.ok = <T = any>(data?: T): IHttpError<T> => msg(stc.OK, data);
+// msg.created = <T = any>(data?: T): IHttpError<T> => msg(stc.CREATED, data);
 
-  /** Alias for msg with OK (200) status */
-  ok: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.OK, data, endPoint, method, requestFrom, params, text),
+// msg.badRequest = <T = any>(data?: T): IHttpError<T> => msg(stc.BAD_REQUEST, data);
+// msg.unAuthorized = <T = any>(data?: T): IHttpError<T> => msg(stc.UNAUTHORIZED, data);
+// msg.forbidden = <T = any>(data?: T): IHttpError<T> => msg(stc.FORBIDDEN, data);
+// msg.notFound = <T = any>(data?: T, code?: any): IHttpError<T> => msg(stc.NOT_FOUND, data);
+// msg.methodNotAllowed = <T = any>(data?: T): IHttpError<T> => msg(stc.METHOD_NOT_ALLOWED, data);
+// msg.conflict = <T = any>(data?: T): IHttpError<T> => msg(stc.CONFLICT, data);
+//
+// msg.internalServerError = <T = any>(data?: T): IHttpError<T> => msg(stc.INTERNAL_SERVER_ERROR, data);
+// msg.notImplemented = <T = any>(data?: T): IHttpError<T> => msg(stc.NOT_IMPLEMENTED, data);
+// msg.badGateway = <T = any>(data?: T): IHttpError<T> => msg(stc.BAD_GATEWAY, data);
+// msg.serviceUnavailable = <T = any>(data?: T): IHttpError<T> => msg(stc.SERVICE_UNAVAILABLE, data);
+// msg.gatewayTimeout = <T = any>(data?: T): IHttpError<T> => msg(stc.GATEWAY_TIMEOUT, data);
 
-  /** Alias for msg with CREATED (201) status */
-  created: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.CREATED, data, endPoint, method, requestFrom, params, text),
+// export function msg<T = any>(
+//   statusCode: number | Partial<IHttpError<T>> = stc.OK,
+//   customData: T = (typeof statusCode === 'number' ? (stc as GenericObject)[statusCode] : stc['200']) || stc['200'],
+// ): IHttpError<T> {
+//   const status = typeof statusCode === 'number' ? statusCode : (statusCode.status || stc.OK);
+//   const data = typeof statusCode === 'object' ? statusCode.data : customData;
+//   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+//   const statusText = (stc as GenericObject)[status];
+//   return { message, data, status, statusText };
+// }
 
-  /** Alias for msg with BAD_REQUEST (400) status */
-  badRequest: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.BAD_REQUEST, data, endPoint, method, requestFrom, params, text),
+// export function msg<T = any>(customData: T | Partial<IHttpError<T>> = stc['200'] as any, statusCode: number = stc.OK): IHttpError<T> {
+//   const status = 'status' in customData && customData.status ? customData.status : (statusCode || stc.OK);
+//   const data: T = 'data' in customData && customData.data ? customData.data as T : customData as T;
+//   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+//   const statusText = (stc as GenericObject)[status];
+//   return { message, data, status, statusText };
+// }
 
-  /** Alias for msg with UNAUTHORIZED (401) status */
-  unAuthorized: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.UNAUTHORIZED, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with FORBIDDEN (403) status */
-  forbidden: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.FORBIDDEN, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with CONFLICT (409) status */
-  conflict: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.CONFLICT, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with NOT_FOUND (404) status */
-  notFound: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.NOT_FOUND, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with METHOD_NOT_ALLOWED (405) status */
-  notAllowed: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.METHOD_NOT_ALLOWED, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with INTERNAL_SERVER_ERROR (500) status */
-  internalServerError: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.INTERNAL_SERVER_ERROR, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with NOT_IMPLEMENTED (501) status */
-  notImplemented: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.NOT_IMPLEMENTED, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with BAD_GATEWAY (502) status */
-  badGateway: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.BAD_GATEWAY, data, endPoint, method, requestFrom, params, text),
-
-  /** Alias for msg with GATEWAY_TIMEOUT (504) status */
-  gatewayTimeout: <T = string>(
-    data?: T, endPoint?: string,
-    method?: string, requestFrom?: string, params?: GenericObject,
-    text?: string,
-  ): IMsg<T> => note(stc.GATEWAY_TIMEOUT, data, endPoint, method, requestFrom, params, text),
-};
+// export function msg<T = any>(
+//   statusCode: number | Partial<IHttpError<T>> = stc.OK,
+//   customData: T | Partial<IHttpError<T>> = stc['200'] as any,
+// ): IHttpError<T> {
+//   let status: number = typeof statusCode === 'number' ? statusCode : stc.OK;
+//   let data: T = customData as T;
+//
+//   if (typeof statusCode === 'object') {
+//     status = statusCode.status || stc.OK;
+//     data = statusCode.data;
+//   }
+//
+//   if ('status' in customData) status = customData.status || stc.OK;
+//   if ('data' in customData) data = customData.data || (stc as GenericObject)[status];
+//
+//   if (data === null || data === undefined) data = (stc as GenericObject)[status];
+//
+//   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+//   const statusText = (stc as GenericObject)[status];
+//
+//   return { message, data, status, statusText };
+// }

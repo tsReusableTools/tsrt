@@ -1,7 +1,10 @@
 {
-  "name": "ts-utils",
+  "name": "tsu",
   "version": "0.1.0",
   "description": "Typescript utils",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
   "scripts": {
     "dev": "lerna run watch --parallel",
     "build": "lerna clean -y && lerna run build && lerna link",
@@ -9,9 +12,10 @@
     "publish": "npm run bootstrap && lerna publish from-package --yes",
     "audit": "lerna run audit"
   },
-  "keywords": [],
-  "author": "Danyil Moroz",
-  "license": "ISC",
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
   "workspaces": [
     "packages/*"
   ],

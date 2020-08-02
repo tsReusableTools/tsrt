@@ -1,7 +1,7 @@
 import { Sequelize, SequelizeOptions, Model } from 'sequelize-typescript';
-import { log } from '@ts-utils/utils';
+import { log } from '@tsu/utils';
 
-class OrmSequelizeSingleton {
+class BaseOrmSequelize {
   private _connection: Sequelize;
   private _models: { [x: string]: Model };
 
@@ -73,4 +73,4 @@ class OrmSequelizeSingleton {
 }
 
 /** Service for managing database connection over app using Sequelize ORM under the hood */
-export const OrmSequelize = new OrmSequelizeSingleton();
+export const OrmSequelize = new BaseOrmSequelize();

@@ -8,7 +8,7 @@ import { singular } from 'pluralize';
 import {
   IOrderedItem, isEmpty, capitalize, parseTypes, log, reorderItemsInArray,
   hasItemsWithoutOrderOrWithEqualOrders, throwHttpError,
-} from '@ts-utils/utils';
+} from '@tsu/utils';
 
 import {
   IPagedData, IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
@@ -269,13 +269,12 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
       const reordered = reorderItemsInArray(body, availableValue as unknown as C[]);
-      if (reordered.status >= 400) throwHttpError(reordered.status, reordered.data);
 
       /* eslint-disable-next-line no-await-in-loop */
-      for (const item of reordered.data) await this.model.update({ order: item.order }, { where: { id: item.id }, transaction });
+      for (const item of reordered) await this.model.update({ order: item.order }, { where: { id: item.id }, transaction });
 
       transaction.commit();
-      return reordered.data as unknown as I[];
+      return reordered as unknown as I[];
     } catch (err) {
       transaction.rollback();
       this.throwCustomSequelizeError(err);
