@@ -1,12 +1,10 @@
 import { applyDecorators } from '@tsed/core';
-import { Middleware, IMiddleware, UseAuth, IAuthOptions, HeaderParams, Session } from '@tsed/common';
-
-import { AuthService } from '@lib/services';
+import { Middleware, IMiddleware, UseAuth, IAuthOptions, HeaderParams, Session, registerMiddleware } from '@tsed/common';
 
 @Middleware()
 export class AuthorizedMiddleware implements IMiddleware {
   public async use(@Session() session: Express.Session, @HeaderParams('authorization') authorization: string): Promise<void> {
-    await AuthService.verify(session, authorization);
+    // await AuthService.verify(session, authorization);
   }
 }
 
@@ -16,3 +14,5 @@ export function Authorized(options: IAuthOptions = { }): Function {
     UseAuth(AuthorizedMiddleware, options),
   );
 }
+
+registerMiddleware(Authorized);

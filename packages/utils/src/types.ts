@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LeveledLogMethod, LogCallback, Logger } from 'winston';
-import '@tsu/types';
+import '@tsd/types';
 
 /** Type for msg aliases */
 export type msgAlias = <T = any>(data?: T, code?: number | string) => IHttpError<T>
@@ -35,3 +35,6 @@ export interface ILogger {
   debug: ICustomLogger;
   verbose: ICustomLogger;
 }
+
+/* eslint-disable-next-line */
+declare global { namespace Express { interface Request { id: string; } } }

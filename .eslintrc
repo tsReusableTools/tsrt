@@ -86,7 +86,8 @@
         }],
 
         # Ordering for class members. Just defaults
-        "@typescript-eslint/member-ordering": ["error", { default: ["signature", "field", "constructor", "method"] }]
+        # "@typescript-eslint/member-ordering": ["error", { default: ["signature", "field", "constructor", "method"] }]
+        "@typescript-eslint/member-ordering": ["error"]
       }
     }
   ]

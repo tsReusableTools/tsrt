@@ -2,7 +2,7 @@ import { IPipe, OverrideProvider, ParamMetadata, ValidationPipe as BaseValidatio
 import { plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 
-import { throwHttpError } from '@tsu/utils';
+import { throwHttpError } from '@tsd/utils';
 
 @OverrideProvider(BaseValidationPipe)
 export class ValidationPipe extends BaseValidationPipe implements IPipe {

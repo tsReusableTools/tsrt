@@ -1,3 +1,5 @@
+import { isEmpty } from './objectUtils';
+
 /** Checks whether environment is NodeJS */
 export function isNodeJsEnvironment(): void {
   if (!process) throw Error('This method could be used only in NodeJS environment');
@@ -19,16 +21,8 @@ export const addZero = (data: number): string => (+data < 10 && +data >= 0 ? `0$
 /** Capitalizes provided string */
 export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1);
 
-/** Checks if provided object isEmpty */
-export const isEmpty = (obj: GenericObject): boolean => obj && !Object.keys(obj).length;
-
 /** Removes params from provided url */
 export const removeParams = (url: string): string => url.replace(/\?.*/gi, '');
-
-/** Gets list of provided object values. Example: { a: 1, b: 2 } -> [1, 2] */
-export function getObjectValuesList<T extends GenericObject, K extends keyof T>(object: T): Array<T[K]> {
-  return Object.keys(object).map((key) => object[key]);
-}
 
 /**
  *  Parses data and corrects types: from string to boolean | number.
@@ -201,3 +195,10 @@ export const createDataStructure = <T extends GenericObject | string | number | 
 
 /** Gets file extension from provided fileName */
 export const getFileExtension = (filename: string): string => (filename ? filename.split('.').pop() : filename);
+
+/** Creates RegExp for not containing provided string | strings  */
+export function getNotContainingStringsRegExp(str: string | string[]): RegExp {
+  return typeof str === 'string'
+    ? new RegExp(`^((?!${str}).)*$`)
+    : new RegExp(`^((?!(${str.join('|')})).)*$`);
+}

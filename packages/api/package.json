@@ -1,5 +1,5 @@
 {
-  "name": "@tsu/api",
+  "name": "@tsd/api",
   "version": "0.1.0",
   "description": "Typescript utils: api",
   "keywords": [],
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsu/types": "file:../types",
-    "@tsu/utils": "file:../utils",
+    "@tsd/types": "file:../types",
+    "@tsd/utils": "file:../utils",
     "busboy": "0.3.1"
   },
   "devDependencies": {

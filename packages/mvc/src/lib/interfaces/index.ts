@@ -1,6 +1,10 @@
-/* eslint-disable-next-line */
-export * from './global';
-export * from './IBaseSequelizeCrudRepository';
+// import { Configuration } from '@tsed/common';
+import { CorsOptions } from 'cors';
+import { IParseOptions } from 'qs';
 
-export * from './models/IModels';
-export * from './models/IUser';
+export interface IApplicationSettings extends TsED.Configuration {
+  webApp?: string | Record<string, string>;
+  apiBase?: string | string[];
+  cors?: CorsOptions;
+  qs?: IParseOptions;
+}

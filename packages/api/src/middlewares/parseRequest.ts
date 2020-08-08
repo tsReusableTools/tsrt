@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { parseTypes, isEmpty, parseArrayLikeObjectIntoArray } from '@tsu/utils';
+import { parseTypes, isEmpty, parseArrayLikeObjectIntoArray } from '@tsd/utils';
 
 /** Parses request: query, params, body & headers and corrects data types */
 export function parseRequest(

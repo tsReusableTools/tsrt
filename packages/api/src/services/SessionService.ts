@@ -6,7 +6,7 @@ import expressSession from 'express-session';
 import RedisStore from 'connect-redis';
 import Cryptr from 'cryptr';
 
-import { throwHttpError, log, singleton } from '@tsu/utils';
+import { throwHttpError, log, singleton } from '@tsd/utils';
 
 import { ISessionOptions, ISessionConfig, ISessionService, ISession } from '../types';
 import { BaseCacheService } from './BaseCacheService';

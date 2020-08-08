@@ -12,7 +12,7 @@
 // /** Interface for StreamService AWS S3 configuration */
 // export interface IStreamServiceS3Config {
 //   bucketName: string;
-//   bucketSubDir: string;
+//   bucketsdbDir: string;
 //   credentials: {
 //     accessKeyId: string;
 //     secretAccessKey: string;

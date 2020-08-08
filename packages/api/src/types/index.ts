@@ -1,4 +1,4 @@
-import '@tsu/types';
+import '@tsd/types';
 
 export * from './IBaseCacheService';
 // export * from './IRequestValidator';

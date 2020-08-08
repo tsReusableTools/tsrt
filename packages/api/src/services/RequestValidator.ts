@@ -2,7 +2,7 @@
 // import { Part } from 'multiparty';
 // import { merge } from 'lodash';
 //
-// import { getFileExtension, singleton, msg } from '@tsu/utils';
+// import { getFileExtension, singleton, msg } from '@tsd/utils';
 //
 // import {
 //   IRequestValidator, IRequestValidatorPolicy, IRequestValidatorFileMetadata,

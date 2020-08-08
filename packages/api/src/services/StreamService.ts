@@ -5,7 +5,7 @@
 // import { IncomingMessage } from 'http';
 // import { Form, Part } from 'multiparty';
 //
-// import { msg, singleton, parseTypes, log } from '@tsu/utils';
+// import { msg, singleton, parseTypes, log } from '@tsd/utils';
 //
 // import {
 //   IStreamService, IStreamServiceDownloadResponse,
@@ -281,7 +281,7 @@
 //         ACL: options.acl || 'public-read',
 //         Bucket: config.s3Config.bucketName,
 //         Body: stream,
-//         Key: this.createFileName(options.fileName, config.s3Config.bucketSubDir),
+//         Key: this.createFileName(options.fileName, config.s3Config.bucketsdbDir),
 //         ContentType: contentType,
 //       };
 //
@@ -328,7 +328,7 @@
 //       ACL,
 //       Bucket: config.s3Config.bucketName,
 //       Body: part,
-//       Key: this.createFileName(part.filename, config.s3Config.bucketSubDir),
+//       Key: this.createFileName(part.filename, config.s3Config.bucketsdbDir),
 //       ContentType: part.headers['content-type'],
 //     };
 //
@@ -371,10 +371,10 @@
 //    *  Creates file name before save in AWS S3
 //    *
 //    *  @param originalName - Modifies original file name (adding timestamp)
-//    *  @param bucketSubDir - Bucket sub directory
+//    *  @param bucketsdbDir - Bucket sub directory
 //    */
-//   private createFileName(originalName: string, bucketSubDir: string): string {
-//     return `${bucketSubDir}/${Date.now().toString()}_${originalName}`;
+//   private createFileName(originalName: string, bucketsdbDir: string): string {
+//     return `${bucketsdbDir}/${Date.now().toString()}_${originalName}`;
 //   }
 //
 //   /**
@@ -400,7 +400,7 @@
 //     const { s3Config } = config;
 //
 //     if (
-//       !s3Config || !s3Config.bucketName || !s3Config.bucketSubDir
+//       !s3Config || !s3Config.bucketName || !s3Config.bucketsdbDir
 //       || !s3Config.credentials || !s3Config.credentials.accessKeyId || !s3Config.credentials.secretAccessKey
 //     ) {
 //       throw new Error('Incorrect config provided');

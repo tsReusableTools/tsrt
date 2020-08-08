@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import * as contextStore from 'express-http-context';
 
-import { singleton } from '@tsu/utils';
+import { singleton } from '@tsd/utils';
 
 import { combineMiddlewares } from '../utils';
 

@@ -2,7 +2,7 @@
 import { promisify } from 'util';
 import * as redis from 'redis';
 
-import { throwHttpError, log } from '@tsu/utils';
+import { throwHttpError, log } from '@tsd/utils';
 
 import { IBaseCacheService, ICacheRecordsList } from '../types';
 

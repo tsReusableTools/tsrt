@@ -64,13 +64,13 @@ const myFormat = format.printf((props) => {
 
 /** Custom winston logger, for generating pretty logs over app */
 export class Logger {
-  private _log: ILogger;
-
   public info: ICustomLogger;
   public error: ICustomLogger;
   public warn: ICustomLogger;
   public debug: ICustomLogger;
   public verbose: ICustomLogger;
+
+  private _log: ILogger;
 
   constructor(options: LoggerOptions = { }) {
     this.init(options);
