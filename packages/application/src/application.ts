@@ -1,10 +1,11 @@
-import express, { Request, Response, json, urlencoded } from 'express';
+import express, { Request, Response, json, urlencoded, Router } from 'express';
 import cors from 'cors';
 import { parse } from 'qs';
 import helmet from 'helmet';
 import merge from 'deepmerge';
+import glob from 'glob';
 
-import { log } from '@tsd/utils';
+import { log, isEmpty, getObjectValuesList } from '@tsd/utils';
 import { parseRequest } from '@tsd/api';
 
 import {
@@ -111,7 +112,10 @@ export class Application<T extends IApplication = IApplication> {
   protected setRouter(routers: ApplicationRouters = this._settings.routers): void {
     this.setManualMiddlewaresOrder();
     if (!routers) return;
-    routers.forEach((item) => (typeof item === 'object' ? this._app.use(item.path, item.router) : this._app.use(item)));
+
+    routers.forEach((item) => (typeof item === 'object'
+      ? this._app.use(item.path, this.getRouters(item.router))
+      : this._app.use(this.getRouters(item))));
   }
 
   protected setNotFoundHandler(): void {
@@ -156,5 +160,23 @@ export class Application<T extends IApplication = IApplication> {
     const dir = webAppPath.replace(reg, '');
     const index = webAppPath.match(reg) ? webAppPath : `${webAppPath}/index.html`;
     return { dir, index };
+  }
+
+  protected getRouters(router: string | Router): Router[] {
+    if (typeof router !== 'string') return [router];
+
+    const paths = glob.hasMagic(router) ? glob.sync(router) : [router];
+    return paths
+      .map((item) => {
+        /* eslint-disable-next-line */
+        const importedRouter = require(item);
+        const routerInstance = importedRouter && importedRouter.default
+          ? importedRouter.default
+          : getObjectValuesList(importedRouter)
+            .find((rtr) => typeof rtr === 'function' && rtr && rtr.stack && rtr.stack[0] && rtr.stack[0].route);
+
+        return routerInstance;
+      })
+      .filter((item) => !isEmpty(item));
   }
 }

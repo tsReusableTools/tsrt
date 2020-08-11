@@ -57,17 +57,18 @@ export function isNil(target: any): boolean {
   return target === undefined || target === null;
 }
 
+/**
+ *  Checks whether provided value is:
+ *  1. empty if object / array.
+ *  2. empty if string.
+ *  3. null or undefined.
+ */
 export function isEmpty(target: any): boolean {
   return (isObject(target) && !Object.keys(target).length) || (isString(target) && target === '') || isNil(target);
 }
 
+/** Checks that provide object is empty or have all props null or undefined */
 export function isEmptyNil(target: GenericObject): boolean {
-  const list = getObjectValuesList(target);
-  // console.log('list >>>', list);
-  const found = list.every((item) => isNil(item));
-  // console.log('found >>>', found);
-  // console.log('isObject(target) >>>', isObject(target));
-  // console.log(' >>>', getObjectValuesList(target).every((item) => isNil(item)));
   return isObject(target) && getObjectValuesList(target).every((item) => isNil(item));
 }
 

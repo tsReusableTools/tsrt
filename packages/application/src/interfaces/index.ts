@@ -30,7 +30,9 @@ export interface IApplicationConfig {
   setGlobalErrorHandler(): void;
 }
 
-export type ApplicationRouters = Array<Router | { path: string | RegExp; router: Router }>;
+export type ApplicationRouters = ApplicationRouter[];
+
+export type ApplicationRouter = Router | string | { path: string | RegExp; router: Router | string };
 
 export type ApplicationStatics = string[] | Record<string, string>;
 
