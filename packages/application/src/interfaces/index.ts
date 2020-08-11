@@ -15,6 +15,7 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
   qs?: IParseOptions;
   helmet?: IHelmetConfiguration;
   routers?: ApplicationRouters;
+  useDefaultRouters?: boolean;
 }
 
 export interface IApplicationConfig {

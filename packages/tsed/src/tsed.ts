@@ -2,7 +2,7 @@ import { ServerLoader, Inject, PlatformApplication } from '@tsed/common';
 
 import { getNotContainingStringsRegExp } from '@tsd/utils';
 
-import { Application } from './application';
+import { Application } from '@tsd/application';
 
 export class BaseServer {
   @Inject() public app: PlatformApplication;

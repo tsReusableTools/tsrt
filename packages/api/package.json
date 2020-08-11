@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "watch": "tsc --watch",
+    "watch_comment": "tsc --watch",
     "build": "npm install && rm -rf dist && tsc"
   },
   "engines": {

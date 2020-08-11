@@ -6,13 +6,15 @@ import merge from 'deepmerge';
 import glob from 'glob';
 
 import { log, isEmpty, getObjectValuesList } from '@tsd/utils';
-import { parseRequest } from '@tsd/api';
 
 import {
   IApplication, IApplicationConfig, IApplicationSettings, ApplicationRouters, ApplicationStatics,
   ApplicationWebApps, TypeOrArrayOfTypes,
 } from './interfaces';
-import { sendResponseHandler, globalErrorHandler, notFoundHandler, requestIdHandler } from './middlewares';
+import {
+  sendResponseHandler, globalErrorHandler, notFoundHandler, requestIdHandler, parseRequestHandler,
+} from './middlewares';
+import controllers from './controllers';
 
 export class Application<T extends IApplication = IApplication> {
   private _app: T;
@@ -20,11 +22,12 @@ export class Application<T extends IApplication = IApplication> {
     apiBase: '/api/v1',
     cors: { credentials: true, origin: true },
     qs: { strictNullHandling: true, comma: true },
+    useDefaultRouters: true,
     routers: [],
   };
   private _isManualMiddlewaresOrder = false;
 
-  constructor(settings: IApplicationSettings<T>, app?: T) {
+  constructor(settings: IApplicationSettings<T> = { }, app?: T) {
     this._settings = merge({ ...this._settings }, { ...settings });
     this._app = app || settings.app || express() as unknown as T;
   }
@@ -83,8 +86,7 @@ export class Application<T extends IApplication = IApplication> {
       .use(urlencoded({ extended: true }))
       .use(cors(this._settings.cors))
       .use(helmet(this._settings.helmet))
-      .use(parseRequest);
-    // .use(requestContext.attachContext);
+      .use(parseRequestHandler);
   }
 
   protected setRequestIdMiddleware(): void {
@@ -111,6 +113,10 @@ export class Application<T extends IApplication = IApplication> {
 
   protected setRouter(routers: ApplicationRouters = this._settings.routers): void {
     this.setManualMiddlewaresOrder();
+    if (this._settings.useDefaultRouters && this._settings.apiBase) {
+      if (typeof this._settings.apiBase === 'string') this.addRoutes({ path: this._settings.apiBase, router: controllers });
+      else this._settings.apiBase.forEach((path) => { this.addRoutes({ path, router: controllers }); });
+    }
     if (!routers) return;
 
     routers.forEach((item) => (typeof item === 'object'
