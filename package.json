@@ -5,6 +5,7 @@
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
+  "private": true,
   "scripts": {
     "dev": "lerna run watch --parallel",
     "build": "lerna clean -y && lerna run build && lerna link",

@@ -9,30 +9,33 @@ import '@tsed/swagger';
 
 // import { Application } from '@tsd/application';
 
-export const rootDir = __dirname;
-console.log('rootDir ___', `${rootDir}/controllers/**/*.ts`);
+import { HealthController } from './controllers/HealthController';
+
+const API = '/api/v1';
 
 @Configuration({
-  rootDir,
-  commonServerDir: rootDir,
-  mount: { '/api/v1': [`${rootDir}/controllers/**/*.ts`] },
+  rootDir: __dirname,
+  commonServerDir: __dirname,
+  mount: { [API]: [`${__dirname}/controllers/**/*.ts`] },
+  // mount: { [API]: [HealthController] },
   httpsPort: false,
-  swagger: [{
-    path: '/api/v1/api-docs',
-    // specPath: `${__dirname}/../spec/swagger.default.json`,
-    // cssPath: `${__dirname}/../spec/style.css`,
-  }],
-  exclude: ['**/*.spec.ts'],
+  swagger: [{ path: `${API}/api-docs` }],
+  exclude: ['**/*.spec.ts', '**/*.d.ts'],
 })
 export class Server {
   @Inject() public app: PlatformApplication;
   @Configuration() public settings: Configuration;
 
-  public $onInit(): void {
-    console.log('this.settings.mount >>>', this.settings.mount);
+  public $beforeInit(): void {
+    console.log('this.settings.mount >>>', this.settings);
+    this.app.use((req: any, res: any, next: any) => {
+      console.log('1 >>>', 1);
+      next();
+    });
   }
 
   public $beforeRoutesInit(): void {
+    console.log('this.app >>>', this.app.raw.settings);
     this.app
       .use(cors())
       .use(json())

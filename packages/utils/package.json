@@ -20,13 +20,15 @@
     "chalk": "4.1.0",
     "http-status": "1.4.2"
   },
-  "devDependencies": {
-    "@types/node": "13.7.4"
-  },
   "peerDependencies": {},
   "optionalDependencies": {
     "@types/express": "^4.17.6",
     "express": "^4.17.1",
     "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "13.7.4",
+    "tslib": "^1.11.0",
+    "typescript": "^3.9.7"
   }
 }

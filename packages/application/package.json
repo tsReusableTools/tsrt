@@ -16,18 +16,19 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "cors": "^2.8.5",
+    "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",
     "glob": "7.1.6",
-    "helmet": "^3.23.3",
-    "qs": "^6.9.4"
+    "helmet": "3.23.3",
+    "qs": "6.9.4"
   },
   "peerDependencies": {
     "@tsd/types": "file:../../../tsd/packages/types",
     "@tsd/utils": "file:../../../tsd/packages/utils",
     "express": "^4.17.1"
   },
+  "optionalDependencies": {},
   "devDependencies": {
     "@tsd/types": "file:../../../tsd/packages/types",
     "@tsd/utils": "file:../../../tsd/packages/utils",
@@ -38,6 +39,7 @@
     "@types/helmet": "0.0.47",
     "@types/node": "14.0.27",
     "express": "^4.17.1",
-    "typescript": "3.9.7"
+    "tslib": "^1.11.0",
+    "typescript": "^3.9.7"
   }
 }
