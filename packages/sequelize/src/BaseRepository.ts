@@ -484,8 +484,9 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /* eslint-disable no-param-reassign */
   private attributesParser(select: string | string[], query?: FindAndCountOptions): string[] {
     let attributes: string[] = [];
-    if (select) attributes = Array.isArray(select) ? [...select] : select.split(',');
+    if (select) attributes = Array.isArray(select) ? [...select] : String(select).split(',');
     if (attributes) attributes = attributes.map((item) => String(item).trim());
+
     if (query && attributes && attributes.length) query.attributes = attributes;
     return attributes;
   }
@@ -493,7 +494,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   private includeParser(include: string | string[], query?: FindAndCountOptions): IncludeOptions[] {
     let customInclude: IncludeOptions[] = [];
 
-    let associationsArray = Array.isArray(include) ? [...include] : include.split(',');
+    let associationsArray = Array.isArray(include) ? [...include] : String(include).split(',');
     associationsArray = associationsArray.filter((item) => !!item);
     associationsArray.forEach((item) => customInclude.push(this.createSequelizeAssociations(item)));
 
@@ -508,10 +509,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     const order: OrderItem[][] = [];
 
     if (sort && (typeof sort === 'string' || Array.isArray(sort))) {
-      const groups: string[] = Array.isArray(sort) ? [...sort] : sort.split(',');
+      const groups: string[] = Array.isArray(sort) ? [...sort] : String(sort).split(',');
 
       groups.forEach((keyValuePair) => {
-        const [key, value] = keyValuePair.trim().split(':');
+        const [key, value] = String(keyValuePair).trim().split(':');
         if (!key || !value) {
           throwHttpError.badRequest('Invalid `sort` query param provided. The following syntax is allowed - `property:direction`');
         }
@@ -589,7 +590,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       }
 
       if (key.indexOf('.') !== -1) {
-        const [association] = key.split('.');
+        const [association] = String(key).split('.');
 
         if (Object.keys(associations).includes(association)) {
           // This one is necessary in order to JOIN table, throught which we are filtering
@@ -647,7 +648,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   private createSequelizeAssociations(association: string): IncludeOptions {
     if (!association) throwHttpError.badRequest(`Invalid association alias \`${association}\``);
 
-    const nestedAssociations = association.split('.');
+    const nestedAssociations = String(association).split('.');
     const parentAssociation: IncludeOptions = { };
     if (nestedAssociations.length === 1) parentAssociation.association = association;
     else {
@@ -704,7 +705,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const insertionOptions: IBaseRepositoryExtendedOptions = { associate: true, replaceOnJoin: true, returnData: true, ...options };
       const data = isEmpty(through) ? { } : { through: { ...through } };
-      const include: string[] = [];
+      let include: string[] = [];
       const promises: Array<Promise<void>> = [];
 
       Object.keys(this.model.associations).forEach((key) => {
@@ -715,8 +716,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       if (promises.length) await Promise.all(promises);
 
-      if (insertionOptions.include && typeof insertionOptions.include === 'string') include.push(insertionOptions.include);
-      else if (insertionOptions.include) include.push(...insertionOptions.include);
+      if (insertionOptions.include) include = include.concat(insertionOptions.include).filter(Boolean);
       if (!insertionOptions.returnData) { return; }
 
       return this.read({ ...options, include }, this.mapSequelizeModelToPlainObject(entity).id);
