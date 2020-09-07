@@ -1,6 +1,6 @@
 {
   "name": "@tsd/application",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typescript utils: application",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -28,10 +28,9 @@
     "@tsd/utils": "^0.1.0",
     "express": "^4.17.1"
   },
-  "optionalDependencies": {},
   "devDependencies": {
-    "@tsd/types": "^0.1.0",
-    "@tsd/utils": "^0.1.0",
+    "@tsd/types": "^0.1.1",
+    "@tsd/utils": "^0.1.1",
     "@types/cors": "2.8.6",
     "@types/express": "4.17.7",
     "@types/express-request-id": "1.4.1",
