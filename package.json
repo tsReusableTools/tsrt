@@ -1,7 +1,7 @@
 {
   "name": "tsd",
   "version": "0.1.0",
-  "description": "Typescript utils",
+  "description": "Typescript duck",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -10,10 +10,11 @@
     "packages/*"
   ],
   "scripts": {
+    "clean": ". ./scripts/clean.sh",
     "lint": "eslint . --ext .ts",
-    "dev": "lerna run watch --parallel",
     "watch": "lerna run watch --parallel",
     "build": "lerna clean -y && lerna run build && lerna link",
+    "update": "lerna version --no-push",
     "publish": "npm run bootstrap && lerna publish from-package --yes"
   },
   "engines": {

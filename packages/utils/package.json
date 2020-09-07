@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "file:../types",
+    "@tsd/types": "^0.1.0",
     "chalk": "4.1.0",
     "http-status": "1.4.2"
   },

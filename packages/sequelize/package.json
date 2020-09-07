@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "file:../types",
-    "@tsd/utils": "file:../utils",
+    "@tsd/types": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
     "pluralize": "8.0.0"
   },
   "peerDependencies": {

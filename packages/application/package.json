@@ -24,14 +24,14 @@
     "qs": "6.9.4"
   },
   "peerDependencies": {
-    "@tsd/types": "file:../../../tsd/packages/types",
-    "@tsd/utils": "file:../../../tsd/packages/utils",
+    "@tsd/types": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
     "express": "^4.17.1"
   },
   "optionalDependencies": {},
   "devDependencies": {
-    "@tsd/types": "file:../../../tsd/packages/types",
-    "@tsd/utils": "file:../../../tsd/packages/utils",
+    "@tsd/types": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
     "@types/cors": "2.8.6",
     "@types/express": "4.17.7",
     "@types/express-request-id": "1.4.1",

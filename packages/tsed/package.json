@@ -18,11 +18,10 @@
   "dependencies": {
     "read-pkg-up": "7.0.1"
   },
-  "optionalDependencies": {},
   "peerDependencies": {
-    "@tsd/application": "file:../../../tsd/packages/application",
-    "@tsd/types": "file:../../../tsd/packages/types",
-    "@tsd/utils": "file:../../../tsd/packages/utils",
+    "@tsd/application": "^0.1.0",
+    "@tsd/types": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
     "@tsed/ajv": "^5.61.1",
     "@tsed/common": "^5.61.1",
     "@tsed/core": "^5.61.1",
@@ -39,10 +38,11 @@
     "qs": "^6.9.4",
     "reflect-metadata": "^0.1.13"
   },
+  "optionalDependencies": {},
   "devDependencies": {
-    "@tsd/application": "file:../../../tsd/packages/application",
-    "@tsd/types": "file:../../../tsd/packages/types",
-    "@tsd/utils": "file:../../../tsd/packages/utils",
+    "@tsd/application": "^0.1.0",
+    "@tsd/types": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
     "@tsed/ajv": "^5.61.1",
     "@tsed/common": "^5.61.1",
     "@tsed/core": "^5.61.1",
