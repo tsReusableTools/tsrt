@@ -1,12 +1,16 @@
 {
-  "packages": [
-    "packages/*"
-  ],
-  "version": "independent",
+  "npmClient": "yarn",
+  "useWorkspaces": true,
+  "packages": ["packages/*"],
+  "version": "0.1.0",
   "stream": true,
   "command": {
     "bootstrap": {
       "hoist": false
+    },
+    "version": {
+      "allowBranch": "master",
+      "message": "chore(release): publish %s"
     }
 	}
 }

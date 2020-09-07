@@ -29,18 +29,21 @@ declare global {
     data: T;
     status: number;
     statusText: string;
-    code?: number | string;
+    code: number | string | undefined;
+    _isValid: boolean;
   }
 
   /** Interface for common API response */
   export interface IApiResponse<T = any> {
     status: number;
     statusText: string;
-    requestFrom: string;
     method: string;
-    endPoint: string;
-    params?: GenericObject;
+    url: string;
+    referer?: string;
+    reqId?: number;
     commit?: string;
+    params?: GenericObject;
+    query?: GenericObject;
     data: T;
   }
 }

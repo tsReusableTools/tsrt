@@ -2,17 +2,31 @@
 import stc from 'http-status';
 
 import { msgAlias } from './types';
+import { isNil } from './objectUtils';
+
+const isValid = (data: any): boolean => !!(data
+  && typeof data === 'object'
+  && Object.hasOwnProperty.call(data, 'message')
+  && Object.hasOwnProperty.call(data, 'data')
+  && Object.hasOwnProperty.call(data, 'status')
+  && Object.hasOwnProperty.call(data, 'statusText')
+  && Object.hasOwnProperty.call(data, 'code')
+  && Object.hasOwnProperty.call(data, '_isValid')
+  && data._isValid
+);
 
 /** Creates msg w/ same interface as HttpError */
 export function msg<T = any>(config: Partial<IHttpError<T>>): IHttpError<T>;
-export function msg<T = any>(statusCode: number, customData?: T, customCode?: number | string): IHttpError<T>;
-export function msg<T = any>(firstArg: number | Partial<IHttpError<T>>, customData?: T, customCode?: number | string): IHttpError<T> {
-  const status = (firstArg && typeof firstArg === 'object' ? firstArg.status : firstArg as number) || stc.OK;
-  const data = (firstArg && typeof firstArg === 'object' ? firstArg.data : customData) || (stc as GenericObject)[status];
-  const code = (firstArg && typeof firstArg === 'object' ? firstArg.code : customCode);
+export function msg<T = any>(statusCode: number, body?: T, customCode?: number | string): IHttpError<T>;
+export function msg<T = any>(config: number | Partial<IHttpError<T>>, body?: T, customCode?: number | string): IHttpError<T> {
+  const status = (config && typeof config === 'object' ? config.status : config as number) || stc.OK;
+  const data = (config && typeof config === 'object' ? config.data : body) || (stc as GenericObject)[status];
+  const code = (config && typeof config === 'object' ? config.code : customCode);
+  let _isValid = config && typeof config === 'object' ? config._isValid : true;
+  if (isNil(_isValid)) _isValid = true;
   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
   const statusText = (stc as GenericObject)[status];
-  return { message, data, status, statusText, code };
+  return { message, data, status, statusText, code, _isValid };
 }
 
 msg.ok = ((data, code) => msg(stc.OK, data, code)) as msgAlias;
@@ -32,13 +46,7 @@ msg.serviceUnavailable = ((data, code) => msg(stc.SERVICE_UNAVAILABLE, data, cod
 msg.gatewayTimeout = ((data, code) => msg(stc.GATEWAY_TIMEOUT, data, code)) as msgAlias;
 
 /** Checks whether provided value is valid HttpError like object */
-msg.isValidConfig = (data: any): boolean => !!(data
-  && Object.hasOwnProperty.call(data, 'status')
-  && Object.hasOwnProperty.call(data, 'data')
-  // && Object.hasOwnProperty.call(data, 'code')
-  // && Object.hasOwnProperty.call(data, 'message')
-  // && Object.hasOwnProperty.call(data, 'statusText')
-);
+msg.isValid = isValid;
 
 // msg.ok = <T = any>(data?: T): IHttpError<T> => msg(stc.OK, data);
 // msg.created = <T = any>(data?: T): IHttpError<T> => msg(stc.CREATED, data);
@@ -58,37 +66,44 @@ msg.isValidConfig = (data: any): boolean => !!(data
 
 // export function msg<T = any>(
 //   statusCode: number | Partial<IHttpError<T>> = stc.OK,
-//   customData: T = (typeof statusCode === 'number' ? (stc as GenericObject)[statusCode] : stc['200']) || stc['200'],
+//   body: T = (typeof statusCode === 'number' ? (stc as GenericObject)[statusCode] : stc['200']) || stc['200'],
 // ): IHttpError<T> {
 //   const status = typeof statusCode === 'number' ? statusCode : (statusCode.status || stc.OK);
-//   const data = typeof statusCode === 'object' ? statusCode.data : customData;
+//   const data = typeof statusCode === 'object' ? statusCode.data : body;
 //   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
 //   const statusText = (stc as GenericObject)[status];
 //   return { message, data, status, statusText };
 // }
 
-// export function msg<T = any>(customData: T | Partial<IHttpError<T>> = stc['200'] as any, statusCode: number = stc.OK): IHttpError<T> {
-//   const status = 'status' in customData && customData.status ? customData.status : (statusCode || stc.OK);
-//   const data: T = 'data' in customData && customData.data ? customData.data as T : customData as T;
+// export function msg<T = any>(body: T | Partial<IHttpError<T>> = stc['200'] as any, statusCode: number = stc.OK): IHttpError<T> {
+//   const status = 'status' in body && body.status ? body.status : (statusCode || stc.OK);
+//   const data: T = 'data' in body && body.data ? body.data as T : body as T;
 //   const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
 //   const statusText = (stc as GenericObject)[status];
 //   return { message, data, status, statusText };
 // }
+
+// let status = (isValid(config) && typeof config === 'object' ? config.status : config as number) || stc.OK;
+// if (typeof status !== 'number') status = stc.OK;
+// const data = (isValid(config) && typeof config === 'object' ? config.data : body) || (stc as GenericObject)[status];
+// const code = (isValid(config) && typeof config === 'object' ? config.code : customCode);
+// const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
+// const statusText = (stc as GenericObject)[status];
 
 // export function msg<T = any>(
 //   statusCode: number | Partial<IHttpError<T>> = stc.OK,
-//   customData: T | Partial<IHttpError<T>> = stc['200'] as any,
+//   body: T | Partial<IHttpError<T>> = stc['200'] as any,
 // ): IHttpError<T> {
 //   let status: number = typeof statusCode === 'number' ? statusCode : stc.OK;
-//   let data: T = customData as T;
+//   let data: T = body as T;
 //
 //   if (typeof statusCode === 'object') {
 //     status = statusCode.status || stc.OK;
 //     data = statusCode.data;
 //   }
 //
-//   if ('status' in customData) status = customData.status || stc.OK;
-//   if ('data' in customData) data = customData.data || (stc as GenericObject)[status];
+//   if ('status' in body) status = body.status || stc.OK;
+//   if ('data' in body) data = body.data || (stc as GenericObject)[status];
 //
 //   if (data === null || data === undefined) data = (stc as GenericObject)[status];
 //
