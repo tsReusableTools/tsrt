@@ -1,17 +1,17 @@
-import { log } from './log';
-import { isNodeJsEnvironment } from './utils';
+import { isNodeJsEnvironment } from '@tsd/utils';
+import { log } from '@tsd/logger';
 
 /** Attaches exception handlers */
 export function attachExceptionHandlers(shouldExitProcessOnError = false): void {
   isNodeJsEnvironment();
 
   process.on('uncaughtException', (err) => {
-    log.error(err, ['UNCAUGHT EXCEPTION']);
+    log.error({ message: err });
     if (shouldExitProcessOnError) process.exit(1);
   });
 
   process.on('unhandledRejection', (err) => {
-    log.error(err, ['UNHANDLED REJECTION']);
+    log.error({ message: err });
     if (shouldExitProcessOnError) process.exit(1);
   });
 }

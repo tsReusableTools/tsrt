@@ -1,0 +1,30 @@
+{
+  "name": "@tsd/cache",
+  "version": "0.1.0",
+  "description": "Typescript Duck: cache",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "rm -rf dist && tsc"
+  },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+    "@tsd/logger": "^0.1.0",
+    "@tsd/utils": "^0.1.0",
+    "redis": "3.0.2"
+  },
+  "peerDependencies": { },
+  "devDependencies": {
+    "@types/node": "13.7.4",
+    "@types/redis": "2.8.25",
+    "tslib": "^1.11.0",
+    "typescript": "^4.0.2"
+  }
+}

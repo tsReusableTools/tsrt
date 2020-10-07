@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable import/no-extraneous-dependencies */
 import { Response as Res } from 'express';
 import stc from 'http-status';
 
-import { removeParams, parseTypes } from './utils';
-import { isEmpty, isNil, isEmptyNil } from './objectUtils';
-import { msg } from './msg';
+import { msg, isEmpty, isNil, isEmptyNil, removeParams, parseTypes } from '@tsd/utils';
 
 export function createApiResponse(res: Res, config: Partial<IHttpError>): IApiResponse;
 export function createApiResponse(res: Res, statusCode: number, body?: any): IApiResponse;
@@ -17,7 +14,7 @@ export function createApiResponse(res: Res, config: number | Partial<IHttpError>
   const url = removeParams(originalUrl);
   const params = parseTypes(originalParams);
   const query = parseTypes(originalQuery);
-  const reqId = id || reqIdLocals;
+  const reqId = id ?? reqIdLocals;
 
   const response: IApiResponse = { status, statusText, method, url, referer, reqId, params, query, data };
   if (isEmptyNil(params)) delete response.params;

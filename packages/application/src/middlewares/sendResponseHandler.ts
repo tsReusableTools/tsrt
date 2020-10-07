@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { send, msg, createApiResponse, log, isStream } from '@tsd/utils';
+import { msg, isStream } from '@tsd/utils';
+import { log } from '@tsd/logger';
+import { send, createApiResponse } from '@tsd/api-utils';
 
 function patch<T extends GenericObject>(object: T): T {
   const result: GenericObject = object;

@@ -1,3 +1,3 @@
 export * from './BaseRepository';
-export * from './OrmSequelize';
+export * from './SequalizeDatabase';
 export * from './interfaces';

@@ -1,11 +1,11 @@
 import { Controller, Get } from '@tsed/common';
 import { Summary } from '@tsed/swagger';
 
-@Controller('/health')
+@Controller('/health.html')
 export class HealthController {
   @Get('/')
-  @Summary('Check health server')
-  public get(): string {
+  @Summary('Checks server health')
+  public check(): string {
     return 'I\'m ok.';
   }
 }

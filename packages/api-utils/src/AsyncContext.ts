@@ -1,11 +1,8 @@
 import asyncHooks from 'async_hooks';
 
-import { isNil } from './objectUtils';
+import { isNil } from '@tsd/utils';
 
-/* eslint-disable-next-line @typescript-eslint/no-empty-interface */
-declare global { export interface IRequestContext {} }
-
-export class RequestContext<T extends GenericObject = IRequestContext> {
+export class AsyncContext<T extends GenericObject> {
   private _storage = new Map<number, T>();
 
   constructor(initialContext?: T) {
@@ -39,4 +36,8 @@ export class RequestContext<T extends GenericObject = IRequestContext> {
   }
 }
 
-export const requestContext = new RequestContext();
+/* eslint-disable-next-line @typescript-eslint/no-empty-interface */
+export interface IAsyncContext {}
+// declare global { export interface IAsyncContext {} }
+
+export const asyncContext = new AsyncContext<IAsyncContext>();

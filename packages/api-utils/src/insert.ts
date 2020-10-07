@@ -1,7 +1,8 @@
 import { readFileSync, writeSync, closeSync, openSync, writeFileSync, existsSync } from 'fs';
 
+import { isNodeJsEnvironment } from '@tsd/utils';
+
 import { ISubstring } from './types';
-import { isNodeJsEnvironment } from './utils';
 
 /**
  *  Gets file substring.
@@ -10,7 +11,7 @@ import { isNodeJsEnvironment } from './utils';
  *  @param substr - Substring to get.
  *  @param [file] - File, in order not to read manually.
  */
-export function getsdbstring(path: string, substr: string | RegExp, providedFile?: string | Buffer): ISubstring {
+export function getSubstring(path: string, substr: string | RegExp, providedFile?: string | Buffer): ISubstring {
   isNodeJsEnvironment();
   if (!existsSync(path)) return;
 
@@ -59,7 +60,7 @@ export function insert(
   let index = file.length;
 
   if (mode === 'a' || mode === 'b') {
-    const { start, end } = getsdbstring(path, substr, file) || { };
+    const { start, end } = getSubstring(path, substr, file) || { };
 
     if (mode === 'a' && end) index = end;
     else if (mode === 'b' && start) index = start;

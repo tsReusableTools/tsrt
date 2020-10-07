@@ -6,9 +6,10 @@ import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
 
 import {
-  IOrderedItem, isEmpty, capitalize, parseTypes, log, reorderItemsInArray,
+  IOrderedItem, isEmpty, capitalize, parseTypes, reorderItemsInArray,
   hasItemsWithoutOrderOrWithEqualOrders, throwHttpError,
 } from '@tsd/utils';
+import { log } from '@tsd/logger';
 
 import {
   IPagedData, IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
@@ -885,7 +886,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
   /* eslint-disable-next-line */
   private createCustomSequelizeError(err: any): any {
-    if (process.env.NODE_ENV !== 'production') log.verbose(err, ['>>> DEV: PostgreSQL ERROR <<<']);
+    if (process.env.NODE_ENV !== 'production') log.debug(err, ['>>> DEV: PostgreSQL ERROR <<<']);
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
     return customError;

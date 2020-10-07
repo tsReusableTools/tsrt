@@ -3,14 +3,15 @@ import { execSync } from 'child_process';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 
-import { send } from '@tsd/utils';
+import { send } from '@tsd/api-utils';
+import { IApplicationInfo } from '../interfaces';
 
 let dateTime: string;
 let commit: string;
 let version: string;
 let instance: string;
 
-function getMetaData(): GenericObject {
+export function getApplicationInfo(): IApplicationInfo {
   if (!instance) instance = process.env.NODE_ENV || 'dev';
   if (!dateTime) dateTime = new Date().toISOString();
   try {
@@ -27,7 +28,7 @@ function getMetaData(): GenericObject {
   return { instance, version, dateTime, commit };
 }
 
-export default Router().get('/info', (_req, res) => send.ok(res, getMetaData()));
+export const InfoController = Router().get('/info', (_req, res) => send.ok(res, getApplicationInfo()));
 
 // export LAUNCH_COMMIT=`git log --pretty=format:'%h' -n 1`
 // export LAUNCH_DATE_TIME=`date -u +"%D %T"`

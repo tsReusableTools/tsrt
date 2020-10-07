@@ -1,7 +1,7 @@
 {
   "name": "@tsd/types",
-  "version": "0.1.1",
-  "description": "Typescript utils: types",
+  "version": "0.1.0",
+  "description": "Typescript Duck: types",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",

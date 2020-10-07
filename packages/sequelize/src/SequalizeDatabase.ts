@@ -1,7 +1,7 @@
 import { Sequelize, SequelizeOptions, Model } from 'sequelize-typescript';
-import { log } from '@tsd/utils';
+import { log } from '@tsd/logger';
 
-class BaseOrmSequelize {
+class SequalizeDatabase {
   private _connection: Sequelize;
   private _models: { [x: string]: Model };
 
@@ -73,4 +73,4 @@ class BaseOrmSequelize {
 }
 
 /** Service for managing database connection over app using Sequelize ORM under the hood */
-export const OrmSequelize = new BaseOrmSequelize();
+export const Database = new SequalizeDatabase();

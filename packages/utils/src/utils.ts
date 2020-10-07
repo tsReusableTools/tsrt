@@ -202,3 +202,8 @@ export function getNotContainingStringsRegExp(str: string | string[]): RegExp {
     ? new RegExp(`^((?!${str}).)*$`)
     : new RegExp(`^((?!(${str.join('|')})).)*$`);
 }
+
+/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+export async function delay<T = any>(timeout: number, data?: T): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(data), timeout));
+}

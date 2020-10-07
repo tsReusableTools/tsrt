@@ -1,7 +1,7 @@
 {
   "name": "@tsd/utils",
-  "version": "0.1.1",
-  "description": "Typescript utils: utils",
+  "version": "0.1.0",
+  "description": "Typescript Duck: utils",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,18 +16,12 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "^0.1.1",
-    "chalk": "4.1.0",
+    "@tsd/types": "^0.1.0",
     "http-status": "1.4.2"
-  },
-  "optionalDependencies": {
-    "@types/express": "^4.17.6",
-    "express": "^4.17.1",
-    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@types/node": "13.7.4",
     "tslib": "^1.11.0",
-    "typescript": "^3.9.7"
+    "typescript": "^4.0.2"
   }
 }

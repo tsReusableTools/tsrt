@@ -1,39 +1,62 @@
-import { Router, Application as ExpressApplication } from 'express';
+import { Router, Application as ExpressApplication, RequestHandler } from 'express';
 import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
 import { IHelmetConfiguration } from 'helmet';
+
+import { ISessionSettings } from '@tsd/session';
 
 export type IApplication = ExpressApplication;
 
 export interface IApplicationSettings<T extends IApplication = IApplication> {
   app?: T;
-  port?: number;
+  port?: number | string;
   apiBase?: ApplicationPaths;
   statics?: ApplicationStatics;
   webApps?: ApplicationWebApps;
   cors?: CorsOptions;
   qs?: IParseOptions;
   helmet?: IHelmetConfiguration;
-  routers?: ApplicationRouters;
-  useDefaultRouters?: boolean;
+  mount?: ApplicationMountList;
+  useDefaultControllers?: boolean;
+  middlewares?: ApplicationMiddlewareList;
+  session?: IApplicationSession;
 }
 
 export interface IApplicationConfig {
-  setAllMiddlewares(): void;
-  setQueryParser(): void;
-  setDefaultMiddlewares(): void;
-  setRequestIdMiddleware(): void;
-  setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): void;
-  setStatics(statics?: ApplicationStatics): void;
-  setRouter(routers?: ApplicationRouters): void;
-  setNotFoundHandler(): void;
-  setWebApps(webApps?: ApplicationWebApps): void;
-  setGlobalErrorHandler(): void;
+  setAllMiddlewares(): IApplicationConfig;
+  setQueryParser(): IApplicationConfig;
+  setDefaultMiddlewares(): IApplicationConfig;
+  setRequestIdMiddleware(): IApplicationConfig;
+  setSession(sessionConfig?: IApplicationSession): IApplicationConfig;
+  setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationConfig;
+  setStatics(statics?: ApplicationStatics): IApplicationConfig;
+  setMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationConfig;
+  setRouter(mount: ApplicationMountList): IApplicationConfig;
+  setNotFoundHandler(): IApplicationConfig;
+  setWebApps(webApps?: ApplicationWebApps): IApplicationConfig;
+  setGlobalErrorHandler(): IApplicationConfig;
 }
 
-export type ApplicationRouters = ApplicationRouter[];
+export interface IApplicationInfo {
+  dateTime: string;
+  commit: string;
+  version: string;
+  instance: string;
+}
+
+export interface IApplicationSession extends ISessionSettings {
+  paths?: string | string[];
+}
 
 export type ApplicationRouter = Router | string | { path: string | RegExp; router: Router | string };
+
+export type ApplicationMount = string | Router;
+
+export type ApplicationMountList = Record<string, TypeOrArrayOfTypes<ApplicationMount>>;
+
+export type ApplicationMiddleware = RequestHandler | { path: string | RegExp; middleware: RequestHandler };
+
+export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<RequestHandler>>;
 
 export type ApplicationStatics = string[] | Record<string, string>;
 
@@ -42,42 +65,3 @@ export type ApplicationWebApps = string | Record<string, string>;
 export type ApplicationPaths = TypeOrArrayOfTypes<string>;
 
 export type TypeOrArrayOfTypes<T> = T | T[];
-
-/* eslint-disable @typescript-eslint/interface-name-prefix */
-/* eslint-disable-next-line */
-export namespace TsDApplication {
-  export type App = ExpressApplication;
-
-  export interface Settings<T extends App = App> {
-    app?: T;
-    port?: number;
-    apiBase?: Paths;
-    statics?: Statics;
-    webApps?: WebApps;
-    cors?: CorsOptions;
-    qs?: IParseOptions;
-    helmet?: IHelmetConfiguration;
-    routers?: Routers;
-  }
-
-  export interface Config {
-    setAllMiddlewares(): void;
-    setQueryParser(): void;
-    setDefaultMiddlewares(): void;
-    setRequestIdMiddleware(): void;
-    setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): void;
-    setStatics(statics?: ApplicationStatics): void;
-    setRouter(routers?: ApplicationRouters): void;
-    setNotFoundHandler(): void;
-    setWebApps(webApps?: ApplicationWebApps): void;
-    setGlobalErrorHandler(): void;
-  }
-
-  export type Routers = Array<Router | { path: string | RegExp; router: Router }>;
-
-  export type Statics = string[] | Record<string, string>;
-
-  export type WebApps = string | Record<string, string>;
-
-  export type Paths = string | string[];
-}
