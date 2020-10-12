@@ -9,3 +9,9 @@ export interface IOrderedItem extends GenericObject {
   id: number;
   order: number;
 }
+
+export interface IPagedData<T extends GenericObject = GenericObject> {
+  value: T[];
+  nextSkip?: number;
+  total?: number;
+}

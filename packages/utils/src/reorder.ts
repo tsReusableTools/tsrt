@@ -167,3 +167,74 @@ export const reorderItemsInArray = <I extends IOrderedItem>(
 
   return result;
 };
+
+/**
+ *  Updates items order in array, depending on position of reordered item
+ *
+ *  @param id - Reordered item id
+ *  @param prevIndex - Reordered item prev index
+ *  @param newIndex - Reordered item new index
+ *  @param array - Reordered array of items
+ */
+export function updateItemsOrderInArray<T extends IOrderedItem = IOrderedItem>(
+  id: number, prevIndex: number, newIndex: number, array: T[],
+): T[] {
+  // if (!(id && id !== 0) || (!prevIndex && prevIndex !== 0) || (!newIndex && newIndex !== 0) || !array) return;
+  if ((!id && id !== 0) || (!prevIndex && prevIndex !== 0) || (!newIndex && newIndex !== 0) || !array) return;
+
+  const result = array.map((item, i) => {
+    if (prevIndex < newIndex) {
+      if (i < prevIndex || i > newIndex) return { ...item };
+      if (item.id === id) return { ...item, order: array[i - 1].order };
+
+      return { ...item, order: item.order - 1 };
+    }
+
+    if (prevIndex > newIndex) {
+      if (i > prevIndex || i < newIndex) return { ...item };
+      if (item.id === id) return { ...item, order: array[i + 1].order };
+
+      return { ...item, order: item.order + 1 };
+    }
+
+    return { ...item };
+  });
+
+  result.sort((a, b) => a.order - b.order);
+  return result;
+}
+
+/**
+ *  Gets reordered item from array, depending on its position.
+ *
+ *  @param id - Reordered item id.
+ *  @param prevIndex - Reordered item prev index or list of new orders.
+ *  @param newIndex - Reordered item new index.
+ *  @param array - Reordered array of items.
+ *  @param [emitWholeItemValue=false] - Whether to emit whole item value instead of just [id, order] list.
+ */
+export function getReorderedItem<T extends IOrderedItem = IOrderedItem>(
+  id: number, prevIndex: number | T[], newIndex?: number, array?: T[], emitWholeItemValue = false,
+): IOrderedItem {
+  // if (
+  //   (typeof prevIndex === 'number'
+  //   && (!(id && id !== 0) || (!prevIndex && prevIndex !== 0) || (!newIndex && newIndex !== 0) || !array))
+  //   || !prevIndex
+  // ) return;
+  if (
+    (!id && id !== 0) || (!prevIndex && prevIndex !== 0)
+    || (typeof prevIndex === 'number' && ((!newIndex && newIndex !== 0) || !array))
+  ) return;
+
+  const reordered = typeof prevIndex === 'number'
+    ? updateItemsOrderInArray(id, prevIndex, newIndex, array)
+    : prevIndex;
+
+  const reorderedItem = reordered.find((item) => item.id === id);
+
+  const result: IOrderedItem = emitWholeItemValue
+    ? { ...reorderedItem }
+    : { id: reorderedItem.id, order: reorderedItem.order };
+
+  return result;
+}

@@ -6,13 +6,13 @@ import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
 
 import {
-  IOrderedItem, isEmpty, capitalize, parseTypes, reorderItemsInArray,
-  hasItemsWithoutOrderOrWithEqualOrders, throwHttpError,
+  IOrderedItem, IPagedData, isEmpty, capitalize, parseTypes, reorderItemsInArray,
+  hasItemsWithoutOrderOrWithEqualOrders, throwHttpError, createPagedData,
 } from '@tsd/utils';
 import { log } from '@tsd/logger';
 
 import {
-  IPagedData, IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
+  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
   ICreateOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions,
 } from './interfaces';
 
@@ -181,7 +181,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
         if (reordered) return this.readMany(options);
       }
 
-      return this.createPagedResponse(value, total || result.count, originalQuery);
+      return createPagedData(value, total || result.count, originalQuery);
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
@@ -752,20 +752,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     return result;
   }
 
-  private createPagedResponse<I>(
-    value: I[], total: number, query: FindAndCountOptions,
-  ): IPagedData<I> {
-    const nextSkip = +query.offset + +query.limit;
-
-    const result: IPagedData<I> = query.limit && total && nextSkip && total > nextSkip
-      ? { nextSkip, total, value }
-      : { total, value };
-
-    if (!total) delete result.total;
-
-    return result;
-  }
-
   private mapSequelizeModelToPlainObject<C extends Model>(data: C): I;
   private mapSequelizeModelToPlainObject<C extends Model>(data: C[]): I[];
   private mapSequelizeModelToPlainObject<C extends Model>(data: C | C[]): I | I[] {
@@ -886,7 +872,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
   /* eslint-disable-next-line */
   private createCustomSequelizeError(err: any): any {
-    if (process.env.NODE_ENV !== 'production') log.debug(err, ['>>> DEV: PostgreSQL ERROR <<<']);
+    // if (process.env.NODE_ENV !== 'production') log.debug(err, ['>>> DEV: PostgreSQL ERROR <<<']);
+    if (process.env.NODE_ENV !== 'production') log.debug(err, '>>> DEV: PostgreSQL ERROR <<<');
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
     return customError;

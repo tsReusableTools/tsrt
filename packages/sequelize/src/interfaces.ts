@@ -13,12 +13,6 @@ export interface IBaseRepositoryConfig {
   };
 }
 
-export interface IPagedData<T extends GenericObject = GenericObject> {
-  value: T[];
-  nextSkip?: number;
-  total?: number;
-}
-
 export interface IBaseRepositoryOptions extends IQueryParams {
   where?: WhereAttributeHash;
 }

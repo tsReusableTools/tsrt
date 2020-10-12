@@ -1,3 +1,4 @@
+import { IPagedData } from './types';
 import { isEmpty } from './objectUtils';
 
 /** Checks whether environment is NodeJS */
@@ -71,25 +72,6 @@ export const parseTypes = <T extends GenericAny>(input: T, deepness?: number): T
   }
 
   return parser(input);
-};
-
-/**
- *  Get prop from .env, throwing error if prop does not found.
- *
- *  @param prop - Property name to get from .env.
- *  @param [defaultValue] - Default value for prop. If it is provided - no error will be thrown.
- */
-export const getEnvProp = <T extends string | number | boolean = string>(prop: string, defaultValue?: T): T => {
-  if (process.env[prop]) return parseTypes(process.env[prop]) as T;
-
-  if (
-    !process.env[prop]
-    && (defaultValue || defaultValue === '' || defaultValue === 0 || defaultValue === false)
-  ) return parseTypes(defaultValue);
-
-  if (!process.env[prop] && !defaultValue && process.env.NODE_ENV !== 'testing') {
-    throw new Error(`There is no prop: '${prop}' found in provided .env file`);
-  }
 };
 
 /**
@@ -206,4 +188,99 @@ export function getNotContainingStringsRegExp(str: string | string[]): RegExp {
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export async function delay<T = any>(timeout: number, data?: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(data), timeout));
+}
+
+/** Gets random string */
+export const getRandomString = (): string => Math.random().toString(36).substring(2, 15);
+
+/**
+ *  Gets random number from provided diapason
+ *
+ *  @param min - Minimal threshold
+ *  @param max - Maximum threshold
+ */
+export const getRandomInt = (min = 1, max = 100): number => Math.floor(Math.random() * (max - min + 1)) + min;
+
+/**
+ *  Gets random value from provided values
+ *
+ *  @param args - List of values to get random from
+ */
+/* eslint-disable-next-line */
+export const getRandom = (...args: any[]): any => args[getRandomInt(0, args.length - 1)];
+
+/**
+ *  Sort array by provided property. Ascending or descanding dirs are allowed.
+ *
+ *  @param array - Array to sort
+ *  @param prop - Prop to sort by
+ *  @param [dir='asc'] - Direction to sort
+ */
+export function sortBy<T extends GenericObject, P extends keyof T>(arr: T[], prop: P, dir: 'asc' | 'desc' = 'asc'): T[] {
+  const result = [...arr];
+
+  if (!result || !result.length) return result;
+
+  const propString = prop as string;
+  const exampleProp = result[0][prop];
+  let type = 'number';
+  if (typeof exampleProp === 'number') type = 'number';
+  if (typeof exampleProp === 'string') {
+    type = 'string';
+
+    if (typeof new Date(exampleProp) === 'object') type = 'Date';
+  }
+
+  result.sort((first, second) => {
+    const a = dir === 'asc' ? first : second;
+    const b = dir === 'asc' ? second : first;
+
+    if (type === 'number') return a[propString] - b[propString];
+    if (type === 'string') return a[propString].localeCompare(b[propString]);
+    /* eslint-disable-next-line */
+    // @ts-ignore
+    if (type === 'Date') return new Date(a[propString]) - new Date(b[propString]);
+    return 1;
+  });
+
+  return result;
+}
+
+/**
+ *  Removes item from array and returns new array
+ *
+ *  @param array - Array to remove item from
+ *  @param propToFindAndRemoveBy - Property name to find necessary item by
+ *  @param valueToFindAndRemoveBy - Value to find necessary item by
+ */
+export function removeItemFromArray<T extends GenericObject = GenericObject>(
+  array: T[], propToFindAndRemoveBy: string, valueToFindAndRemoveBy: number | string | boolean,
+): void {
+  const toDelete = array.findIndex((item) => item[propToFindAndRemoveBy] === valueToFindAndRemoveBy);
+  array.splice(toDelete, 1);
+}
+
+export function exlcude<T extends GenericObject, K extends keyof T>(input: T, keys: K[], values?: Array<T[K]>): T;
+export function exlcude<T extends GenericObject, K extends keyof T>(input: T[], keys: K[], values?: Array<T[K]>): T[];
+export function exlcude<T extends GenericObject, K extends keyof T>(input: T | T[], keys: K[], values?: Array<T[K]>): T | T[] {
+  if (Array.isArray(input) && values) return input.filter((item) => !keys.find((key) => values.includes(item[key])));
+
+  if (!Array.isArray(input)) {
+    const result = { ...input };
+    if (!values) keys.forEach((key) => delete result[key]);
+    else keys.forEach((key) => { if (values.find((value) => value === result[key])) delete result[key]; });
+    return result;
+  }
+}
+
+export function createPagedData<I>(value: I[], total: number, query: GenericObject): IPagedData<I> {
+  const nextSkip = +query.offset + +query.limit;
+
+  const result: IPagedData<I> = query.limit && total && nextSkip && total > nextSkip
+    ? { nextSkip, total, value }
+    : { total, value };
+
+  if (!total) delete result.total;
+
+  return result;
 }
