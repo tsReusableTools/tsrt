@@ -1,3 +1,2 @@
-export function isNg(): boolean {
-  return true;
-}
+export * from './types';
+export * from './services';

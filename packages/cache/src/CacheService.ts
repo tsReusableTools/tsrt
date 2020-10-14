@@ -4,7 +4,7 @@ import { promisify } from 'util';
 import { throwHttpError, msg } from '@tsd/utils';
 import { log } from '@tsd/logger';
 
-import { IAllCacheRecords } from './index';
+import { IAllCacheRecords } from './interfaces';
 
 export class BaseCacheService {
   private _db: RedisClient;
@@ -46,12 +46,12 @@ export class BaseCacheService {
       await setAsync(key, JSON.stringify(data));
 
       if (!expire) {
-        log.debug('BaseCacheService.set: setted data without expiration', data);
+        log.debug(data, 'BaseCacheService.set: setted data without expiration');
         return;
       }
 
       await expAsync(key, expire > 10 ? expire - 10 : expire);
-      log.debug(`BaseCacheService.set: setted data which expires in ${expire}s`, data);
+      log.debug(data, `BaseCacheService.set: setted data which expires in ${expire}s`);
     } catch (err) {
       this.throwError(err);
     }
