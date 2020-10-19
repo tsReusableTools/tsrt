@@ -4,8 +4,6 @@ import { IStringifyOptions } from 'qs';
 
 import '@tsd/types';
 
-export { AxiosResponse } from 'axios';
-
 export interface IHttpServiceSettings {
   httpClient?: AxiosStatic | AxiosInstance;
   withCredentials?: boolean;

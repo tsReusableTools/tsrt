@@ -3,7 +3,7 @@ import qs from 'qs';
 
 import { isEmpty, msg } from '@tsd/utils';
 
-import { IHttpServiceSettings, IHttpServiceCancellation, IHttpServiceHttpClient, IHttpServiceResponse } from './types';
+import { IHttpServiceSettings, IHttpServiceCancellation, IHttpServiceHttpClient, IHttpServiceResponse } from '../types';
 
 export class HttpService {
   private readonly _httpClient: IHttpServiceHttpClient;
