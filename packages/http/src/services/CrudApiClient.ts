@@ -1,12 +1,12 @@
 import { IPagedData } from '@tsd/utils';
 
-import { IEntityService, IHttpServiceCancellation, IHttpServiceRequestConfig } from '../types';
+import { ICrudApiClient, IHttpServiceCancellation, IHttpServiceRequestConfig } from '../types';
 import { HttpService } from './HttpService';
 
 /* eslint-disable-next-line */
-export abstract class EntityService<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> implements IEntityService<I, EntityList> {
+export abstract class CrudApiClient<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> implements ICrudApiClient<I, EntityList> {
   private _item: I;
-  private _pendingRequest = false;
+  private _hasPendingRequest = false;
   private _requestCancellation: IHttpServiceCancellation;
 
   protected constructor(
@@ -20,8 +20,8 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
   /** Gets orignal current value */
   public get item(): I { return this.cloneDeep(this._item); }
 
-  /** Gets _pendingRequest value */
-  public get pendingRequest(): boolean { return this._pendingRequest; }
+  /** Gets _hasPendingRequest value */
+  public get hasPendingRequest(): boolean { return this._hasPendingRequest; }
 
   /**
    *  Creates new entity record.
@@ -39,13 +39,14 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
 
     const config = this.createRequestConfig({ params: query }, this.baseUrl);
 
-    const result = await this.httpService.httpClient.post<I | I[]>(config.url, body, config);
+    const result = await this.httpService.client.post<I | I[]>(config.url, body, config);
     this.afterRequest();
 
     if (result.status >= 400) return;
 
-    if (!Array.isArray(result)) this._item = result.data as I;
-    return result.data;
+    const data = this.retrieveDataFromResponse<I | I[]>(result);
+    if (!Array.isArray(result)) this._item = data as I;
+    return data;
   }
 
   /**
@@ -59,13 +60,14 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
   public async read(query: IQueryParams = { }, id?: number | string): Promise<I | EntityList> {
     const config = this.createRequestConfig({ params: query }, this.baseUrl, id);
 
-    const result = await this.httpService.httpClient.get<I | EntityList>(config.url, config);
+    const result = await this.httpService.client.get<I | EntityList>(config.url, config);
     this.afterRequest();
 
     if (result.status >= 400) return;
 
-    if (id) this._item = result.data as I;
-    return result.data;
+    const data = this.retrieveDataFromResponse<I | EntityList>(result);
+    if (id) this._item = data as I;
+    return data;
   }
 
   /**
@@ -85,13 +87,14 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
 
     const config = this.createRequestConfig({ params: query }, this.baseUrl, id);
 
-    const result = await this.httpService.httpClient.put<I | I[]>(config.url, body, config);
+    const result = await this.httpService.client.put<I | I[]>(config.url, body, config);
     this.afterRequest();
 
     if (result.status >= 400) return;
 
-    if (!Array.isArray(result)) this._item = result.data as I;
-    return result.data;
+    const data = this.retrieveDataFromResponse<I | I[]>(result);
+    if (!Array.isArray(result)) this._item = data as I;
+    return data;
   }
 
   /**
@@ -108,10 +111,10 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
 
     const config = this.createRequestConfig({ params: query }, this.baseUrl, id);
 
-    const result = await this.httpService.httpClient.delete<string>(config.url, config);
+    const result = await this.httpService.client.delete<string>(config.url, config);
     this.afterRequest();
 
-    if (result.status < 400) return result.data;
+    if (result.status < 400) return this.retrieveDataFromResponse<string>(result);
   }
 
   /**
@@ -151,10 +154,10 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
 
     const config = this.createRequestConfig({ params: query }, this.baseUrl);
 
-    const result = await this.httpService.httpClient.post<I[]>(config.url, body, config);
+    const result = await this.httpService.client.post<I[]>(config.url, body, config);
     this.afterRequest();
 
-    if (result.status < 400) return result.data;
+    if (result.status < 400) return this.retrieveDataFromResponse<I[]>(result);
   }
 
   /**
@@ -172,21 +175,27 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
     this._item = undefined;
   }
 
+  /** Method to retrieve data from custom response structure  */
+  /* eslint-disable-next-line */
+  protected retrieveDataFromResponse<T>(data: any): T {
+    return data.data;
+  }
+
   /**
    *  Makes appropriate changes before request start.
    *
    *  @param [noCancelation=false] - Whether not to cancel previous request (don't use cancel token automatically).
    */
   private beforeRequest(noCancelation = false): void {
-    if (this._pendingRequest && !noCancelation) this.cancel();
+    if (this._hasPendingRequest && !noCancelation) this.cancel();
 
-    this._pendingRequest = true;
+    this._hasPendingRequest = true;
     this._requestCancellation = this.httpService.createCancelToken();
   }
 
   /** Makes appropriate changes after request ends */
   private afterRequest(): void {
-    this._pendingRequest = false;
+    this._hasPendingRequest = false;
     this._requestCancellation = undefined;
   }
 

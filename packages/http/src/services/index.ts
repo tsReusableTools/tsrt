@@ -1,2 +1,2 @@
-export * from './EntityService';
+export * from './CrudApiClient';
 export * from './HttpService';

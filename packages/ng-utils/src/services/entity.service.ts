@@ -1,348 +1,183 @@
-import { IPagedData } from '@tsd/utils';
-import { IHttpServiceCancellation, IHttpServiceRequestConfig, HttpService } from '@tsd/http';
+import { Injectable, EventEmitter } from '@angular/core';
+import { Router } from '@angular/router';
+import { FormGroup } from '@angular/forms';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Subscription } from 'rxjs';
+import { isEqual, cloneDeep } from 'lodash';
 
-import { IEntityService } from '../types';
+import { delay, updateItemsOrderInArray, getReorderedItem, parseTypes, IOrderedItem } from '@tsd/utils';
+import { ICrudApiClient } from '@tsd/http';
 import { RouterService } from './router.service';
 
-/* eslint-disable-next-line */
-export abstract class EntityService<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> implements IEntityService<I, EntityList> {
-  private _item: I;
-  private _pendingRequest = false;
-  private _requestCancellation: IHttpServiceCancellation;
-
-  protected constructor(
-    protected readonly httpService: HttpService,
-    protected readonly http: HttpService,
-    protected readonly routerService: RouterService,
-    protected readonly baseUrl: string,
-    protected readonly reorderEndpoint: string = '/reorder',
-    protected readonly bulkEndpoint: string = '/bulk',
+/** Service which provides small useful reusable functions (methods) */
+@Injectable({ providedIn: 'root' })
+export class EntityService {
+  public constructor(
+    private router: Router,
+    private routerService: RouterService,
   ) { }
 
-  /** Gets orignal current value */
-  public get item(): I { return this.cloneDeep(this._item); }
-
-  /** Gets _pendingRequest value */
-  public get pendingRequest(): boolean { return this._pendingRequest; }
-
   /**
-   *  Creates new entity record.
-   *
-   *  @param body - Entity data.
-   *  @param [query] - Additional query params.
-   */
-  public async create(body: I, query?: IQueryParams): Promise<I>;
-  public async create(body: I[], query?: IQueryParams): Promise<I[]>;
-  public async create(body: I | I[], query: IQueryParams = { }): Promise<I | I[]> {
-    /* eslint-disable-next-line */
-    const result = await this.Create(this.baseUrl, body as any, query);
-    if (!Array.isArray(result)) this._item = result;
-    return result;
-  }
-
-  /**
-   *  Reads entity by id / list of entities.
-   *
-   *  @param [query] - Additional query params.
-   *  @param [id] - Specific entity id.
-   */
-  public async read(query?: IQueryParams, id?: null): Promise<EntityList>;
-  public async read(query?: IQueryParams, id?: number | string): Promise<I>;
-  public async read(query: IQueryParams = { }, id?: number | string): Promise<I | EntityList> {
-    const result = await this.Read(this.baseUrl, query, id);
-    if (id && result) this._item = result;
-    return result;
-  }
-
-  /**
-   *  Updates entity by id or list of entities.
-   *
-   *  @param body - Entity data / list of entities.
-   *  @param [id] - Entity id.
-   *  @param [query] - Additional query params.
-   */
-  public async update(body: Array<Partial<I>>, id?: null, query?: IQueryParams): Promise<I[]>;
-  public async update(body: Partial<I>, id: number | string, query?: IQueryParams): Promise<I>;
-  public async update(body: Partial<I> | Array<Partial<I>>, id?: number | string, query: IQueryParams = { }): Promise<I | I[]> {
-    /* eslint-disable-next-line */
-    const result = await this.Update(this.baseUrl, body as any, id, query);
-    if (!Array.isArray(result)) this._item = result;
-    return result;
-  }
-
-  /**
-   *  Deletes entity by id.
+   *  Handles get data from API. Updates form values.
    *
    *  @param id - Entity id.
-   *  @param [query] - Additional query params.
+   *  @param initForm - Init form method, which init form w/ (or without) provided values and subscribes its updates.
+   *  @param service - Corresponding to entity service.
+   *  @param [query] - Optional query params.
+   *  @param [redirect] - enables or disables redirecting to new route
    */
-  public async delete(id: number | string, query: IQueryParams = { }): Promise<string> {
-    return this.Delete(this.baseUrl, id, query);
+  public async get<I extends GenericObject>(
+    id: string | number, initForm: (item: Partial<I>) => void, service: ICrudApiClient<I>, query?: IQueryParams, redirect = true,
+  ): Promise<I> {
+    if (id === 'new') return;
+
+    const result = await service.read(query, id);
+    if (!result && redirect) this.router.navigate([`${this.routerService.parentRoute}/new`], { replaceUrl: true });
+    initForm(result);
+    return result;
   }
 
   /**
-   *  Creates or updates entities from provided list.
+   *  Handles send data to API. Checks for form changes, disables form while request and updates values.
    *
-   *  @param body - List of entities
-   *  @param [query] - Additional query params.
+   *  @param form - FromGroup to save.
+   *  @param initForm - Init form method, which init form w/ (or without) provided values and subscribes its updates.
+   *  @param service - Corresponding to entity service.
+   *  @param [query] - Optional query params.
+   *  @param [redirect] - enables or disables redirecting to new route
    */
-  // public async bulkCreateOrUpdate(body: Array<Partial<I>>, query: IQueryParams = { }): Promise<ICrudBulkResponse<I>> {
-  //   if (!this.bulkEndpoint) return;
-  //   return this.BulkCreateOrUpdate(`${this.baseUrl}${this.bulkEndpoint}`, body, query);
-  // }
+  public async save<I extends GenericObject>(
+    form: FormGroup, initForm: (item: Partial<I>) => void, service: ICrudApiClient<I>, query?: IQueryParams, redirect = true,
+  ): Promise<I> {
+    form.disable();
+    const result = !form.value.id
+      ? await service.create(form.value, query)
+      : await service.update(form.value, form.value.id as number, query);
 
-  /**
-   *  Updates order for list of entities.
-   *
-   *  @param body - List of entities to reorder / list of new orders where each item is { id: id, order: order };
-   *  @param [query] - Additional query params
-   */
-  public async updateItemsOrder(body: Array<Partial<I>>, query: IQueryParams = { }): Promise<I[]> {
-    if (!this.reorderEndpoint) return;
-    /* eslint-disable-next-line */
-    return this.UpdateItemsOrder(`${this.baseUrl}${this.reorderEndpoint}`, body as any [], query);
-  }
-
-  /**
-   *  Cancels current request.
-   *
-   *  @param [message] - Message to show after request canceled.
-   */
-  public cancel(message?: string): void {
-    this._requestCancellation.cancel(message);
-    this.afterRequest();
-  }
-
-  /** Resets value of current item */
-  public reset(): void {
-    this._item = undefined;
-  }
-
-  /**
-   *  General method for POST requests. Creates new entity record.
-   *
-   *  @param baseUrl - Base url, upon which to make API call.
-   *  @param body - Entity data.
-   *  @param [query] - Additional query params
-   */
-  protected async Create<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Partial<CustomEntity>, query?: IQueryParams,
-  ): Promise<CustomEntity>;
-  protected async Create<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Array<Partial<CustomEntity>>, query?: IQueryParams,
-  ): Promise<CustomEntityList>;
-  protected async Create<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Partial<CustomEntity> | Array<Partial<CustomEntity>>, query: IQueryParams = { },
-  ): Promise<CustomEntity | CustomEntityList> {
-    if (!body) {
-      this.debugError('Please, provide data for create.');
-      return;
+    if (result) {
+      await delay(500);
+      if (!form.value.id && redirect) this.router.navigate([`${this.routerService.parentRoute}/${result.id}`], { replaceUrl: true });
+      initForm(result);
     }
+    form.enable();
 
-    const config = this.createRequestConfig({ params: query }, baseUrl);
-
-    const result = await this.httpService.httpClient.post<CustomEntity | CustomEntityList>(config.url, body, config);
-    this.afterRequest();
-
-    if (result.status < 400) return result.data;
+    return result;
   }
 
   /**
-   *  General method for GET requests. Reads entity by id or entity list.
+   *  Handles deleting specific entity.
    *
-   *  @param baseUrl - Base url, upon which to make API call.
-   *  @param [query] - Additional query params
-   *  @param [id] - Specific item id
-   */
-  protected async Read<CustomEntity extends GenericObject = I, CustomEntityList = EntityList>(
-    baseUrl: string, query?: IQueryParams,
-  ): Promise<CustomEntityList>;
-  protected async Read<CustomEntity extends GenericObject = I, CustomEntityList = EntityList>(
-    baseUrl: string, query?: IQueryParams, id?: number | string,
-  ): Promise<CustomEntity>;
-  protected async Read<CustomEntity extends GenericObject = I, CustomEntityList = EntityList>(
-    baseUrl: string, query: IQueryParams = { }, id?: number | string,
-  ): Promise<CustomEntity | CustomEntityList> {
-    const config = this.createRequestConfig({ params: query }, baseUrl, id);
-
-    const result = await this.httpService.httpClient.get<CustomEntity | CustomEntityList>(config.url, config);
-    this.afterRequest();
-
-    if (result.status < 400) return result.data;
-  }
-
-  /**
-   *  General method for PUT requests. Updates entity by id or entity list
-   *
-   *  @param baseUrl - Base url, upon which to make API call.
-   *  @param body - Entity data / list of entities
-   *  @param id - Id of entity
-   *  @param [query] - Additional query params.
-   */
-  protected async Update<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Array<Partial<CustomEntity>>, id: null, query?: IQueryParams,
-  ): Promise<CustomEntityList>;
-  protected async Update<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Partial<CustomEntity>, id: number | string, query?: IQueryParams,
-  ): Promise<CustomEntity>;
-  protected async Update<CustomEntity extends GenericObject = I, CustomEntityList = I[]>(
-    baseUrl: string, body: Partial<CustomEntity> | Array<Partial<CustomEntity>>, id: number | string | null, query: IQueryParams = { },
-  ): Promise<CustomEntity | CustomEntityList> {
-    if (!body) {
-      this.debugError('Please, provide data for update.');
-      return;
-    }
-
-    const config = this.createRequestConfig({ params: query }, baseUrl, id);
-
-    const result = await this.httpService.httpClient.put<CustomEntity | CustomEntityList>(config.url, body, config);
-    this.afterRequest();
-
-    if (result.status < 400) return result.data;
-  }
-
-  /**
-   *  General method for DELETE requests. Deletes entity by id.
-   *
-   *  @param baseUrl - Base url, upon which to make API call.
    *  @param id - Entity id.
-   *  @param [query] - Additional query params.
+   *  @param service - Corresponding to entity service.
+   *  @param [query] - Optional query params.
+   *  @param [checkBeforeCall] - Optional function to call before calling delete.
    */
-  protected async Delete(baseUrl: string, id: number | string, query: IQueryParams = { }): Promise<string> {
-    if (!id) {
-      this.debugError('Please, provide id for delete.');
-      return;
+  public async delete<I extends GenericObject>(
+    id: string | number, service: ICrudApiClient<I>, query?: IQueryParams, checkBeforeCall?: () => boolean,
+  ): Promise<string> {
+    if (!id) return;
+
+    const isPermitted = checkBeforeCall ? checkBeforeCall() : true;
+    if (!isPermitted) return;
+
+    const result = await service.delete(id, query) as string;
+    return result;
+  }
+
+  /**
+   *  Event handler: on dragAndDrop event
+   *
+   *  @param e - Drag And Drop event reordered list of items
+   *  @param service - Service within to call API
+   *  @param item - Item into which to insert reordered list
+   *  @param [query] - Additional query params to be used for API call
+   */
+  public async reorder<I extends GenericObject = GenericObject>(
+    e: IOrderedItem[], service: ICrudApiClient<I>, _item: I[], query?: IQueryParams,
+  ): Promise<I[]> {
+    const result = await service.updateItemsOrder(e as unknown as Array<Partial<I>>, query);
+
+    if (result) {
+      /* eslint-disable-next-line */
+      _item = result;
+      return result;
     }
-
-    const config = this.createRequestConfig({ params: query }, baseUrl, id);
-
-    const result = await this.httpService.httpClient.delete<string>(config.url, config);
-    this.afterRequest();
-
-    if (result.status < 400) return result.data;
   }
 
   /**
-   *  General method for BULK create or update. Creates or updates entities from provided list.
+   *  Subscribe for form value changes to have correct form pristine state
+   *  in order to check if there any changes to form in UI.
    *
-   *  @param baseUrl - Base url, upon which to make API call.
-   *  @param body - List of entities
-   *  @param [query] - Additional query params.
+   *  @param form - FormGroup to subscribe to.
+   *  @param [subsription] - Optionally previous subscription to dismiss it.
    */
-  // protected async BulkCreateOrUpdate<CustomEntity extends GenericObject = I>(
-  //   baseUrl: string, body: Array<Partial<CustomEntity>>, query: IQueryParams = { },
-  // ): Promise<ICrudBulkResponse<CustomEntity>> {
-  //   if (!body) {
-  //     this.debugError('Please, provide data for bulk create or update.');
-  //     return;
-  //   }
+  public subscribeToFormCorrectPristineState(form: FormGroup, subsription?: Subscription): Subscription {
+    if (subsription) subsription.unsubscribe();
 
-  //   const config = this.createRequestConfig({ params: query }, baseUrl);
-
-  //   const result = await this.requestService.post(config.url, body, config);
-  //   this.afterRequest();
-
-  //   if (result.status < 400) return result.data as ICrudBulkResponse<CustomEntity>;
-  // }
-
-  /**
-   *  General method for reordering. Updates order for list of entities.
-   *
-   *  @param baseUrl - Base url, upon which to make API call.
-   *  @param body - List of entities to reorder / list of new orders where each item is { id: id, order: order };
-   *  @param [query] - Additional query params
-   */
-  protected async UpdateItemsOrder<CustomEntity extends GenericObject = I>(
-    baseUrl: string, body: Array<Partial<CustomEntity>>, query: IQueryParams = { },
-  ): Promise<CustomEntity[]> {
-    if (!body) {
-      this.debugError('Please, provide data for updating order.');
-      return;
-    }
-
-    const config = this.createRequestConfig({ params: query }, baseUrl);
-
-    const result = await this.httpService.httpClient.post<CustomEntity>(config.url, body, config);
-    this.afterRequest();
-
-    if (result.status < 400) return result.data as unknown as CustomEntity[];
-  }
-
-  /**
-   *  Makes appropriate changes before request start.
-   *
-   *  @param [noCancelation=false] - Whether not to cancel previous request (don't use cancel token automatically).
-   */
-  private beforeRequest(noCancelation = false): void {
-    if (this._pendingRequest && !noCancelation) this.cancel();
-
-    this._pendingRequest = true;
-    this._requestCancellation = this.httpService.createCancelToken();
-  }
-
-  /** Makes appropriate changes after request ends */
-  private afterRequest(): void {
-    this._pendingRequest = false;
-    this._requestCancellation = undefined;
-  }
-
-  /** Shows provided debug error */
-  private debugError(msg: string): void {
-    console.warn(`[DEBUG]: ${msg}`);
-  }
-
-  /**
-   *  Extracts actual data from API response, which could be w/ pager.
-   *
-   *  @param data - API response data
-   */
-  private extractDataFromApiResponse<T>(data: T | IPagedData<T>): T | T[] {
-    return 'value' in data ? data.value : data;
-  }
-
-  /**
-   *  Creates axios request config
-   *
-   *  @param [customConfig={ }] - Custom config props
-   *  @param [baseUrl] - Base endPoint
-   *  @param [id] - Optional resource id
-   */
-  private createRequestConfig(
-    customConfig: GenericObject = { }, baseUrl?: string, id?: string | number,
-  ): IHttpServiceRequestConfig {
-    this.beforeRequest(customConfig.params ? customConfig.params.noCancelation : null);
-
-    const config: IHttpServiceRequestConfig = { ...customConfig };
-
-    config.cancelToken = this._requestCancellation.token;
-
-    if (config.params && config.params.noCancelation) delete config.params.noCancelation;
-    if (baseUrl) config.url = this.getUrl(baseUrl, id, config.params ? config.params.routeParams : { });
-
-    return config;
-  }
-
-  /**
-   *  Composes baseUrl + optional id.
-   *
-   *  @param baseUrl - Base endPoint.
-   *  @param [id] - Optional resource id.
-   *  @param [routeParams] - Optional route params values used for params replacement.
-   */
-  private getUrl(baseUrl: string, id?: string | number, routeParams: GenericObject = { }): string {
-    return this.parseUrl(`${baseUrl}${id ? `/${id}` : ''}`, routeParams);
-  }
-
-  /** Parses url and replaces params placeholders w/ real data */
-  private parseUrl(originalUrl: string, routeParams: GenericObject = { }): string {
-    let url = originalUrl;
-    Object.entries({ ...this.routerService.routeParams, ...routeParams }).forEach(([key, value]) => {
-      url = url.replace(`:${key}`, value);
+    const original = cloneDeep(form.value);
+    form.markAsPristine();
+    return form.valueChanges.subscribe((change) => {
+      if (isEqual(original, parseTypes(change))) form.markAsPristine();
+      else form.markAsDirty();
     });
-    return url;
   }
 
-  private cloneDeep<T extends GenericObject>(data: T): T {
-    return JSON.parse(JSON.stringify(data));
+  /* eslint-disable no-param-reassign */
+  /**
+   *  Handles Material Cdk dragNDrop event.
+   *
+   *  Reorders list of items and returns new order
+   *  Here is also provided logic for storing recent changes in items order before sending to server
+   *
+   *  @param e - Material Cdk drag and drop event
+   *  @param array - Object which stores data for UI
+   *  @param onDragAndDrop - Event emmiter for dragAndDrop event
+   *  @param [reorderTimeouts] - Var for storing reorder timeoutes (necessary for client-server optimizations)
+   *  @param [reorderedItems] - Var for storing reordered lists (necessary for client-server optimizations)
+   *  @param [emitWholeItemValue=false] - Whether to emit whole item value instead of just [id, order] list
+   */
+  public handleDragAndDrop<T extends IOrderedItem = IOrderedItem>(
+    e: CdkDragDrop<IOrderedItem[]>, array: T[], onDragAndDrop: EventEmitter<IOrderedItem[]>,
+    reorderTimeouts?: GenericObject, reorderedItems?: GenericObject<IOrderedItem[]>,
+    emitWholeItemValue = false,
+  ): T[] {
+    const { item: { data }, previousIndex, currentIndex } = e;
+    const copy = cloneDeep(array);
+
+    const { title } = e.container.element.nativeElement.dataset;
+
+    if (previousIndex !== currentIndex) {
+      if (reorderedItems && reorderTimeouts && reorderTimeouts[title]) {
+        clearTimeout(reorderTimeouts[title]);
+        delete reorderTimeouts[title];
+      }
+
+      moveItemInArray(copy, previousIndex, currentIndex);
+
+      const newOrder = updateItemsOrderInArray(data.id, previousIndex, currentIndex, copy);
+      if (!newOrder) return;
+
+      // If there is title for dragAndDrop container provided -> it is possible
+      // to store reordered items in array and accumulate it on clientside for each table separately
+      // in order to optimize client-server communication
+      if (title && reorderTimeouts && reorderedItems) {
+        // const reorderedItem = this.getReorderedItem(data.id, previousIndex, currentIndex, array);
+        const reorderedItem = getReorderedItem(data.id, newOrder, null, null, emitWholeItemValue);
+
+        if (!reorderedItems[title]) reorderedItems[title] = [];
+        reorderedItems[title].push(reorderedItem);
+
+        if (!reorderTimeouts[title]) {
+          reorderTimeouts[title] = setTimeout(() => {
+            onDragAndDrop.emit(reorderedItems[title]);
+            delete reorderTimeouts[title];
+            delete reorderedItems[title];
+          }, 2000);
+        }
+      } else onDragAndDrop.emit(newOrder);
+
+      if (newOrder) return newOrder.map((item) => ({ ...item }));
+    }
   }
+  /* eslint-enable no-param-reassign */
 }

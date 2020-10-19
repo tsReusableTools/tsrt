@@ -26,11 +26,6 @@ export class HttpService {
     this.patchHttpClientRequestMethod(this._settings);
   }
 
-  // TODO. Remove in favour of this.client
-  public get httpClient(): IHttpServiceHttpClient {
-    return this._httpClient;
-  }
-
   public get client(): IHttpServiceHttpClient {
     return this._httpClient;
   }
@@ -53,7 +48,7 @@ export class HttpService {
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   /* eslint-disable no-param-reassign */
-  private patchHttpClientRequestMethod({ httpClient, withCredentials = true }: IHttpServiceSettings): void {
+  protected patchHttpClientRequestMethod({ httpClient, withCredentials = true }: IHttpServiceSettings): void {
     const { request } = httpClient;
 
     const patchedRequest = async <T = any, R = IHttpServiceResponse<T>>(config: AxiosRequestConfig): Promise<R> => {
@@ -71,7 +66,7 @@ export class HttpService {
    *
    *  @param data - Request body.
    */
-  private convertDataIntoFormData(data: any): any {
+  protected convertDataIntoFormData(data: any): any {
     if (!data) return;
 
     let convertedData = data;
@@ -106,7 +101,7 @@ export class HttpService {
    *  @param body - Data structure to check.
    *  @param [removeFromBody] - Whether to remove found files from initial body.
    */
-  private getFiles(body: GenericObject, removeFromBody = false): GenericObject<File> {
+  protected getFiles(body: GenericObject, removeFromBody = false): GenericObject<File> {
     let files: GenericObject<File> = { };
 
     if (Array.isArray(body)) {
@@ -132,7 +127,7 @@ export class HttpService {
     return files;
   }
 
-  private setupHttpClientInterceptors({
+  protected setupHttpClientInterceptors({
     httpClient, requestTimeout, shouldExtractResponse, shouldCatchErrors, debug, queryStringifyOptions,
   }: IHttpServiceSettings): void {
     httpClient.defaults.timeout = requestTimeout;
@@ -166,31 +161,31 @@ export class HttpService {
     );
   }
 
-  private setRequestProgress(event: ProgressEvent): void {
+  protected setRequestProgress(event: ProgressEvent): void {
     this._requestProgress = { event, value: Math.floor((event.loaded * 100) / event.total) };
   }
 
-  private increasePendingRequestsCounter(): void {
+  protected increasePendingRequestsCounter(): void {
     this._pendingRequests++;
   }
 
-  private decreasePendingRequestsCounter(): void {
+  protected decreasePendingRequestsCounter(): void {
     this._pendingRequests--;
   }
 
-  private checkIfOffline(): void {
+  protected checkIfOffline(): void {
     this._isOffline = window.navigator.onLine;
   }
 
-  private logError(err: AxiosError, isCancel?: boolean): void {
+  protected logError(err: AxiosError, isCancel?: boolean): void {
     const catchedError = this.catchError(err, isCancel);
     if (isCancel) console.warn('HttpService cancelled request: ', catchedError);
     else console.error('HttpService catched Error: ', catchedError);
   }
 
-  private catchError(err: AxiosError, isCancel?: boolean): IHttpError {
+  protected catchError(err: AxiosError, isCancel?: boolean): IHttpError {
     const status = isCancel ? 499 : err?.response?.status || 500;
-    const message = isCancel ? 'Request was cancelled from client' : err?.response?.data || 'Some error occured during request';
+    const message = isCancel ? 'Request was cancelled from client' : err?.response?.data?.data || 'Some error occured during request';
     return msg(status, message);
   }
 }

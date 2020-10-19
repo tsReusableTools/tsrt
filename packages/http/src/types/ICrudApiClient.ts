@@ -1,8 +1,8 @@
 import { IPagedData } from '@tsd/utils';
 
-export interface IEntityService<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> {
+export interface ICrudApiClient<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> {
   item: I;
-  pendingRequest: boolean;
+  hasPendingRequest: boolean;
 
   /**
    *  Creates new entity record.

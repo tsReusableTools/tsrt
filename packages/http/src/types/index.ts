@@ -1,4 +1,4 @@
 export { AxiosResponse } from 'axios';
 
-export * from './IEntityService';
+export * from './ICrudApiClient';
 export * from './IHttpService';
