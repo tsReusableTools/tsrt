@@ -7,7 +7,6 @@ import { IHttpServiceSettings, IHttpServiceCancellation, IHttpServiceHttpClient,
 
 export class HttpService {
   private readonly _httpClient: IHttpServiceHttpClient;
-  private _hasPendingRequests = false;
   private _pendingRequests = 0;
   private _isOffline = false;
   private readonly _settings: IHttpServiceSettings = {
@@ -18,10 +17,7 @@ export class HttpService {
     debug: false,
     queryStringifyOptions: { arrayFormat: 'comma', strictNullHandling: true, encode: false },
   };
-  private _downloadProgressEvent: ProgressEvent;
-  private _downloadProgress: number;
-  private _uploadProgressEvent: ProgressEvent;
-  private _uploadProgress: number;
+  private _requestProgress: { event: ProgressEvent; value: number };
 
   public constructor(settings: IHttpServiceSettings = { }) {
     this._httpClient = settings.httpClient || axios.create({ });
@@ -30,16 +26,13 @@ export class HttpService {
     this.patchHttpClientRequestMethod(this._settings);
   }
 
+  // TODO. Remove in favour of this.client
   public get httpClient(): IHttpServiceHttpClient {
     return this._httpClient;
   }
 
-  public get settings(): IHttpServiceSettings {
-    return this._settings;
-  }
-
-  public get hasPendingRequests(): boolean {
-    return this._hasPendingRequests;
+  public get client(): IHttpServiceHttpClient {
+    return this._httpClient;
   }
 
   public get pendingRequests(): number {
@@ -50,20 +43,8 @@ export class HttpService {
     return this._isOffline;
   }
 
-  public get downloadProgressEvent(): ProgressEvent {
-    return this._downloadProgressEvent;
-  }
-
-  public get downloadProgress(): number {
-    return this._downloadProgress;
-  }
-
-  public get uploadProgressEvent(): ProgressEvent {
-    return this._uploadProgressEvent;
-  }
-
-  public get uploadProgress(): number {
-    return this._uploadProgress;
+  public get requestProgress(): { event: ProgressEvent; value: number } {
+    return this._requestProgress;
   }
 
   public createCancelToken(): IHttpServiceCancellation {
@@ -156,15 +137,9 @@ export class HttpService {
   }: IHttpServiceSettings): void {
     httpClient.defaults.timeout = requestTimeout;
 
-    httpClient.defaults.onUploadProgress = (e): void => {
-      this._uploadProgressEvent = e;
-      this._uploadProgress = Math.floor((e.loaded * 100) / e.total);
-    };
+    httpClient.defaults.onUploadProgress = (e): void => this.setRequestProgress(e);
 
-    httpClient.defaults.onDownloadProgress = (e): void => {
-      this._downloadProgressEvent = e;
-      this._downloadProgress = Math.floor((e.loaded * 100) / e.total);
-    };
+    httpClient.defaults.onDownloadProgress = (e): void => this.setRequestProgress(e);
 
     httpClient.defaults.paramsSerializer = (params): string => qs.stringify(params, queryStringifyOptions);
 
@@ -191,14 +166,16 @@ export class HttpService {
     );
   }
 
+  private setRequestProgress(event: ProgressEvent): void {
+    this._requestProgress = { event, value: Math.floor((event.loaded * 100) / event.total) };
+  }
+
   private increasePendingRequestsCounter(): void {
     this._pendingRequests++;
-    this._hasPendingRequests = !!this._pendingRequests;
   }
 
   private decreasePendingRequestsCounter(): void {
     this._pendingRequests--;
-    this._hasPendingRequests = !!this._pendingRequests;
   }
 
   private checkIfOffline(): void {

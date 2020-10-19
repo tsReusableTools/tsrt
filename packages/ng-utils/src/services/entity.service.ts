@@ -12,6 +12,7 @@ export abstract class EntityService<I extends GenericObject = GenericObject, Ent
 
   protected constructor(
     protected readonly httpService: HttpService,
+    protected readonly http: HttpService,
     protected readonly routerService: RouterService,
     protected readonly baseUrl: string,
     protected readonly reorderEndpoint: string = '/reorder',
