@@ -8,8 +8,16 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "watch:ng": "ng-packagr -p package.json",
+    "build:ng": "rm -rf dist && ng-packagr -p package.json",
     "watch": "tsc --watch",
     "build": "rm -rf dist && tsc"
+  },
+  "ngPackage": {
+    "lib": {
+      "entryFile": "src/index.ts"
+    },
+    "whitelistedNonPeerDependencies": ["."]
   },
   "engines": {
     "node": ">=12.0.0",
@@ -46,6 +54,7 @@
     "@angular/cdk": "^10.2.4",
     "@angular/common": "^10.1.5",
     "@angular/compiler": "^10.1.5",
+    "@angular/compiler-cli": "^10.1.6",
     "@angular/core": "^10.1.5",
     "@angular/forms": "^10.1.5",
     "@angular/material": "^10.2.4",
@@ -62,6 +71,7 @@
     "jss-theme-angular": "^0.1.8",
     "jss-theme-default": "^0.1.4",
     "lodash": "^4.17.20",
+    "ng-packagr": "^10.1.2",
     "rxjs": "^6.6.3",
     "tslib": "2.0.3",
     "typescript": "4.0.3",

@@ -1,0 +1,35 @@
+{
+  "name": "@tsd/web-components",
+  "version": "0.1.0",
+  "description": "Typescript Duck: web-components",
+  "keywords": [],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "public/dist/index.js",
+  "types": "public/dist/index.d.ts",
+  "scripts": {
+    "watch": "rollup -c -w",
+    "bundle:types": "dts-bundle-generator -o ./public/dist/index.d.ts ./src/lib/index.ts",
+    "build": "rm -rf public/dist && rollup -c && npm run bundle:types",
+    "tsc": "tsc",
+    "start": "sirv public",
+    "validate": "svelte-check"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^14.0.0",
+    "@rollup/plugin-node-resolve": "^8.0.0",
+    "@rollup/plugin-typescript": "^6.0.0",
+    "@tsconfig/svelte": "^1.0.0",
+    "dts-bundle-generator": "5.5.0",
+    "rollup": "^2.3.4",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-svelte": "^6.0.0",
+    "rollup-plugin-terser": "^7.0.0",
+    "sirv-cli": "^1.0.0",
+    "svelte": "^3.0.0",
+    "svelte-check": "^1.0.0",
+    "svelte-preprocess": "^4.0.0",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.3"
+  }
+}
