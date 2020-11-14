@@ -1,6 +1,6 @@
 {
   "name": "@tsd/session",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Typescript Duck: session",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/cache": "^0.1.1",
-    "@tsd/types": "^0.1.1",
+    "@tsd/cache": "^0.1.2",
+    "@tsd/types": "^0.1.2",
     "connect-redis": "5.0.0",
     "express-session": "1.17.1"
   },

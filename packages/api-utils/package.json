@@ -1,6 +1,6 @@
 {
   "name": "@tsd/api-utils",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Typescript Duck: api-utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,9 +16,9 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/logger": "^0.1.1",
-    "@tsd/types": "^0.1.1",
-    "@tsd/utils": "^0.1.1",
+    "@tsd/logger": "^0.1.2",
+    "@tsd/types": "^0.1.2",
+    "@tsd/utils": "^0.1.2",
     "http-status": "1.4.2"
   },
   "peerDependencies": {
