@@ -41,5 +41,13 @@
     "express": "^4.17.1",
     "tslib": "^1.11.0",
     "typescript": "^4.0.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mopcweb/tsd"
+  },
+  "bugs": {
+    "url": "https://github.com/mopcweb/tsd/issues/new"
+  },
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/application"
 }

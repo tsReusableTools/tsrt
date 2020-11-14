@@ -17,5 +17,13 @@
   },
   "devDependencies": {
     "@types/node": "^13.7.4"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mopcweb/tsd"
+  },
+  "bugs": {
+    "url": "https://github.com/mopcweb/tsd/issues/new"
+  },
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/types"
 }

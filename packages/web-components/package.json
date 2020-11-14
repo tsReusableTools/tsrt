@@ -32,4 +32,13 @@
     "tslib": "^2.0.0",
     "typescript": "^3.9.3"
   }
+  ,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mopcweb/tsd"
+  },
+  "bugs": {
+    "url": "https://github.com/mopcweb/tsd/issues/new"
+  },
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/web-components"
 }
