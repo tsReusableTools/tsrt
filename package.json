@@ -15,7 +15,7 @@
     "watch": "lerna run watch --parallel",
     "build": "lerna run build && lerna link",
     "update": "lerna version --no-push",
-    "publish": "lerna publish from-package --yes"
+    "publish": "lerna publish from-package --yes --access public"
   },
   "engines": {
     "node": ">=12.0.0",

@@ -11,6 +11,16 @@
     "version": {
       "allowBranch": "master",
       "message": "chore(release): publish %s"
+    },
+    "publish": {
+      "ignoreChanges": [
+        "**/CHANGELOG.md",
+        "**/node_modules/**",
+        "**/package.json",
+        "**/*.md",
+        "**/yarn.lock"
+      ],
+      "registry": "https://registry.npmjs.org"
     }
 	}
 }
