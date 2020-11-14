@@ -71,6 +71,8 @@ export class SessionService {
         ...settings?.session?.cookie,
       },
 
+      /* eslint-disable-next-line */
+      // @ts-ignore
       store: this._sessionStore,
     };
     if (result.expiration) result.cookie.maxAge = result.expiration;
@@ -78,7 +80,11 @@ export class SessionService {
   }
 
   protected createStore(options: ICacheSettings): RedisStore {
+    /* eslint-disable-next-line */
+    // @ts-ignore
     const SessionStore = connectRedis(expressSession);
+    /* eslint-disable-next-line */
+    // @ts-ignore
     return new SessionStore({ client: new BaseCacheService(options).db });
   }
 
