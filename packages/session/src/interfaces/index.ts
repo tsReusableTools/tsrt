@@ -1,6 +1,6 @@
 import { SessionOptions } from 'express-session';
-import { ICacheSettings } from '@tsd/cache';
-import '@tsd/types';
+import { ICacheSettings } from '@tsrt/cache';
+import '@tsrt/types';
 
 export interface ISessionSettings {
   store: ICacheSettings;

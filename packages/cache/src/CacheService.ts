@@ -1,8 +1,8 @@
 import { RedisClient, ClientOpts, createClient } from 'redis';
 import { promisify } from 'util';
 
-import { throwHttpError, msg } from '@tsd/utils';
-import { log } from '@tsd/logger';
+import { throwHttpError, msg } from '@tsrt/utils';
+import { log } from '@tsrt/logger';
 
 import { IAllCacheRecords } from './interfaces';
 

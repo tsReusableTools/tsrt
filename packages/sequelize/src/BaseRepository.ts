@@ -8,8 +8,8 @@ import { singular } from 'pluralize';
 import {
   IOrderedItem, IPagedData, isEmpty, capitalize, parseTypes, reorderItemsInArray,
   hasItemsWithoutOrderOrWithEqualOrders, throwHttpError, createPagedData,
-} from '@tsd/utils';
-import { log } from '@tsd/logger';
+} from '@tsrt/utils';
+import { log } from '@tsrt/logger';
 
 import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,

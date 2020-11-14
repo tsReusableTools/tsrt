@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { parseTypes, isEmpty, parseArrayLikeObjectIntoArray } from '@tsd/utils';
+import { parseTypes, isEmpty, parseArrayLikeObjectIntoArray } from '@tsrt/utils';
 
 /** Parses request: query, params, body & headers and corrects data types */
 export function parseRequestHandler(req: Request, _res: Response, next: NextFunction): Response | void {

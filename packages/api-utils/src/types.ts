@@ -1,4 +1,4 @@
-import '@tsd/types';
+import '@tsrt/types';
 
 /** Interface for parsed substring for insert function */
 export interface ISubstring {

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import '@tsd/types';
+import '@tsrt/types';
 
 /** Type for msg aliases */
 export type msgAlias = <T = any>(data?: T, code?: number | string) => IHttpError<T>

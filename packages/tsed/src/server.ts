@@ -6,7 +6,7 @@ import '@tsed/platform-express';
 import '@tsed/ajv';
 import '@tsed/swagger';
 
-import { Application } from '@tsd/application';
+import { Application } from '@tsrt/application';
 
 import { IApplicationSettings } from './interfaces';
 import { HealthController } from './controllers/HealthController';

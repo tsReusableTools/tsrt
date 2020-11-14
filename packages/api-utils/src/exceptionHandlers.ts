@@ -1,5 +1,5 @@
-import { isNodeJsEnvironment } from '@tsd/utils';
-import { log } from '@tsd/logger';
+import { isNodeJsEnvironment } from '@tsrt/utils';
+import { log } from '@tsrt/logger';
 
 /** Attaches exception handlers */
 export function attachExceptionHandlers(shouldExitProcessOnError = false): void {

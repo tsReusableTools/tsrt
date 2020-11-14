@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosError } from 'axios';
 import qs from 'qs';
 
-import { isEmpty, msg } from '@tsd/utils';
+import { isEmpty, msg } from '@tsrt/utils';
 
 import { IHttpServiceSettings, IHttpServiceCancellation, IHttpServiceHttpClient, IHttpServiceResponse } from '../types';
 

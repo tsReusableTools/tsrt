@@ -1,8 +1,8 @@
 import { Err, Req, Res, Next, Middleware } from '@tsed/common';
 
-import { log } from '@tsd/logger';
-import { msg } from '@tsd/utils';
-import { patchedSend } from '@tsd/application';
+import { log } from '@tsrt/logger';
+import { msg } from '@tsrt/utils';
+import { patchedSend } from '@tsrt/application';
 
 @Middleware()
 export class GlobalErrorHandlerMiddleware {

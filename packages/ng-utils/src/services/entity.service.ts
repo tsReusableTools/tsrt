@@ -5,8 +5,8 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Subscription } from 'rxjs';
 import { isEqual, cloneDeep } from 'lodash';
 
-import { delay, updateItemsOrderInArray, getReorderedItem, parseTypes, IOrderedItem } from '@tsd/utils';
-import { ICrudApiClient } from '@tsd/http';
+import { delay, updateItemsOrderInArray, getReorderedItem, parseTypes, IOrderedItem } from '@tsrt/utils';
+import { ICrudApiClient } from '@tsrt/http';
 import { RouterService } from './router.service';
 
 /** Service which provides small useful reusable functions (methods) */

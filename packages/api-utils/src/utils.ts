@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 
-import { parseTypes } from '@tsd/utils';
+import { parseTypes } from '@tsrt/utils';
 
 /**
  *  Combines multiple middlewares into one.

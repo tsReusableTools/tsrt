@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/cache",
-  "version": "0.1.2",
-  "description": "Typescript Duck: cache",
+  "name": "@tsrt/cache",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: cache",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/logger": "^0.1.2",
-    "@tsd/utils": "^0.1.2",
+    "@tsrt/logger": "^0.1.0",
+    "@tsrt/utils": "^0.1.0",
     "redis": "3.0.2"
   },
   "devDependencies": {
@@ -31,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/cache",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/cache",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

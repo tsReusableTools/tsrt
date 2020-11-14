@@ -1,6 +1,6 @@
 import { readFileSync, writeSync, closeSync, openSync, writeFileSync, existsSync } from 'fs';
 
-import { isNodeJsEnvironment } from '@tsd/utils';
+import { isNodeJsEnvironment } from '@tsrt/utils';
 
 import { ISubstring } from './types';
 

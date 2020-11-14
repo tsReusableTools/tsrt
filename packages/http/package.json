@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/http",
-  "version": "0.1.2",
-  "description": "Typescript Duck: http modules",
+  "name": "@tsrt/http",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: http modules",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "^0.1.2",
-    "@tsd/utils": "^0.1.2",
+    "@tsrt/types": "^0.1.0",
+    "@tsrt/utils": "^0.1.0",
     "axios": "^0.20.0",
     "qs": "6.9.4"
   },
@@ -31,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/http",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/http",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

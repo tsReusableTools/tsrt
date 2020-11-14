@@ -2,7 +2,7 @@
 import { Response as Res } from 'express';
 import stc from 'http-status';
 
-import { msg, isEmpty, isNil, isEmptyNil, removeParams, parseTypes } from '@tsd/utils';
+import { msg, isEmpty, isNil, isEmptyNil, removeParams, parseTypes } from '@tsrt/utils';
 
 export function createApiResponse(res: Res, config: Partial<IHttpError>): IApiResponse;
 export function createApiResponse(res: Res, statusCode: number, body?: any): IApiResponse;

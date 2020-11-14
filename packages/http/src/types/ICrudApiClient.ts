@@ -1,4 +1,4 @@
-import { IPagedData } from '@tsd/utils';
+import { IPagedData } from '@tsrt/utils';
 
 export interface ICrudApiClient<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> {
   item: I;

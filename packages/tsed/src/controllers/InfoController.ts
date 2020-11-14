@@ -1,7 +1,7 @@
 import { Controller, Get } from '@tsed/common';
 import { Summary } from '@tsed/swagger';
 
-import { getApplicationInfo, IApplicationInfo } from '@tsd/application';
+import { getApplicationInfo, IApplicationInfo } from '@tsrt/application';
 
 @Controller('/info')
 export class InfoController {

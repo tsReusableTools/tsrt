@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/utils",
-  "version": "0.1.2",
-  "description": "Typescript Duck: utils",
+  "name": "@tsrt/utils",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: utils",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "^0.1.2",
+    "@tsrt/types": "^0.1.0",
     "http-status": "1.4.2"
   },
   "devDependencies": {
@@ -29,11 +29,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/utils",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/utils",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

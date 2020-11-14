@@ -1,5 +1,5 @@
 import { Sequelize, SequelizeOptions, Model } from 'sequelize-typescript';
-import { log } from '@tsd/logger';
+import { log } from '@tsrt/logger';
 
 class SequalizeDatabase {
   private _connection: Sequelize;

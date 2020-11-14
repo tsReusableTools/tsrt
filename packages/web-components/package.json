@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/web-components",
-  "version": "0.1.2",
-  "description": "Typescript Duck: web-components",
+  "name": "@tsrt/web-components",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: web-components",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -37,11 +37,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/web-components",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/web-components",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

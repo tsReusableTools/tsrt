@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 import { join } from 'path';
 import { readFileSync } from 'fs';
 
-import { send } from '@tsd/api-utils';
+import { send } from '@tsrt/api-utils';
 import { IApplicationInfo } from '../interfaces';
 
 let dateTime: string;

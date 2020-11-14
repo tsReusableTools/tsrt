@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/store",
-  "version": "0.1.2",
-  "description": "Typescript Duck: state store",
+  "name": "@tsrt/store",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: state store",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/types": "^0.1.2"
+    "@tsrt/types": "^0.1.0"
   },
   "peerDependencies": {
     "rxjs": "^6.6.3"
@@ -31,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/store",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/store",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

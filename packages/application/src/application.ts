@@ -5,9 +5,9 @@ import helmet from 'helmet';
 import merge from 'deepmerge';
 import glob from 'glob';
 
-import { isEmpty, getObjectValuesList } from '@tsd/utils';
-import { log } from '@tsd/logger';
-import { session } from '@tsd/session';
+import { isEmpty, getObjectValuesList } from '@tsrt/utils';
+import { log } from '@tsrt/logger';
+import { session } from '@tsrt/session';
 
 import {
   IApplication, IApplicationConfig, IApplicationSettings, ApplicationStatics,

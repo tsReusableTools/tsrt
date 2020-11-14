@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/tsed",
-  "version": "0.1.2",
-  "description": "Typescript Duck: TsED base server implementation",
+  "name": "@tsrt/tsed",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: TsED base server implementation",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,11 +16,11 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/api-utils": "^0.1.2",
-    "@tsd/application": "^0.1.2",
-    "@tsd/logger": "^0.1.2",
-    "@tsd/types": "^0.1.2",
-    "@tsd/utils": "^0.1.2"
+    "@tsrt/api-utils": "^0.1.0",
+    "@tsrt/application": "^0.1.0",
+    "@tsrt/logger": "^0.1.0",
+    "@tsrt/types": "^0.1.0",
+    "@tsrt/utils": "^0.1.0"
   },
   "peerDependencies": {
     "@tsed/ajv": "^5.65.1",
@@ -60,11 +60,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/tsed",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/tsed",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

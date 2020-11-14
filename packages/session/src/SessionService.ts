@@ -3,7 +3,7 @@ import { RequestHandler } from 'express';
 import expressSession from 'express-session';
 import connectRedis, { RedisStore } from 'connect-redis';
 
-import { BaseCacheService, ICacheSettings } from '@tsd/cache';
+import { BaseCacheService, ICacheSettings } from '@tsrt/cache';
 
 import { ISessionSettings, ISessionOptions } from './interfaces';
 

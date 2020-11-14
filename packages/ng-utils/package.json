@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/ng-utils",
-  "version": "0.1.2",
-  "description": "Typescript Duck: ng-utils",
+  "name": "@tsrt/ng-utils",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: ng-utils",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -26,9 +26,9 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/http": "^0.1.2",
-    "@tsd/types": "^0.1.2",
-    "@tsd/utils": "^0.1.2"
+    "@tsrt/http": "^0.1.0",
+    "@tsrt/types": "^0.1.0",
+    "@tsrt/utils": "^0.1.0"
   },
   "peerDependencies": {
     "@angular/animations": "^10.1.5",
@@ -84,11 +84,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/ng-utils",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/ng-utils",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

@@ -1,6 +1,6 @@
 import asyncHooks from 'async_hooks';
 
-import { isNil } from '@tsd/utils';
+import { isNil } from '@tsrt/utils';
 
 export class AsyncContext<T extends GenericObject> {
   private _storage = new Map<number, T>();

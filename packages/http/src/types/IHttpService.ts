@@ -2,7 +2,7 @@
 import { AxiosInstance, CancelToken, Canceler, AxiosStatic, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { IStringifyOptions } from 'qs';
 
-import '@tsd/types';
+import '@tsrt/types';
 
 export interface IHttpServiceSettings {
   httpClient?: AxiosStatic | AxiosInstance;

@@ -2,7 +2,7 @@ import { PlatformExpress } from '@tsed/platform-express';
 import { Configuration } from '@tsed/common';
 import { deepMerge } from '@tsed/core';
 
-import { log } from '@tsd/logger';
+import { log } from '@tsrt/logger';
 
 import { IApplicationSettings } from './interfaces';
 import { Server } from './server';

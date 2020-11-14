@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/application",
-  "version": "0.1.2",
-  "description": "Typescript Duck: application",
+  "name": "@tsrt/application",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: application",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,11 +16,11 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/api-utils": "^0.1.2",
-    "@tsd/logger": "^0.1.2",
-    "@tsd/session": "^0.1.2",
-    "@tsd/types": "^0.1.2",
-    "@tsd/utils": "^0.1.2",
+    "@tsrt/api-utils": "^0.1.0",
+    "@tsrt/logger": "^0.1.0",
+    "@tsrt/session": "^0.1.0",
+    "@tsrt/types": "^0.1.0",
+    "@tsrt/utils": "^0.1.0",
     "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",
@@ -47,11 +47,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/application",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/application",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

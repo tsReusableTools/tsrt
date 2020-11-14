@@ -3,7 +3,7 @@ import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
 import { IHelmetConfiguration } from 'helmet';
 
-import { ISessionSettings } from '@tsd/session';
+import { ISessionSettings } from '@tsrt/session';
 
 export type IApplication = ExpressApplication;
 

@@ -1,7 +1,7 @@
 {
-  "name": "@tsd/session",
-  "version": "0.1.2",
-  "description": "Typescript Duck: session",
+  "name": "@tsrt/session",
+  "version": "0.1.0",
+  "description": "Typescript Reusable Tools: session",
   "keywords": [],
   "author": "Danyil Moroz",
   "license": "ISC",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/cache": "^0.1.2",
-    "@tsd/types": "^0.1.2",
+    "@tsrt/cache": "^0.1.0",
+    "@tsrt/types": "^0.1.0",
     "connect-redis": "5.0.0",
     "express-session": "1.17.1"
   },
@@ -37,11 +37,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsd"
+    "url": "https://github.com/mopcweb/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsd/issues/new"
+    "url": "https://github.com/mopcweb/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/session",
+  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/session",
   "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
 }

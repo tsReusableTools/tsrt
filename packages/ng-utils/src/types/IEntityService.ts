@@ -1,4 +1,4 @@
-import { IPagedData } from '@tsd/utils';
+import { IPagedData } from '@tsrt/utils';
 
 /** Interface for abstract Entity Service */
 export interface IEntityService<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> {

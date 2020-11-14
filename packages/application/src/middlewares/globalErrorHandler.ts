@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-import { log } from '@tsd/logger';
-import { send } from '@tsd/api-utils';
+import { log } from '@tsrt/logger';
+import { send } from '@tsrt/api-utils';
 
 /* eslint-disable-next-line */
 export function globalErrorHandler(err: any, _req: Request, res: Response, next: NextFunction): void {

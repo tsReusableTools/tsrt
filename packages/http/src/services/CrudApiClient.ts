@@ -1,4 +1,4 @@
-import { IPagedData } from '@tsd/utils';
+import { IPagedData } from '@tsrt/utils';
 
 import { ICrudApiClient, IHttpServiceCancellation, IHttpServiceRequestConfig } from '../types';
 import { HttpService } from './HttpService';
