@@ -1,6 +1,6 @@
 {
   "name": "@tsd/sequelize",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typescript Duck: sequelize",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,9 +16,9 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsd/logger": "^0.1.0",
-    "@tsd/types": "^0.1.0",
-    "@tsd/utils": "^0.1.0",
+    "@tsd/logger": "^0.1.1",
+    "@tsd/types": "^0.1.1",
+    "@tsd/utils": "^0.1.1",
     "pluralize": "8.0.0"
   },
   "peerDependencies": {

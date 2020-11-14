@@ -1,8 +1,10 @@
 {
   "npmClient": "yarn",
   "useWorkspaces": true,
-  "packages": ["packages/*"],
-  "version": "0.1.0",
+  "packages": [
+    "packages/*"
+  ],
+  "version": "0.1.1",
   "stream": true,
   "command": {
     "bootstrap": {
@@ -12,5 +14,5 @@
       "allowBranch": "master",
       "message": "chore(release): publish %s"
     }
-	}
+  }
 }
