@@ -18,9 +18,9 @@
   "dependencies": {
     "@tsd/api-utils": "^0.1.0",
     "@tsd/logger": "^0.1.0",
+    "@tsd/session": "^0.1.0",
     "@tsd/types": "^0.1.0",
     "@tsd/utils": "^0.1.0",
-    "@tsd/session": "^0.1.0",
     "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",
@@ -52,5 +52,6 @@
   "bugs": {
     "url": "https://github.com/mopcweb/tsd/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/application"
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/application",
+  "gitHead": "7e3e2b842240f45de78709ce7b3e3d16ba074ebb"
 }

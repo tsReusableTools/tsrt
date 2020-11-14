@@ -34,5 +34,6 @@
   "bugs": {
     "url": "https://github.com/mopcweb/tsd/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/utils"
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/utils",
+  "gitHead": "7e3e2b842240f45de78709ce7b3e3d16ba074ebb"
 }

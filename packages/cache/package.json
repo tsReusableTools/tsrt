@@ -20,7 +20,6 @@
     "@tsd/utils": "^0.1.0",
     "redis": "3.0.2"
   },
-  "peerDependencies": { },
   "devDependencies": {
     "@types/node": "13.7.4",
     "@types/redis": "2.8.25",
@@ -37,5 +36,6 @@
   "bugs": {
     "url": "https://github.com/mopcweb/tsd/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/cache"
+  "homepage": "https://github.com/mopcweb/tsd/tree/master/packages/cache",
+  "gitHead": "7e3e2b842240f45de78709ce7b3e3d16ba074ebb"
 }
