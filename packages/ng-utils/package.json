@@ -84,11 +84,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mopcweb/tsrt"
+    "url": "https://github.com/tsReusableTools/tsrt"
   },
   "bugs": {
-    "url": "https://github.com/mopcweb/tsrt/issues/new"
+    "url": "https://github.com/tsReusableTools/tsrt/issues/new"
   },
-  "homepage": "https://github.com/mopcweb/tsrt/tree/master/packages/ng-utils",
-  "gitHead": "ebc7bf710b55a594833e0cc007a82f95aa0f8bf0"
+  "homepage": "https://github.com/tsReusableTools/tsrt/tree/master/packages/ng-utils"
 }

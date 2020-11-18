@@ -1,12 +1,8 @@
 ### Directories
 src
-scripts
-node_modules
 
 ### Files
 .eslintrc
 .eslintignore
 .editorconfig
-nodemon.json
 tsconfig.json
-rollup.config.js

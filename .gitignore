@@ -7,9 +7,5 @@ node_modules
 dist
 **/dist/**
 
-### Temporary
-packages/api
-packages/mvc
-
 ### JS
 **/*.js

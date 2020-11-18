@@ -4,7 +4,6 @@
     "outDir": "./dist",
     "module": "commonjs",
     "target": "es2015",
-    "importHelpers": true,
     "alwaysStrict": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
@@ -14,6 +13,7 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    "skipLibCheck": true
   }
 }

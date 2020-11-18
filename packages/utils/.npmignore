@@ -1,0 +1,8 @@
+### Directories
+src
+
+### Files
+.eslintrc
+.eslintignore
+.editorconfig
+tsconfig.json
