@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/types",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typescript Reusable Tools: types",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -15,7 +15,6 @@
     "node": ">=12.0.0",
     "npm": ">=6.0.0"
   },
-  "devDependencies": { },
   "publishConfig": {
     "access": "public"
   },

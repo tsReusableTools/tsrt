@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/sequelize",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typescript Reusable Tools: sequelize",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,9 +16,9 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/logger": "^0.1.0",
-    "@tsrt/types": "^0.1.0",
-    "@tsrt/utils": "^0.1.0",
+    "@tsrt/logger": "^0.1.1",
+    "@tsrt/types": "^0.1.1",
+    "@tsrt/utils": "^0.1.1",
     "pluralize": "8.0.0"
   },
   "peerDependencies": {

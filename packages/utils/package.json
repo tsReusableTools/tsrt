@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/utils",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typescript Reusable Tools: utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.1.0",
+    "@tsrt/types": "^0.1.1",
     "http-status": "1.4.2"
   },
   "devDependencies": {
