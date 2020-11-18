@@ -7,3 +7,5 @@ src
 .editorconfig
 tsconfig.json
 rollup.config.js
+**/*.html
+**/*.css
