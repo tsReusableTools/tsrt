@@ -1,3 +1,12 @@
+## 0.1.2
+
+### New features
+
+- [@tsrt/web-components] Fixed handling for cases where root container is `svg` element itself
+- [@tsrt/web-components] Fixed bundles: now there are `umd` and `esm` bundles available
+
+---
+
 ## 0.1.1
 
 - Added LICENSE
