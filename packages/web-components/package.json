@@ -7,6 +7,7 @@
   "license": "ISC",
   "main": "public/dist/index.js",
   "types": "public/dist/index.d.ts",
+  "module": "public/dist/index.mjs",
   "scripts": {
     "watch": "rollup -c -w",
     "bundle:types": "dts-bundle-generator -o ./public/dist/index.d.ts ./src/lib/index.ts",

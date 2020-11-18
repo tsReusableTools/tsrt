@@ -13,8 +13,6 @@ export class AnimatedSvg {
 		strokeWidth: 1,
 	};
 
-	protected updateTimer: any;
-	protected prevProps: any;
 	protected animationTimers: any = { };
 	protected animationDataAttribute = 'data-svg-animation-end';
 
@@ -25,13 +23,10 @@ export class AnimatedSvg {
 		protected dispatch?: Dispatch,
 	) { }
 
-	public enable(container: HTMLElement, props: IExternalAnimatedSvgConfig): void {
-		if (this.updateTimer) { clearTimeout(this.updateTimer); }
-
-		this.container = container;
-		this.props = { enabled: true, ...props };
-
-    this.updateSvgs(container);
+	public enable(container: HTMLElement, props: IExternalAnimatedSvgConfig = { }): void {
+    this.setContainer(container);
+    this.setProps(container, props);
+    this.updateSvgs(this.container);
 	}
 
 	public disable(): void {
@@ -51,16 +46,16 @@ export class AnimatedSvg {
 	protected applySvgConfig(svg: SVGSVGElement): void {
 		if (!svg) return;
 		const { width } = window.getComputedStyle(svg);
-		const viewBox = svg.getAttribute('viewBox');
+    const viewBox = svg.getAttribute('viewBox');
 
 		const customWidth = this.defaultConfig(this.props).width;
 
 		let cWidth = getInt(width);
-		if (!cWidth || cWidth === 0) cWidth = getInt(viewBox.split(' ')[2]);
+		if ((!cWidth || cWidth === 0) && viewBox) cWidth = getInt(viewBox.split(' ')[2]);
 		if ((!cWidth || cWidth === 0) && customWidth) cWidth = customWidth;
 
 		/* eslint-disable-next-line no-param-reassign */
-		svg.style.width = cWidth ? `${cWidth}px` : 'auto';
+    svg.style.width = cWidth ? `${cWidth}px` : 'auto';
 	}
 
 	protected execAnimation(svg: SVGSVGElement, i: number): number {
@@ -164,9 +159,40 @@ export class AnimatedSvg {
 			strokeWidth: getInt(strokeWidth),
 			width: getInt(width ?? this._defaultConfig.width),
 		};
-	}
+  }
+
+  protected retrievePropsFromContainer(container: HTMLElement): IExternalAnimatedSvgConfig {
+    const props: IExternalAnimatedSvgConfig = { };
+
+    if (container.hasAttribute('enabled')) props.enabled = container.getAttribute('enabled');
+    if (container.hasAttribute('duration')) props.duration = container.getAttribute('duration');
+    if (container.hasAttribute('onebyone')) props.oneByOne = container.getAttribute('onebyone');
+    if (container.hasAttribute('delay')) props.delay = container.getAttribute('delay');
+    if (container.hasAttribute('timingfunction')) props.timingFunction = container.getAttribute('timingfunction');
+    if (container.hasAttribute('loop')) props.loop = container.getAttribute('loop');
+    if (container.hasAttribute('loopdelay')) props.loopDelay = container.getAttribute('loopdelay');
+    if (container.hasAttribute('stroke')) props.stroke = container.getAttribute('stroke');
+    if (container.hasAttribute('strokewidth')) props.strokeWidth = container.getAttribute('strokewidth');
+    if (container.hasAttribute('width')) props.width = container.getAttribute('width');
+
+    return props;
+  }
+
+  protected setProps(container: HTMLElement, props: IExternalAnimatedSvgConfig): void {
+    this.props = { enabled: true, ...this.retrievePropsFromContainer(container), ...props };
+  }
+
+  protected setContainer(container: HTMLElement): void {
+    if (container.localName === 'svg') {
+      const div = document.createElement('div');
+      div.innerHTML = `${container.outerHTML}`;
+      container.parentNode.replaceChild(div, container);
+      this.container = div;
+    } else this.container = container;
+  }
 
 	protected svgs(container: HTMLElement): SVGSVGElement[] {
+    if (container.localName === 'svg') return [container as unknown as SVGSVGElement];
 		return container ? Array.from(container.querySelectorAll('svg')) : [];
 	}
 }
@@ -203,36 +229,8 @@ export interface IAnimatedSvgConfig {
   width?: number;
 }
 
-export interface IExternalAnimatedSvgConfig {
-  /** Whether to run animation. Default = true. */
-  enabled?: boolean | string;
-
-  /** Animation duration in ms. Default = 2000. */
-  duration?: number | string;
-
-  /** Whether to animate paths oneByOne instead of simultaniously. Default = false */
-  oneByOne?: boolean | string;
-
-  /** Animation delay in ms for each path if oneByOne. Default = 0. */
-  delay?: number | string;
-
-  /** Animation timing-function. Default = `ease-in-out`. */
-  timingFunction?: string | string;
-
-  /** Whether to run animation in loop (or loop timeout in ms). Default = false. */
-  loop?: boolean | number | string;
-
-  /** Delay before starting next loop in ms. Default = 500. */
-  loopDelay?: number | string;
-
-  /** Path `stroke` attribute (It is necessary in order to run animation). Default = `#000000`. */
-  stroke?: string;
-
-  /** Path `stroke-width` attribute. Default = 1. */
-  strokeWidth?: number | string;
-
-  /** Svg `width` attribute. */
-  width?: number | string;
+export type IExternalAnimatedSvgConfig = {
+  [K in keyof IAnimatedSvgConfig]: IAnimatedSvgConfig[K] | string;
 }
 
 export type Dispatch = ({ latestAnimationDuration: number }) => any;

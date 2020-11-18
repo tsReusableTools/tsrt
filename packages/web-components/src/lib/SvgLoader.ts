@@ -76,6 +76,17 @@ export class SvgLoader extends AnimatedSvg {
       fadeOutDuration: getInt(fadeOutDuration),
     };
   }
+
+  protected retrievePropsFromContainer(container: HTMLElement): IExternalSvgLoaderConfig {
+    const props: IExternalSvgLoaderConfig = { ...super.retrievePropsFromContainer(container) };
+
+    if (container.hasAttribute('shouldwaitanimationend')) props.shouldWaitAnimationEnd = container.getAttribute('shouldwaitanimationend');
+    if (container.hasAttribute('backdrop')) props.backdrop = container.getAttribute('backdrop');
+    if (container.hasAttribute('delaybeforehide')) props.delayBeforeHide = container.getAttribute('delaybeforehide');
+    if (container.hasAttribute('fadeoutduration')) props.fadeOutDuration = container.getAttribute('fadeoutduration');
+
+    return props;
+  }
 }
 
 export interface ISvgLoaderConfig extends IAnimatedSvgConfig {
@@ -92,16 +103,6 @@ export interface ISvgLoaderConfig extends IAnimatedSvgConfig {
   fadeOutDuration?: number;
 }
 
-export interface IExternalSvgLoaderConfig extends IExternalAnimatedSvgConfig {
-  /** Whether to wait for animation end before fade out. Default = true. */
-  shouldWaitAnimationEnd?: boolean | string;
-
-  /** Backdrop container background. Default = `#fffffffa`. */
-  backdrop?: string;
-
-  /** Delay after animation end and before fade out in ms. Default = 0. */
-  delayBeforeHide?: number | string;
-
-  /** Backdrop container fade out animation duration in ms. Default = 1000. */
-  fadeOutDuration?: number | string;
+export type IExternalSvgLoaderConfig = {
+  [K in keyof ISvgLoaderConfig]: ISvgLoaderConfig[K] | string;
 }
