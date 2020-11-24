@@ -251,7 +251,7 @@ export class Application<T extends IApplication = IApplication> {
       .filter((item) => !isEmpty(item));
   }
 
-  protected setRequestHandlers<T extends GenericObject>(container: T, requestHandlers: T): T {
+  protected setRequestHandlers<C extends GenericObject>(container: C, requestHandlers: C): C {
     const result = { ...container };
     Object.entries(requestHandlers).forEach(([key, value]) => {
       const routes = Array.isArray(value) ? value : [value];

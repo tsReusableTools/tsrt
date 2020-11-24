@@ -10,7 +10,7 @@ export class AsyncContext<T extends GenericObject> {
     if (initialContext) this.set(initialContext);
   }
 
-  public set<K extends keyof T>(value: Partial<T>): void;
+  public set(value: Partial<T>): void;
   public set<K extends keyof T>(key: K, value: T[K]): void;
   public set<K extends keyof T>(key: K | Partial<T>, value?: T[K]): void {
     const executionAsyncId = asyncHooks.executionAsyncId();

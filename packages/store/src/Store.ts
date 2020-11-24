@@ -68,7 +68,7 @@ export class Store<T extends GenericObject = IState> {
     return this.cloneDeep(this._state.getValue()[prop]);
   }
 
-  private cloneDeep<T>(value: T): T {
+  private cloneDeep<C>(value: C): C {
     return JSON.parse(JSON.stringify(value));
   }
 }

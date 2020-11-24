@@ -1,3 +1,4 @@
+import { Type } from '@tsed/core';
 import { IPipe, OverrideProvider, ParamMetadata, ValidationPipe as BaseValidationPipe } from '@tsed/common';
 import { plainToClass } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
@@ -18,7 +19,7 @@ export class ValidationPipe extends BaseValidationPipe implements IPipe {
   }
 
   protected shouldValidate(metadata: ParamMetadata): boolean {
-    const types: Function[] = [String, Boolean, Number, Array, Object];
+    const types: Type[] = [String, Boolean, Number, Array, Object];
 
     return !super.shouldValidate(metadata) || !types.includes(metadata.type);
   }

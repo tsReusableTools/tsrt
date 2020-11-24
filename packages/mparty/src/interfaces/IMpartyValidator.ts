@@ -1,3 +1,8 @@
+/**
+ *  Busboy limits + some additional Mparty validation options
+ *
+ *  @see https://www.npmjs.com/package/busboy#busboy-methods
+ */
 export interface IMpartyLimits {
   // ===> Busboy validations:
   /** Max field name size (in bytes) (Default: 100 bytes). */
@@ -33,7 +38,7 @@ export interface IMpartyLimits {
 
   // ===> Additional JSON request body validations:
   /* eslint-disable-next-line */
-  jsonSchema: any;
+  jsonSchema?: any;
 
   // /** Forbidden fields in request body */
   // forbiddenFields?: string[];

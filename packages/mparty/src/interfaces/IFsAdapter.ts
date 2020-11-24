@@ -1,7 +1,9 @@
-import { IAdapterFileMetadata, IAdapterOptions } from './IAdapter';
+import { IFileMetadata, IAdapterOptions } from './IAdapter';
 
-export interface IFsAdapterFileMetadata extends IAdapterFileMetadata {
+export interface IFsAdapterFileMetadata extends IFileMetadata {
   destination: string;
+  path: string;
+  size: number;
 }
 
 export interface IFsAdapterOptions extends IAdapterOptions {

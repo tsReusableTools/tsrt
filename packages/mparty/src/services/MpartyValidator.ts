@@ -1,25 +1,27 @@
-import { IMpartyLimits, IAdapterFileMetadata } from '../interfaces';
-import { getFileExtension, ERRORS, MpartyError } from '../utils';
+import { IMpartyLimits, IFileMetadata } from '../interfaces';
+import { getFileExtension, VALIDATION_ERRORS, ERROR_CODES, MpartyError } from '../utils';
 
 export class MpartyValidator {
   public validateFile(
-    { originalFileName, fieldName }: Partial<IAdapterFileMetadata>,
+    { originalFileName, fieldName }: Partial<IFileMetadata>,
     { extensions, allowedFilesFields }: IMpartyLimits,
   ): boolean {
     if (extensions?.length) {
       const isValid = this.validateExtension(originalFileName, extensions);
-      if (!isValid) throw new MpartyError(ERRORS.extensions(extensions), fieldName);
+      if (!isValid) throw new MpartyError(VALIDATION_ERRORS.extensions(extensions), ERROR_CODES.VALIDATION_ERROR, fieldName);
     }
 
     if (allowedFilesFields?.length) {
       const isValid = this.validateField(originalFileName, allowedFilesFields);
-      if (!isValid) throw new MpartyError(ERRORS.allowedFilesFields(allowedFilesFields), fieldName);
+      if (!isValid) {
+        throw new MpartyError(VALIDATION_ERRORS.allowedFilesFields(allowedFilesFields), ERROR_CODES.VALIDATION_ERROR, fieldName);
+      }
     }
 
     return true;
   }
 
-  public validateRequiredFilesFields(files: IAdapterFileMetadata[], requiredFilesFields: string[]): boolean {
+  public validateRequiredFilesFields(files: IFileMetadata[], requiredFilesFields: string[]): boolean {
     if (!requiredFilesFields?.length) return true;
 
     let allFound = true;

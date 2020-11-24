@@ -2,11 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { AdapterEventEmitter } from './AdapterEventEmitter';
-import { IAdapter, IAdapterUploadResult, IAdapterFileMetadata, IAdapterFileToUpload, IAdapterOptions } from '../interfaces';
-import { getFirstItem } from '../utils';
+import { AdapterEventEmitter } from '../interfaces/AdapterEventEmitter';
+import { IAdapter, IAdapterUploadResult, IFileMetadata, IAdapterOptions } from '../interfaces';
 
-export abstract class Adapter<T extends IAdapterFileMetadata> extends AdapterEventEmitter<T> implements IAdapter {
+export abstract class Adapter<T extends IFileMetadata> extends AdapterEventEmitter<T> implements IAdapter {
   protected adapterUploadResult: IAdapterUploadResult<T> = { fields: {}, files: [], errors: [] };
   protected filesToUpload = 0;
 
@@ -16,17 +15,15 @@ export abstract class Adapter<T extends IAdapterFileMetadata> extends AdapterEve
 
   public onError(error: Error): void { this.emit('error', error); }
 
-  public onFinish = (): void => { if (this.isFinished) this.finish(); };
+  public onFinish(): void { if (this.isFinished) this.finish(); }
 
   public onField(fieldName: string, value: any): void { this.adapterUploadResult.fields[fieldName] = value; }
 
   public async onFileChunk(_data: string, _fileName: string, _fieldName: string, _contentType: string): Promise<void> { }
 
-  public async onFile(_fileMetadata: IAdapterFileToUpload): Promise<void> { this.startFileUpload(); }
+  public async onFile(_file: NodeJS.ReadableStream, _fileMetadata: IFileMetadata): Promise<void> { }
 
-  protected startFileUpload(): void {
-    this.filesToUpload += 1;
-  }
+  protected startFileUpload(): void { this.filesToUpload += 1; }
 
   protected finishFileUpload(): void {
     this.filesToUpload -= 1;
@@ -34,7 +31,6 @@ export abstract class Adapter<T extends IAdapterFileMetadata> extends AdapterEve
   }
 
   protected finish(): void {
-    // this.adapterUploadResult.file = getFirstItem(this.adapterUploadResult.files);
     [this.adapterUploadResult.file] = this.adapterUploadResult.files;
     this.emit('finish', this.adapterUploadResult);
   }

@@ -19,7 +19,7 @@
     # "import/no-unresolved": "off",
     "import/no-unresolved": [2,  { "ignore": ["^@.*"] }],
 
-    # Extra rule for us< as we have devs working on different
+    # Extra rule for us< as we have devs working on different os
     "linebreak-style": ["error", "unix"],
 
     # Allow import from files without extensions ('./SomeService' instead of './SomeService.ts')
@@ -52,7 +52,7 @@
     # Allow continue as we decided to allow ForOfStatement
     "no-continue": "off",
 
-    # Specificall y to node
+    # Specifically to node
     "no-console": "off",
 
     # They are fine sometimes.
@@ -77,7 +77,19 @@
         "@typescript-eslint/no-empty-function": ["error", { "allow": ["constructors"] }],
 
         # Ensure interfaces name start with "I"
-        "@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "always" }],
+        # Was removed from `typescript-eslint`
+        # "@typescript-eslint/interface-name-prefix": ["error", { "prefixWithI": "always" }],
+        "@typescript-eslint/naming-convention": [
+          "error",
+          {
+            "selector": "interface",
+            "format": ["PascalCase"],
+            "custom": {
+              "regex": "^I[A-Z]",
+              "match": true
+            }
+          }
+        ],
 
         # Ensure use of T[] for simple array annotations and Array<T> for complicated
         "@typescript-eslint/array-type": ["error", {
@@ -87,7 +99,18 @@
 
         # Ordering for class members. Just defaults
         # "@typescript-eslint/member-ordering": ["error", { default: ["signature", "field", "constructor", "method"] }]
-        "@typescript-eslint/member-ordering": ["error"]
+        "@typescript-eslint/member-ordering": ["error"],
+
+        # Disable eslint rule and apply enhanced ts-eslint rule
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": "error",
+
+        # Disable eslint rule and apply enhanced ts-eslint rule
+        "no-use-before-define": "off",
+        "@typescript-eslint/no-use-before-define": ["error"],
+
+        #
+        "@typescript-eslint/explicit-module-boundary-types": ["error", { "allowArgumentsExplicitlyTypedAsAny": true }]
       }
     }
   ]
