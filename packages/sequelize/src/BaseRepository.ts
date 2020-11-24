@@ -1,6 +1,6 @@
 import {
   Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
-  WhereAttributeHash, IncludeOptions, WhereOptions, FindOptions, CreateOptions, UpdateOptions,
+  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions,
 } from 'sequelize';
 import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
@@ -18,8 +18,8 @@ import {
 
 export class BaseRepository<I extends GenericObject = GenericObject, M extends Model = Model> {
   public constructor(
-    protected model: ModelCtor<M>,
-    protected config?: Partial<IBaseRepositoryConfig>,
+    public readonly model: ModelCtor<M>,
+    protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
     this.config = {
       defaults: {
@@ -344,49 +344,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     }
   }
 
-  // Native sequelize methods section. !!! There is no specific parsing and validation done here. Only for internal usage. //
-
-  /** Gets model name */
-  public getModelName(): string {
-    return this.model.name;
-  }
-
-  /**
-   *  Reads all records list directly from DB. No specific validation and modifications.
-   *
-   *  @param [filter] - Sequelize FindOptions object.
-   */
-  public findAll(filter?: FindOptions): Promise<M[]> {
-    return this.model.findAll(filter) as unknown as Promise<M[]>;
-  }
-
-  /**
-   *  Reads one record directly from DB. No specific validation and modifications.
-   *
-   *  @param [filter] - Sequelize FindOptions object.
-   */
-  public findOne(filter?: FindOptions): Promise<M> {
-    return this.model.findOne(filter) as unknown as Promise<M>;
-  }
-
-  /**
-   *  Reads record by PK directly from DB. No specific validation and modifications.
-   *
-   *  @param id - Entity id.
-   */
-  public findByPk(id: number): Promise<M> {
-    return this.model.findByPk(id) as unknown as Promise<M>;
-  }
-
-  /**
-   *  Creates record directly in DB. No specific validation and modifications.
-   *
-   *  @param body - Entity data.
-   */
-  public createObject(body: Partial<I> = { }): Promise<M> {
-    return this.model.create(body) as unknown as Promise<M>;
-  }
-
   // Hooks section //
 
   /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -487,7 +444,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     let attributes: string[] = [];
     if (select) attributes = Array.isArray(select) ? [...select] : String(select).split(',');
     if (attributes) attributes = attributes.map((item) => String(item).trim());
-
     if (query && attributes && attributes.length) query.attributes = attributes;
     return attributes;
   }
@@ -495,7 +451,9 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   private includeParser(include: string | string[], query?: FindAndCountOptions): IncludeOptions[] {
     let customInclude: IncludeOptions[] = [];
 
-    let associationsArray = Array.isArray(include) ? [...include] : String(include).split(',');
+    let associationsArray = Array.isArray(include)
+      ? [...include.map((item) => String(item).trim())]
+      : String(include).split(',').map((item) => String(item).trim());
     associationsArray = associationsArray.filter((item) => !!item);
     associationsArray.forEach((item) => customInclude.push(this.createSequelizeAssociations(item)));
 
@@ -872,7 +830,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
   /* eslint-disable-next-line */
   private createCustomSequelizeError(err: any): any {
-    // if (process.env.NODE_ENV !== 'production') log.debug(err, ['>>> DEV: PostgreSQL ERROR <<<']);
     if (process.env.NODE_ENV !== 'production') log.debug(err, '>>> DEV: PostgreSQL ERROR <<<');
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
