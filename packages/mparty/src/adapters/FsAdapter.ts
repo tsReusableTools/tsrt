@@ -1,12 +1,12 @@
 import fs from 'fs';
 import { Adapter } from './Adapter';
-import { IFsAdapterFileMetadata, IFsAdapterOptions, IFileMetadata } from '../interfaces';
-import { MpartyError, ERROR_CODES } from '../utils';
+import { IFsAdapterFileMetadata, IFsAdapterOptions, IFileMetadata, IAdapter, IAdapterUploadResult } from '../interfaces';
+import { MpartyError, ERRORS } from '../utils';
 
-export class FsAdapter extends Adapter<IFsAdapterFileMetadata> {
+export class FsAdapter extends Adapter<IFsAdapterFileMetadata> implements IAdapter<IFsAdapterFileMetadata> {
   constructor(protected readonly options: IFsAdapterOptions) {
     super(options);
-    if (!options.destination) throw new MpartyError('FsAdapter requires a `destionation` property', ERROR_CODES.INVALID_OPTIONS);
+    if (!options.destination) throw new MpartyError('FsAdapter requires a `destionation` property', ERRORS.INVALID_OPTIONS);
   }
 
   /* eslint-disable-next-line */
@@ -28,7 +28,12 @@ export class FsAdapter extends Adapter<IFsAdapterFileMetadata> {
       this.finishFileUpload();
     });
 
-    writeStream.on('error', (err: Error) => { this.emit('error', err); });
+    writeStream.on('error', (err: Error) => { this.emit('error', err, this.adapterUploadResult); });
+  }
+
+  public async onRemoveUploadedFiles(uploadedResult: IAdapterUploadResult<IFsAdapterFileMetadata>): Promise<void> {
+    if (!uploadedResult.files?.length) return;
+    uploadedResult.files.forEach((item) => { fs.unlinkSync(item.path); });
   }
 
   private verifyDirExistance(destination: string): void {

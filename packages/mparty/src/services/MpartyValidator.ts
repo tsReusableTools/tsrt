@@ -1,31 +1,53 @@
-import { IMpartyLimits, IFileMetadata } from '../interfaces';
-import { getFileExtension, VALIDATION_ERRORS, ERROR_CODES, MpartyError } from '../utils';
+import { IMpartyLimits, IFileMetadata, IMartyFileForValidation, IMartyFieldForValidation } from '../interfaces';
+import { getFileExtension, VALIDATION_ERRORS, ERRORS, MpartyError } from '../utils';
 
-export class MpartyValidator {
+class MpartyValidatorBase {
   public validateFile(
-    { originalFileName, fieldName }: Partial<IFileMetadata>,
-    { extensions, allowedFilesFields }: IMpartyLimits,
+    { originalFileName, fieldName }: IMartyFileForValidation,
+    { extensions, allowedFiles, fieldNameSize }: IMpartyLimits = { },
   ): boolean {
-    if (extensions?.length) {
-      const isValid = this.validateExtension(originalFileName, extensions);
-      if (!isValid) throw new MpartyError(VALIDATION_ERRORS.extensions(extensions), ERROR_CODES.VALIDATION_ERROR, fieldName);
+    if (fieldNameSize || fieldNameSize === 0) {
+      const isValid = this.valiadateFieldNameSize(fieldName, fieldNameSize);
+      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
     }
 
-    if (allowedFilesFields?.length) {
-      const isValid = this.validateField(originalFileName, allowedFilesFields);
-      if (!isValid) {
-        throw new MpartyError(VALIDATION_ERRORS.allowedFilesFields(allowedFilesFields), ERROR_CODES.VALIDATION_ERROR, fieldName);
-      }
+    if (extensions?.length) {
+      const isValid = this.validateExtension(originalFileName, extensions);
+      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.extensions(extensions), fieldName);
+    }
+
+    if (allowedFiles?.length) {
+      const isValid = this.validateAllowedFilesFields(originalFileName, allowedFiles);
+      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.allowedFiles(allowedFiles), fieldName);
     }
 
     return true;
   }
 
-  public validateRequiredFilesFields(files: IFileMetadata[], requiredFilesFields: string[]): boolean {
-    if (!requiredFilesFields?.length) return true;
+  public validateField(
+    { fieldName, fieldNameTruncated, valueTruncated }: IMartyFieldForValidation,
+    { fieldNameSize, fieldSize }: IMpartyLimits = { },
+  ): boolean {
+    if (fieldNameTruncated) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
+    if (valueTruncated) this.throwValidationError(VALIDATION_ERRORS.fieldSize(fieldSize), fieldName);
+
+    if (fieldNameSize || fieldNameSize === 0) {
+      const isValid = this.valiadateFieldNameSize(fieldName, fieldNameSize);
+      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
+    }
+
+    return true;
+  }
+
+  public valiadateFieldNameSize(fieldName: string, fieldNameSize: number): boolean {
+    return fieldName?.length <= fieldNameSize;
+  }
+
+  public validateRequiredFilesFields(files: IFileMetadata[], requiredFiles: string[]): boolean {
+    if (!requiredFiles?.length) return true;
 
     let allFound = true;
-    requiredFilesFields.forEach((item) => {
+    requiredFiles.forEach((item) => {
       if (!allFound) return;
       allFound = !!(files.find((unit) => unit.fieldName === item));
     });
@@ -33,9 +55,9 @@ export class MpartyValidator {
     return allFound;
   }
 
-  public validateField(fileName: string, allowedFilesFields: string[]): boolean {
-    if (!allowedFilesFields?.length) return true;
-    return !!(allowedFilesFields.find((item) => item === fileName));
+  public validateAllowedFilesFields(fileName: string, allowedFiles: string[]): boolean {
+    if (!allowedFiles?.length) return true;
+    return !!(allowedFiles.find((item) => item === fileName));
   }
 
   public validateExtension(fileName: string, extensions: string[]): boolean {
@@ -46,4 +68,10 @@ export class MpartyValidator {
 
     return true;
   }
+
+  private throwValidationError(message: string, fieldName?: string): void {
+    throw new MpartyError(message, ERRORS.VALIDATION_ERROR, fieldName);
+  }
 }
+
+export const MpartyValidator = new MpartyValidatorBase();

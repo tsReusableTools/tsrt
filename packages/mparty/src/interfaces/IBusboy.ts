@@ -8,4 +8,10 @@ export type BusboyOnFieldArgs = [
   mimetype: string
 ];
 
-export type BusboyOnFileArgs = [string, NodeJS.ReadableStream, string, string, string];
+export type BusboyOnFileArgs = [
+  fieldName: string,
+  file: NodeJS.ReadableStream,
+  originalFileName: string,
+  encoding: string,
+  mimetype: string
+];

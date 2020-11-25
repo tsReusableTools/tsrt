@@ -1,14 +1,14 @@
 export class MpartyError extends Error {
   public message: string;
   public code: string
-  public field?: string;
+  public fieldName?: string;
 
-  constructor(message: string, code: string, field?: string) {
+  constructor(message: string, code: string, fieldName?: string) {
     super(message);
     if (Error.captureStackTrace) Error.captureStackTrace(this, MpartyError);
     this.message = message;
     this.code = code;
-    if (field) this.field = field;
+    if (fieldName) this.fieldName = fieldName;
   }
 }
 

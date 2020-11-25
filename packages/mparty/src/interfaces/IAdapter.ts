@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventEmitter } from 'events';
 
-export type AdapterEvents = 'error' | 'finish';
+export type AdapterEvents = 'error' | 'finish' | 'uploaded';
 
 export interface IFileMetadata extends GenericObject {
   fieldName: string;
@@ -12,22 +12,21 @@ export interface IFileMetadata extends GenericObject {
   extension: string;
 }
 
-export interface IAdapterUploadResult<T> {
+export interface IAdapterUploadResult<T extends IFileMetadata> {
   fields: GenericObject;
   files: T[];
   file?: T;
-  errors?: Error[];
+  // errors?: Error[];
 }
 
 export interface IAdapterOptions {
   validate?: boolean;
 }
 
-export interface IAdapter extends EventEmitter {
+export interface IAdapter<T extends IFileMetadata> extends EventEmitter {
   onError: (error: Error) => void;
   onFinish: () => void;
   onField: (fieldName: string, value: any) => void;
-  onFileChunk: (data: string, fileName: string, fieldName: string, contentType: string) => Promise<void>;
   onFile: (file: NodeJS.ReadableStream, fileMetadata: IFileMetadata) => Promise<void>;
-  // onValidationFailed()
+  onRemoveUploadedFiles: (uploadedResult: IAdapterUploadResult<T>) => Promise<void>;
 }
