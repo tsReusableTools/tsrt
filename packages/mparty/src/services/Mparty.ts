@@ -58,9 +58,8 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
       busboy.on('fieldsLimit', () => onError('FIELDS_LIMIT_ERROR'));
       busboy.on('filesLimit', () => onError('FILES_LIMIT_ERROR'));
       busboy.on('partsLimit', () => onError('PARTS_LIMIT_ERROR'));
-
-      busboy.on('finish', () => { isParsed = true; onUploadDone(); });
       busboy.on('error', (error: Error) => onError(error));
+      busboy.on('finish', () => { isParsed = true; onUploadDone(); });
 
       busboy.on('field', (...[fieldName, value, fieldNameTruncated, valueTruncated]: BusboyOnFieldArgs) => {
         try {
@@ -68,6 +67,7 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
           uploadResult.fields[fieldName] = value;
         } catch (err) { onError(err); }
       });
+
       busboy.on('file', async (...[fieldName, file, originalFileName, encoding, mimetype]: BusboyOnFileArgs): Promise<void> => {
         try {
           if (uploadQueue.hasError) { file.resume(); return; }
@@ -121,9 +121,6 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
   }
 
   protected provideJsonResponse<C extends T, CReq extends Req>(req: CReq): IUploadResult<C> {
-    return {
-      fields: typeof req === 'object' && 'body' in req ? (req as GenericObject).body : { },
-      files: [],
-    };
+    return { fields: typeof req === 'object' && 'body' in req ? (req as GenericObject).body : { }, files: [] };
   }
 }

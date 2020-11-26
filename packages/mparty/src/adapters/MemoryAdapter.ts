@@ -4,8 +4,7 @@ import { IMemoryAdapterFileMetadata, IFileMetadata, IAdapter, IUploadResult } fr
 
 export class MemoryAdapter implements IAdapter<IMemoryAdapterFileMetadata, IncomingMessage> {
   public async onUpload(
-    _req: IncomingMessage, file: NodeJS.ReadableStream,
-    { fieldName, fileName, originalFileName, encoding, mimetype, extension }: IFileMetadata,
+    _req: IncomingMessage, file: NodeJS.ReadableStream, fileMetaData: IFileMetadata,
   ): Promise<IMemoryAdapterFileMetadata> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -14,7 +13,7 @@ export class MemoryAdapter implements IAdapter<IMemoryAdapterFileMetadata, Incom
       file.on('end', () => {
         const buffer = Buffer.concat(chunks).toString();
         const size = buffer.length;
-        resolve({ fieldName, fileName, originalFileName, encoding, mimetype, extension, size, buffer });
+        resolve({ ...fileMetaData, size, buffer });
       });
       file.on('error', (err: Error) => { reject(err); });
     });

@@ -10,8 +10,7 @@ export class FsAdapter implements IAdapter<IFsAdapterFileMetadata, IncomingMessa
   }
 
   public async onUpload(
-    _req: IncomingMessage, file: NodeJS.ReadableStream,
-    { fieldName, fileName, originalFileName, encoding, mimetype, extension }: IFileMetadata,
+    _req: IncomingMessage, file: NodeJS.ReadableStream, { fileName, ...fileMetaData }: IFileMetadata,
   ): Promise<IFsAdapterFileMetadata> {
     return new Promise((resolve, reject) => {
       const { destination } = this.options;
@@ -21,12 +20,8 @@ export class FsAdapter implements IAdapter<IFsAdapterFileMetadata, IncomingMessa
 
       file.pipe(writeStream);
 
-      writeStream.on('finish', () => {
-        const { bytesWritten: size } = writeStream;
-        resolve({ fieldName, fileName, originalFileName, encoding, mimetype, extension, destination, path, size });
-      });
-
-      writeStream.on('error', (err: Error) => { reject(err); });
+      writeStream.on('finish', () => resolve({ ...fileMetaData, fileName, destination, path, size: writeStream.bytesWritten }));
+      writeStream.on('error', (err: Error) => reject(err));
     });
   }
 
