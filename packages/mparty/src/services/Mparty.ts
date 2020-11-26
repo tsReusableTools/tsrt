@@ -4,20 +4,20 @@ import { extname } from 'path';
 
 import {
   IUploadResult, IFileMetadata, IMpartyOptions, IMpartyUploadOptions,
-  IAdapter, BusboyOnFileArgs, BusboyOnFieldArgs,
+  IAdapter, BusboyOnFileArgs, BusboyOnFieldArgs, FilesFilter,
 } from '../interfaces';
 import { createFileName, MpartyError, ERRORS, DEFAULT_OPTIONS } from '../utils';
 import { MpartyValidator } from './MpartyValidator';
 import { FsAdapter } from '../adapters';
 import { UploadQueue } from './UploadQueue';
 
-export class Mparty<T extends IFileMetadata> {
+export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
   constructor(
-    protected readonly options: IMpartyOptions<T> = {},
+    protected readonly options: IMpartyOptions<T, Req> = {},
   ) { this.options = { ...DEFAULT_OPTIONS, ...options }; }
 
-  public async upload<C extends T, Req extends IncomingMessage>(
-    req: Req, options: IMpartyUploadOptions<C> = {},
+  public async upload<C extends T, CReq extends Req>(
+    req: CReq, options: IMpartyUploadOptions<C, CReq> = {},
   ): Promise<IUploadResult<C>> {
     const uploadResult: IUploadResult<C> = { fields: {}, files: [] };
     const uploadQueue = new UploadQueue();
@@ -25,7 +25,7 @@ export class Mparty<T extends IFileMetadata> {
 
     return new Promise((resolve, reject) => {
       const { headers } = req;
-      const { adapter, limits, preservePath, failOnJson, removeOnError } = this.getValidatedOptions(options);
+      const { adapter, limits, preservePath, failOnJson, removeOnError, filesFilter, fileNameFactory } = this.getValidatedOptions(options);
       if (!failOnJson && headers['content-type'].indexOf('application/json') !== -1) return resolve(this.provideJsonResponse(req));
 
       const busboy = new Busboy({ headers, limits, preservePath });
@@ -72,16 +72,21 @@ export class Mparty<T extends IFileMetadata> {
         try {
           if (uploadQueue.hasError) { file.resume(); return; }
 
-          uploadQueue.add();
-
-          const fileName = createFileName(originalFileName);
           const extension = extname(originalFileName);
+          let fileMetadata = { fieldName, originalFileName, encoding, mimetype, extension } as C;
+
+          const fileName = fileNameFactory ? await fileNameFactory(req, file, fileMetadata) : createFileName(originalFileName);
+          fileMetadata = { ...fileMetadata, fileName };
+
+          if (filesFilter && !(await filesFilter(req, file, fileMetadata))) { file.resume(); return; }
+
+          uploadQueue.add();
 
           MpartyValidator.validateFile({ fieldName, originalFileName, extension }, limits);
           file.on('limit', () => onError('FILE_SIZE_ERROR'));
           file.on('error', (error: Error) => onError(error));
 
-          const result = await adapter.onUpload(req, file, { fieldName, fileName, originalFileName, encoding, mimetype, extension });
+          const result = await adapter.onUpload(req, file, fileMetadata);
           uploadResult.files.push(result);
 
           uploadQueue.remove();
@@ -99,21 +104,23 @@ export class Mparty<T extends IFileMetadata> {
     });
   }
 
-  protected getValidatedOptions<C extends T>(options: IMpartyUploadOptions<C>): IMpartyUploadOptions<C> {
+  protected getValidatedOptions<C extends T, CReq extends Req>(options: IMpartyUploadOptions<C, CReq>): IMpartyUploadOptions<C> {
     const {
       limits = this.options.limits || { },
       preservePath = this.options.preservePath,
       failOnJson = this.options.failOnJson || false,
       removeOnError = this.options.removeOnError,
       destination = this.options.destination,
-      adapter = (this.options.adapter || (destination && new FsAdapter({ destination }))) as unknown as IAdapter<C>,
+      filesFilter = this.options.filesFilter as FilesFilter<C, CReq>,
+      fileNameFactory = this.options.fileNameFactory,
+      adapter = (this.options.adapter || (destination && new FsAdapter({ destination }))) as unknown as IAdapter<C, CReq>,
     } = options;
     if (!adapter && !destination) throw new Error('It is necessary to provide adapter or destionation for default FsAdapter!');
 
-    return { adapter, limits, preservePath, failOnJson, destination, removeOnError };
+    return { adapter, limits, preservePath, failOnJson, destination, removeOnError, filesFilter, fileNameFactory };
   }
 
-  protected provideJsonResponse<C extends T, Req extends IncomingMessage>(req: Req): IUploadResult<C> {
+  protected provideJsonResponse<C extends T, CReq extends Req>(req: CReq): IUploadResult<C> {
     return {
       fields: typeof req === 'object' && 'body' in req ? (req as GenericObject).body : { },
       files: [],

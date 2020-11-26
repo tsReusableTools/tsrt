@@ -11,6 +11,7 @@ Mparty provides async/await API for handling `multipart/form-data` (in most case
  - Shipped w/ 2 default Adapters: FileSystem, Memory.
  - Customizable via options.
  - File validations (not only those Busboy provides).
+ - Easy and convenient usage for multi-tenant systems.
 
 ## Plugins
 
@@ -91,6 +92,9 @@ const mparty = new Mparty({ destination: 'some/path' }); // If destination only 
 // Or
 const adapter = new FsAdapter({ destination: 'some/path' }) // const adapter = new MemoryAdapter()
 const mparty = new Mparty({ adapter });
+
+// It is also possible to provide options exactly to upload method
+mparty.upload(req, { adapter, limits: { ... }, ... });
 ```
 
 ##### ... or create custom Adapter
@@ -105,14 +109,14 @@ interface IMyFile extends IFileMetadata {
 
 export class MyAdapter implements IAdapter<IMyFile, IncomingMessage> {
   public async onUpload(
-    _req: IncomingMessage, file: NodeJS.ReadableStream,
+    req: IncomingMessage, file: NodeJS.ReadableStream,
     { fieldName, fileName, originalFileName, encoding, mimetype, extension }: IFileMetadata,
   ): Promise<IMyFile> {
     // ... logic for handling each file stream
     // Here you could use req, file stream and default file metadata
   }
 
-  public async onRemove(_req: IncomingMessage, uploadedResult: IUploadResult<IMyFile>): Promise<void> {
+  public async onRemove(req: IncomingMessage, uploadedResult: IUploadResult<IMyFile>): Promise<void> {
     // ... logic for deleting uploaded files
     // Here you could use req and already uplaodedResult: { fields, files, file? } 
   }
@@ -123,7 +127,56 @@ export class MyAdapter implements IAdapter<IMyFile, IncomingMessage> {
 const adapter = new MyAdapter();
 const mparty = new Mparty({ adapter });
 ...
+```
 
+##### ... or imagine multi-tenant system, where you need to decide which config to use for each and separate request:
+
+(To simplify handling context in app i advise you consider using [express-http-context](https://www.npmjs.com/package/express-http-context) or [async_hooks](https://nodejs.org/api/async_hooks.html))
+
+```ts
+import { IncomingMessage } from 'http'; // Or import { Request } from 'express or other compatible
+import { IFileMetadata, IAdapter, IUploadResult } from '@tsrt/mparty';
+
+interface IMyFile extends IFileMetadata {
+  someProperty: string;
+}
+
+interface IMyAdapterOptions {
+  clientId: stirng;
+  clientSecret: string;
+  bucket: string;
+}
+
+/
+export class MyAdapter implements IAdapter<IMyFile, IncomingMessage> {
+  constructor(private options: IMyAdapterOptions)
+
+  public async onUpload(req: IncomingMessage, file: NodeJS.ReadableStream, fileMetadata: IFileMetadata): Promise<IMyFile> {
+    // upload(this.options);
+
+    // Or using, for example, express-http-context: upload(requestContext.get('config'));
+  }
+
+  public async onRemove(req: IncomingMessage, uploadedResult: IUploadResult<IMyFile>): Promise<void> {
+    // remove(this.options);
+  }
+}
+
+...
+
+// Later in your middeware
+export async function mydMiddeware(req: Request, res: Response, next: Next): Promise<void> {
+  try {
+    const config: IMyAdapterOptions = await SomeService.getConfigByClinetIdFromRequest(req);
+    const adapter = new MyAdapter({ config });
+    const mparty = new Mparty({ adapter });
+    const { fields, files, file } = mparty.upload(req);
+    ...
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
 ```
 
 ## Options
@@ -132,12 +185,22 @@ const mparty = new Mparty({ adapter });
 // Options
 const options = {
   /** Adapter to be used for file upload */
-  // adapter?: IAdapter<T> | ((req: IncomingMessage) => IAdapter<T>);
   adapter?: IAdapter<T>;
 
   /** If no adapter provided and provided a destionation - FsAdapter will be used for provided destionation */
-  // destination?: string | ((req: IncomingMessage) => string);
   destination?: string;
+
+  /**
+   *  Files filter, which is called before each file upload.
+   *  Here it is recommended to filter files is case of default Adapter usage
+   *  (in case of custom adapter you can encapsulate it there)
+   *
+   *  Inspired by multer's @see https://www.npmjs.com/package/multer#filefilter. Thx guys, you are awesome.
+   */
+  filesFilter?: FilesFilter<T, Req>;
+
+  /** Function for generating fileName for file. __Note__ that you re responsible for naming collisions */
+  fileNameFactory?: FileNameFactory<T, Req>;
 
   /** Whether to throw an error on requests with application/json Content-Type. Default: false  */
   failOnJson?: boolean;
