@@ -1,31 +1,29 @@
-import { IMpartyOptions, IFileMetadata } from '../interfaces';
+import { IMpartyOptions, IMpartyLimits } from '../interfaces';
 
-// : Partial<Record<keyof IMpartyLimits, IMpartyValidatorError>>
-export const VALIDATION_ERRORS = {
-  extensions: (extensions: string[]): string => `File extension is not allowed. Allowed extensions are: ${extensions}`,
-  allowedFiles: (filesFields: string[]): string => `Only files with next fieldNames are allowed: ${filesFields}`,
-  requiredFiles: (filesFields: string[]): string => `Files with next fieldNames are required: ${filesFields}`,
+/* eslint-disable-next-line */
+export const DEFAULT_OPTIONS: IMpartyOptions<any> = {
+  failOnJson: false,
+  removeOnError: true,
+};
+
+export const ERRORS = {
+  EXTENSIONS_ERROR: (limits?: IMpartyLimits): string => `File extension is not allowed. Allowed extensions are: ${limits?.extensions}`,
+  ALLOWED_FIELDS_ERROR: (limits?: IMpartyLimits): string => `Only files with next fieldNames are allowed: ${limits?.allowedFiles}`,
+  REQUIRED_FIELDS_ERROR: (limits?: IMpartyLimits): string => `Files with next fieldNames are required: ${limits?.requiredFiles}`,
 
   // Busboy
-  fileSize: (size: number): string => `File size exceeded. Max size is: ${size / 1000}kb`,
-  files: (amount: number): string => `Files limit exceeded. Max files amount is: ${amount}`,
-  parts: (amount: number): string => `Parts limit exceeded. Max parts amount is: ${amount}`,
+  FILE_SIZE_ERROR: (limits?: IMpartyLimits): string => `File size exceeded. Max size is: ${limits?.fileSize / 1000}kb`,
+  FILES_LIMIT_ERROR: (limits?: IMpartyLimits): string => `Files limits exceeded. Max files amount is: ${limits?.files}`,
+  PARTS_LIMIT_ERROR: (limits?: IMpartyLimits): string => `Parts limits exceeded. Max parts amount is: ${limits?.parts}`,
 
-  fields: (amount: number): string => `Fields limit exceeded. Max fields amount is: ${amount}`,
-  fieldNameSize: (amount: number): string => `Field name size limit exceeded. Max size is: ${amount}b`,
-  fieldSize: (amount: number): string => `Field value size limit exceeded. Max size is: ${amount}b`,
+  FIELDS_LIMIT_ERROR: (limits?: IMpartyLimits): string => `Fields limits exceeded. Max fields amount is: ${limits?.fields}`,
+  FIELD_NAME_SIZE_ERROR: (limits?: IMpartyLimits): string => `Field name size limits exceeded. Max size is: ${limits?.fieldNameSize}b`,
+  FIELD_SIZE_ERROR: (limits?: IMpartyLimits): string => `Field value size limits exceeded. Max size is: ${limits?.fieldSize}b`,
+
+  JSON_SCHEMA_ERROR_VALIDATION: 'JSON_SCHEMA_ERROR_VALIDATION',
+  INVALID_OPTIONS: 'INVALID_OPTIONS',
+  REQUEST_ERROR: 'REQUEST_ERROR',
+  REQUEST_ABORTED: 'REQUEST_ABORTED',
 };
 
-export enum ERRORS {
-  BUSBOY_ERROR = 'BUSBOY_ERROR',
-  BUSBOY_VALIDATION_ERROR = 'BUSBOY_VALIDATION_ERROR',
-  REQUEST_ERROR = 'REQUEST_ERROR',
-  REQUEST_ABORTED = 'REQUEST_ABORTED',
-  VALIDATION_ERROR = 'VALIDATION_ERROR',
-  INVALID_OPTIONS = 'INVALID_OPTIONS',
-}
-
-export const DEFAULT_OPTIONS: IMpartyOptions<IFileMetadata> = {
-  failOnJson: false,
-  removeUploadedFilesOnError: true,
-};
+export type ErrorCodes = keyof typeof ERRORS;

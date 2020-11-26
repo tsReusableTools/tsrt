@@ -1,79 +1,102 @@
-/* eslint-disable max-len */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Busboy from 'busboy';
 import { IncomingMessage } from 'http';
+import { extname } from 'path';
 
 import {
-  IAdapterUploadResult, IFileMetadata, IMpartyOptions, IMpartyUploadOptions,
-  IAdapter, BusboyOnFileArgs, BusboyOnFieldArgs, IMpartyLimits,
+  IUploadResult, IFileMetadata, IMpartyOptions, IMpartyUploadOptions,
+  IAdapter, BusboyOnFileArgs, BusboyOnFieldArgs,
 } from '../interfaces';
-import { createFileName, getFileExtension, MpartyError, VALIDATION_ERRORS, ERRORS, DEFAULT_OPTIONS } from '../utils';
+import { createFileName, MpartyError, ERRORS, DEFAULT_OPTIONS } from '../utils';
 import { MpartyValidator } from './MpartyValidator';
 import { FsAdapter } from '../adapters';
+import { UploadQueue } from './UploadQueue';
 
 export class Mparty<T extends IFileMetadata> {
   constructor(
     protected readonly options: IMpartyOptions<T> = {},
   ) { this.options = { ...DEFAULT_OPTIONS, ...options }; }
 
-  public async upload<C extends T, Req extends IncomingMessage>(req: Req, options: IMpartyUploadOptions<C> = {}): Promise<IAdapterUploadResult<C>> {
+  public async upload<C extends T, Req extends IncomingMessage>(
+    req: Req, options: IMpartyUploadOptions<C> = {},
+  ): Promise<IUploadResult<C>> {
+    const uploadResult: IUploadResult<C> = { fields: {}, files: [] };
+    const uploadQueue = new UploadQueue();
+    let isParsed = false;
+
     return new Promise((resolve, reject) => {
       const { headers } = req;
-      const { adapter, limits, preservePath, failOnJson, removeUploadedFilesOnError } = this.getValidatedOptions(options);
-      if (!failOnJson && headers['content-type'].indexOf('application/json') !== -1) resolve(this.provideJsonResponse(req));
+      const { adapter, limits, preservePath, failOnJson, removeOnError } = this.getValidatedOptions(options);
+      if (!failOnJson && headers['content-type'].indexOf('application/json') !== -1) return resolve(this.provideJsonResponse(req));
 
       const busboy = new Busboy({ headers, limits, preservePath });
 
-      // Busboy listenters
-      busboy.on('fieldsLimit', () => adapter.onError(new MpartyError(VALIDATION_ERRORS.fields(limits.fields), ERRORS.BUSBOY_VALIDATION_ERROR)));
-      busboy.on('filesLimit', () => adapter.onError(new MpartyError(VALIDATION_ERRORS.files(limits.files), ERRORS.BUSBOY_VALIDATION_ERROR)));
-      busboy.on('partsLimit', () => adapter.onError(new MpartyError(VALIDATION_ERRORS.parts(limits.parts), ERRORS.BUSBOY_VALIDATION_ERROR)));
-      busboy.on('field', (...args: BusboyOnFieldArgs) => this.handleOnField(adapter, [...args], limits));
-      busboy.on('file', (...args: BusboyOnFileArgs): void => { this.handleOnFile(adapter, [...args], limits); });
-      busboy.on('finish', () => adapter.onFinish());
-      busboy.on('error', (error: Error) => adapter.onError(error));
+      function unpipe(): void {
+        req.unpipe(busboy);
+        req.on('readable', req.read.bind(req));
+        busboy.removeAllListeners();
+      }
 
-      // Adapter listenters
-      adapter.on('finish', async (result: IAdapterUploadResult<C>) => {
-        this.unpipeBusboy(req, busboy);
-        const error = this.validateRequiredFilesFields(result, limits);
-        if (!error) return resolve(result);
-        if (removeUploadedFilesOnError) await adapter.onRemoveUploadedFiles(result);
-        reject(error);
+      function onError(errorOrCode: Error | keyof typeof ERRORS): void {
+        unpipe();
+        uploadQueue.onError(async () => {
+          if (removeOnError) await adapter.onRemove(req, uploadResult);
+          const error = errorOrCode instanceof Error ? errorOrCode : new MpartyError(errorOrCode, null, limits);
+          reject(error);
+        });
+      }
+
+      function onUploadDone(): void {
+        if (!isParsed || !uploadQueue.isDone || uploadQueue.hasError) return;
+        unpipe();
+        if (uploadResult.files?.length === 1) [uploadResult.file] = uploadResult.files;
+        const isValid = MpartyValidator.validateRequiredFilesFields(Object.values(uploadResult.files), limits?.requiredFiles);
+        if (!isValid) onError('REQUIRED_FIELDS_ERROR');
+        else resolve(uploadResult);
+      }
+
+      // Busboy listenters
+      busboy.on('fieldsLimit', () => onError('FIELDS_LIMIT_ERROR'));
+      busboy.on('filesLimit', () => onError('FILES_LIMIT_ERROR'));
+      busboy.on('partsLimit', () => onError('PARTS_LIMIT_ERROR'));
+
+      busboy.on('finish', () => { isParsed = true; onUploadDone(); });
+      busboy.on('error', (error: Error) => onError(error));
+
+      busboy.on('field', (...[fieldName, value, fieldNameTruncated, valueTruncated]: BusboyOnFieldArgs) => {
+        try {
+          if (limits) MpartyValidator.validateField({ fieldName, value, fieldNameTruncated, valueTruncated }, limits);
+          uploadResult.fields[fieldName] = value;
+        } catch (err) { onError(err); }
       });
-      adapter.on('error', async (error: Error, result: IAdapterUploadResult<C>) => {
-        this.unpipeBusboy(req, busboy);
-        if (removeUploadedFilesOnError) await adapter.onRemoveUploadedFiles(result);
-        reject(error);
+      busboy.on('file', async (...[fieldName, file, originalFileName, encoding, mimetype]: BusboyOnFileArgs): Promise<void> => {
+        try {
+          if (uploadQueue.hasError) { file.resume(); return; }
+
+          uploadQueue.add();
+
+          const fileName = createFileName(originalFileName);
+          const extension = extname(originalFileName);
+
+          MpartyValidator.validateFile({ fieldName, originalFileName, extension }, limits);
+          file.on('limit', () => onError('FILE_SIZE_ERROR'));
+          file.on('error', (error: Error) => onError(error));
+
+          const result = await adapter.onUpload(req, file, { fieldName, fileName, originalFileName, encoding, mimetype, extension });
+          uploadResult.files.push(result);
+
+          uploadQueue.remove();
+          onUploadDone();
+        } catch (err) {
+          uploadQueue.remove();
+          onError(err);
+        }
       });
 
       // Request listenters
-      req.on('abort', () => adapter.onError(new MpartyError('Request aborted', ERRORS.REQUEST_ABORTED)));
-      req.on('error', (error: Error) => adapter.onError(error));
-
+      req.on('abort', () => onError('REQUEST_ABORTED'));
+      req.on('error', (error: Error) => onError(error));
       req.pipe(busboy);
     });
-  }
-
-  protected handleOnField<C extends T>(adapter: IAdapter<C>, [fieldName, value, fieldNameTruncated, valueTruncated]: BusboyOnFieldArgs, limits?: IMpartyLimits): void {
-    try {
-      if (limits) MpartyValidator.validateField({ fieldName, value, fieldNameTruncated, valueTruncated }, limits);
-      adapter.onField(fieldName, value);
-    } catch (err) { adapter.onError(err); }
-  }
-
-  protected handleOnFile<C extends T>(adapter: IAdapter<C>, [fieldName, file, originalFileName, encoding, mimetype]: BusboyOnFileArgs, limits?: IMpartyLimits): void {
-    try {
-      if (limits) MpartyValidator.validateFile({ fieldName, originalFileName }, limits);
-
-      const fileName = createFileName(originalFileName);
-      const extension = getFileExtension(originalFileName);
-
-      file.on('limit', () => adapter.onError(new MpartyError(VALIDATION_ERRORS.fileSize(limits?.fileSize), ERRORS.BUSBOY_VALIDATION_ERROR)));
-      file.on('error', (error: Error) => adapter.onError(error));
-
-      adapter.onFile(file, { fieldName, fileName, originalFileName, encoding, mimetype, extension });
-    } catch (err) { adapter.onError(err); }
   }
 
   protected getValidatedOptions<C extends T>(options: IMpartyUploadOptions<C>): IMpartyUploadOptions<C> {
@@ -81,31 +104,19 @@ export class Mparty<T extends IFileMetadata> {
       limits = this.options.limits || { },
       preservePath = this.options.preservePath,
       failOnJson = this.options.failOnJson || false,
-      removeUploadedFilesOnError = this.options.removeUploadedFilesOnError,
+      removeOnError = this.options.removeOnError,
       destination = this.options.destination,
-      adapter = this.options.adapter || (destination && new FsAdapter({ destination })) as unknown as IAdapter<C>,
+      adapter = (this.options.adapter || (destination && new FsAdapter({ destination }))) as unknown as IAdapter<C>,
     } = options;
     if (!adapter && !destination) throw new Error('It is necessary to provide adapter or destionation for default FsAdapter!');
 
-    return { adapter, limits, preservePath, failOnJson, destination, removeUploadedFilesOnError };
+    return { adapter, limits, preservePath, failOnJson, destination, removeOnError };
   }
 
-  protected validateRequiredFilesFields<C extends T>(result: IAdapterUploadResult<C>, limits?: IMpartyLimits): Error {
-    if (!limits?.requiredFiles) return;
-    const isValid = MpartyValidator.validateRequiredFilesFields(Object.values(result.files), limits.requiredFiles);
-    if (!isValid) return new MpartyError(VALIDATION_ERRORS.requiredFiles(limits?.requiredFiles), ERRORS.VALIDATION_ERROR);
-  }
-
-  protected provideJsonResponse<C extends T>(req: IncomingMessage): IAdapterUploadResult<C> {
+  protected provideJsonResponse<C extends T, Req extends IncomingMessage>(req: Req): IUploadResult<C> {
     return {
-      fields: typeof req === 'object' && 'body' in req ? (req as any).body : { },
+      fields: typeof req === 'object' && 'body' in req ? (req as GenericObject).body : { },
       files: [],
     };
-  }
-
-  /* eslint-disable-next-line */
-  protected unpipeBusboy(req: IncomingMessage, busboy: any): void {
-    req.unpipe(busboy);
-    busboy.removeAllListeners();
   }
 }

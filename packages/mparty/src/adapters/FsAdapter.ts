@@ -1,37 +1,36 @@
 import fs from 'fs';
-import { Adapter } from './Adapter';
-import { IFsAdapterFileMetadata, IFsAdapterOptions, IFileMetadata, IAdapter, IAdapterUploadResult } from '../interfaces';
-import { MpartyError, ERRORS } from '../utils';
+import { IncomingMessage } from 'http';
 
-export class FsAdapter extends Adapter<IFsAdapterFileMetadata> implements IAdapter<IFsAdapterFileMetadata> {
+import { IFsAdapterFileMetadata, IFsAdapterOptions, IFileMetadata, IAdapter, IUploadResult } from '../interfaces';
+import { MpartyError } from '../utils';
+
+export class FsAdapter implements IAdapter<IFsAdapterFileMetadata, IncomingMessage> {
   constructor(protected readonly options: IFsAdapterOptions) {
-    super(options);
-    if (!options.destination) throw new MpartyError('FsAdapter requires a `destionation` property', ERRORS.INVALID_OPTIONS);
+    if (!options.destination) throw new MpartyError('INVALID_OPTIONS', 'FsAdapter requires a `destionation` property');
   }
 
-  /* eslint-disable-next-line */
-  public async onFile(file: NodeJS.ReadableStream, { fieldName, fileName, originalFileName, encoding, mimetype, extension }: IFileMetadata): Promise<void> {
-    this.startFileUpload();
+  public async onUpload(
+    _req: IncomingMessage, file: NodeJS.ReadableStream,
+    { fieldName, fileName, originalFileName, encoding, mimetype, extension }: IFileMetadata,
+  ): Promise<IFsAdapterFileMetadata> {
+    return new Promise((resolve, reject) => {
+      const { destination } = this.options;
+      const path = `${destination}/${fileName}`;
+      this.verifyDirExistance(destination);
+      const writeStream = fs.createWriteStream(path);
 
-    const { destination } = this.options;
-    const path = `${destination}/${fileName}`;
-    this.verifyDirExistance(destination);
-    const writeStream = fs.createWriteStream(path);
+      file.pipe(writeStream);
 
-    file.pipe(writeStream);
-
-    writeStream.on('finish', () => {
-      const { bytesWritten: size } = writeStream;
-      this.adapterUploadResult.files.push({
-        fieldName, fileName, originalFileName, encoding, mimetype, extension, destination, path, size,
+      writeStream.on('finish', () => {
+        const { bytesWritten: size } = writeStream;
+        resolve({ fieldName, fileName, originalFileName, encoding, mimetype, extension, destination, path, size });
       });
-      this.finishFileUpload();
-    });
 
-    writeStream.on('error', (err: Error) => { this.emit('error', err, this.adapterUploadResult); });
+      writeStream.on('error', (err: Error) => { reject(err); });
+    });
   }
 
-  public async onRemoveUploadedFiles(uploadedResult: IAdapterUploadResult<IFsAdapterFileMetadata>): Promise<void> {
+  public async onRemove(_req: IncomingMessage, uploadedResult: IUploadResult<IFsAdapterFileMetadata>): Promise<void> {
     if (!uploadedResult.files?.length) return;
     uploadedResult.files.forEach((item) => { fs.unlinkSync(item.path); });
   }

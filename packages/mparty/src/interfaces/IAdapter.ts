@@ -1,9 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { EventEmitter } from 'events';
+import { IncomingMessage } from 'http';
 
-export type AdapterEvents = 'error' | 'finish' | 'uploaded';
-
-export interface IFileMetadata extends GenericObject {
+export interface IFileMetadata {
   fieldName: string;
   fileName: string;
   originalFileName: string;
@@ -12,21 +9,13 @@ export interface IFileMetadata extends GenericObject {
   extension: string;
 }
 
-export interface IAdapterUploadResult<T extends IFileMetadata> {
+export interface IUploadResult<T extends IFileMetadata> {
   fields: GenericObject;
   files: T[];
   file?: T;
-  // errors?: Error[];
 }
 
-export interface IAdapterOptions {
-  validate?: boolean;
-}
-
-export interface IAdapter<T extends IFileMetadata> extends EventEmitter {
-  onError: (error: Error) => void;
-  onFinish: () => void;
-  onField: (fieldName: string, value: any) => void;
-  onFile: (file: NodeJS.ReadableStream, fileMetadata: IFileMetadata) => Promise<void>;
-  onRemoveUploadedFiles: (uploadedResult: IAdapterUploadResult<T>) => Promise<void>;
+export interface IAdapter<T extends IFileMetadata = IFileMetadata, Req extends IncomingMessage = IncomingMessage> {
+  onUpload: (req: Req, file: NodeJS.ReadableStream, fileMetadata: IFileMetadata) => Promise<T>;
+  onRemove: (req: Req, uploadedResult: IUploadResult<T>) => Promise<void>;
 }

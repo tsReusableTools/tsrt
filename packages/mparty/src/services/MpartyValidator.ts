@@ -1,24 +1,23 @@
 import { IMpartyLimits, IFileMetadata, IMartyFileForValidation, IMartyFieldForValidation } from '../interfaces';
-import { getFileExtension, VALIDATION_ERRORS, ERRORS, MpartyError } from '../utils';
+import { MpartyError, ErrorCodes } from '../utils';
 
 class MpartyValidatorBase {
-  public validateFile(
-    { originalFileName, fieldName }: IMartyFileForValidation,
-    { extensions, allowedFiles, fieldNameSize }: IMpartyLimits = { },
-  ): boolean {
+  public validateFile({ fieldName, extension }: IMartyFileForValidation, limits: IMpartyLimits = { }): boolean {
+    const { extensions, allowedFiles, fieldNameSize } = limits;
+
     if (fieldNameSize || fieldNameSize === 0) {
       const isValid = this.valiadateFieldNameSize(fieldName, fieldNameSize);
-      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
+      if (!isValid) this.throwValidationError('FIELD_NAME_SIZE_ERROR', limits, fieldName);
     }
 
     if (extensions?.length) {
-      const isValid = this.validateExtension(originalFileName, extensions);
-      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.extensions(extensions), fieldName);
+      const isValid = this.validateExtension(extension, extensions);
+      if (!isValid) this.throwValidationError('EXTENSIONS_ERROR', limits, fieldName);
     }
 
     if (allowedFiles?.length) {
-      const isValid = this.validateAllowedFilesFields(originalFileName, allowedFiles);
-      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.allowedFiles(allowedFiles), fieldName);
+      const isValid = this.validateAllowedFilesFields(fieldName, allowedFiles);
+      if (!isValid) this.throwValidationError('ALLOWED_FIELDS_ERROR', limits, fieldName);
     }
 
     return true;
@@ -26,14 +25,15 @@ class MpartyValidatorBase {
 
   public validateField(
     { fieldName, fieldNameTruncated, valueTruncated }: IMartyFieldForValidation,
-    { fieldNameSize, fieldSize }: IMpartyLimits = { },
+    limits: IMpartyLimits = { },
   ): boolean {
-    if (fieldNameTruncated) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
-    if (valueTruncated) this.throwValidationError(VALIDATION_ERRORS.fieldSize(fieldSize), fieldName);
+    const { fieldNameSize } = limits;
+    if (fieldNameTruncated) this.throwValidationError('FIELD_NAME_SIZE_ERROR', limits, fieldName);
+    if (valueTruncated) this.throwValidationError('FIELD_SIZE_ERROR', limits, fieldName);
 
     if (fieldNameSize || fieldNameSize === 0) {
       const isValid = this.valiadateFieldNameSize(fieldName, fieldNameSize);
-      if (!isValid) this.throwValidationError(VALIDATION_ERRORS.fieldNameSize(fieldNameSize), fieldName);
+      if (!isValid) this.throwValidationError('FIELD_NAME_SIZE_ERROR', limits, fieldName);
     }
 
     return true;
@@ -55,22 +55,19 @@ class MpartyValidatorBase {
     return allFound;
   }
 
-  public validateAllowedFilesFields(fileName: string, allowedFiles: string[]): boolean {
+  public validateAllowedFilesFields(fieldName: string, allowedFiles: string[]): boolean {
     if (!allowedFiles?.length) return true;
-    return !!(allowedFiles.find((item) => item === fileName));
+    return !!(allowedFiles.find((item) => item === fieldName));
   }
 
-  public validateExtension(fileName: string, extensions: string[]): boolean {
+  public validateExtension(extension: string, extensions: string[]): boolean {
     if (!extensions?.length) return true;
-
-    const extension = getFileExtension(fileName);
     if (extension && !extensions.find((item) => item.toLowerCase() === extension.toLowerCase())) return false;
-
     return true;
   }
 
-  private throwValidationError(message: string, fieldName?: string): void {
-    throw new MpartyError(message, ERRORS.VALIDATION_ERROR, fieldName);
+  private throwValidationError(code: ErrorCodes, limits?: IMpartyLimits, fieldName?: string): void {
+    throw new MpartyError(code, null, limits, fieldName);
   }
 }
 

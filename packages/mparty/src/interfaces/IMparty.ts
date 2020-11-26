@@ -1,4 +1,4 @@
-import { IncomingMessage } from 'http';
+// import { IncomingMessage } from 'http';
 
 import { IAdapter, IFileMetadata } from './IAdapter';
 import { IMpartyLimits } from './IMpartyLimits';
@@ -16,7 +16,7 @@ export interface IMpartyOptions<T extends IFileMetadata> {
   failOnJson?: boolean;
 
   /** Whether to remove uploaded files from storage on Error occured. Default: true */
-  removeUploadedFilesOnError?: boolean;
+  removeOnError?: boolean;
 
   /**
    *  Busboy option. If paths in the multipart 'filename' field shall be preserved. (Default: false).
