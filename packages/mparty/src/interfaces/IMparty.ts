@@ -25,7 +25,10 @@ export interface IMpartyOptions<T extends IFileMetadata = IFileMetadata, Req ext
   /** Whether to throw an error on requests with application/json Content-Type. Default: false  */
   failOnJson?: boolean;
 
-  /** Whether to remove uploaded files from storage on Error occured. Default: true */
+  /**
+   *  Whether to remove uploaded files from storage on Error occured. Default: true.
+   *  If `false` - already upload files metadata (before error occured) will be attached to MpartyError in `uploadedResult` field
+   */
   removeOnError?: boolean;
 
   /**

@@ -27,7 +27,7 @@ export interface IMpartyLimits {
   headerPairs?: number;
 
   // ===> Additional multipart validations:
-  /** Allowed files' extensions */
+  /** Allowed files' extensions. Example: ['.png', '.pdf'] */
   extensions?: string[];
 
   /** Required files' fieldNames in form data */
@@ -51,4 +51,5 @@ export interface IMpartyLimits {
 }
 
 // TODO. Consider adding validations for allowed / required files with underlying config.
-export type FilesField = string | [fieldName: string, files?: number] | { fieldName: string, files?: number };
+// export type FilesField = string | [fieldName: string, files?: number] | { fieldName: string, files?: number };
+export type FilesField = string | [fieldName: string, min?: number, max?: number] | { fieldName: string, min?: number, max?: number };

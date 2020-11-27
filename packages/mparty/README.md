@@ -205,7 +205,10 @@ const options = {
   /** Whether to throw an error on requests with application/json Content-Type. Default: false  */
   failOnJson?: boolean;
 
-  /** Whether to remove uploaded files from storage on Error occured. Default: true */
+  /**
+   *  Whether to remove uploaded files from storage on Error occured. Default: true.
+   *  If `false` - already upload files metadata (before error occured) will be attached to MpartyError in `uploadedResult` field
+   */
   removeOnError?: boolean;
 
   /**
@@ -244,7 +247,7 @@ const options = {
     headerPairs?: number;
 
     // ===> Additional multipart validations:
-    /** Allowed files' extensions */
+    /** Allowed files' extensions. Example: ['.png', '.pdf'] */
     extensions?: string[];
 
     /** Required files' fieldNames in form data */
