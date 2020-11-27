@@ -15,9 +15,9 @@ Mparty provides async/await API for handling `multipart/form-data` (in most case
 
 ## Plugins
 
- - AwsAdapter (soon `@tsrt/mparty-aws`).
- - Express Middleware (soon `@tsrt/mparty-express`).
- - _Maybe_ Google Drive Adapter (`@tsrt/mparty-gd`)
+ - [x] AwsAdapter - [@tsrt/mparty-aws](https://www.npmjs.com/package/@tsrt/mparty-aws).
+ - [x] Express Middleware - [@tsrt/mparty-express](https://www.npmjs.com/package/@tsrt/mparty-express).
+ - [ ] _Maybe_ Google Drive Adapter (`@tsrt/mparty-gd`)
 
 ## Usage
 
@@ -40,7 +40,7 @@ public uploadFiles(@Request() req: Request) {
 ```
 
 Or in well known Express as middleware:
-(__Note__, that there will be separate @tsrt/mparty-express package for some default middleware)
+(__Note__, you can use [@tsrt/mparty-express](https://www.npmjs.com/package/@tsrt/mparty-express))
 ```ts
 import { Request, Response, Next } from 'express';
 import { Mparty, FsAdapter, MemoryAdapter, IFileMetadata } from '@tsrt/mparty';
@@ -255,6 +255,11 @@ const options = {
   };
 }
 ```
+
+## Todo
+
+- [ ] Update allowedFiles signature to be as next: 
+`upload(['file1', ['files', min, max], ['files', 1, 5]])`
 
 ### Disclaimer
 

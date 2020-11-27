@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { RequestHandler, Request } from 'express';
 
-import { IMpartyOptions, IMpartyLimits, IFileMetadata, IAdapter } from '@tsrt/mparty';
+import { IMpartyOptions, IFileMetadata, IAdapter } from '@tsrt/mparty';
 
 export interface IMpartyMiddlewareOptions extends Omit<IMpartyOptions, 'adapter' | 'destination'> {
   adapter?: ((req?: Request) => Promise<IAdapter>) | IAdapter;
@@ -11,8 +11,8 @@ export interface IMpartyMiddlewareOptions extends Omit<IMpartyOptions, 'adapter'
 }
 
 export type MpartyMiddleware = {
-  (limits?: IMpartyLimits): RequestHandler;
-  (files: string[], limits?: IMpartyLimits): RequestHandler;
+  (limits?: IMpartyMiddlewareOptions): RequestHandler;
+  (files: string[], limits?: IMpartyMiddlewareOptions): RequestHandler;
 }
 
 export interface RequestWithUploadedFiles {

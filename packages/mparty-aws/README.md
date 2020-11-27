@@ -2,7 +2,7 @@
 
 An [Mparty](https://www.npmjs.com/package/@tsrt/mparty) AWS S3 Adapter.
 
-Internally uses [aws-sdk](https://www.npmjs.com/package/aws-sdk) for managing file uploading / deletion. Thus all `aws-sdk` options are available for `AwsAdapter`.
+Internally uses [aws-sdk](https://www.npmjs.com/package/aws-sdk) for managing file uploading / deletion. Thus all `aws-sdk` __S3 config and upload config__ options are available for `AwsAdapter` as well.
 
 ## Usage
 

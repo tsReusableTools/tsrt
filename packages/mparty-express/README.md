@@ -29,13 +29,13 @@ router.post('/upload2', mpartyMiddleware(['fileField1', 'fileField2']), (req, re
 });
 
 // Provide some route specific limitations (same as above example)
-router.post('/upload3', mpartyMiddleware({ allowedFiles: ['fileField1', 'fileField2'] }), (req, res) => {
+router.post('/upload3', mpartyMiddleware({ limits: { allowedFiles: ['fileField1', 'fileField2'] } }), (req, res) => {
   console.log(req.files);
   console.log(req.file);
 });
 
 // Limit files amount
-router.post('/upload4', mpartyMiddleware({ allowedFiles: ['fileField1'], files: 1 }), (req, res) => {
+router.post('/upload4', mpartyMiddleware({ limits: { allowedFiles: ['fileField1'], files: 1 } }), (req, res) => {
   console.log(req.files);
   console.log(req.file);
 });
@@ -46,7 +46,7 @@ export default router;
 
 ```
 
-## Dynamic Adapter's config
+## Dynamic destionation config
 
 ```ts
 import { Router, Request } from 'express';
@@ -111,10 +111,14 @@ router.post('/upload1', mpartyMiddleware(), (req, res) => {
   console.log(req.file);
 });
 
-// Reassign
-router.post('/upload1', mpartyMiddleware(), (req, res) => {
+// Reassign destionstion for this route specific
+router.post('/upload1', mpartyMiddleware({ destionation: 'some/another/path' }), (req, res) => {
   console.log(req.files);
   console.log(req.file);
 });
 
 ```
+
+## Todo
+
+- [ ] Update allowedFiles signature after [Mparty](https://www.npmjs.com/package/@tsrt/mparty) will implement it. The puspose is next: `upload(['file1', ['files', min, max], ['files', 1, 5]]) `

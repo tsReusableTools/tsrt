@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 
-import { Mparty, IMpartyLimits } from '@tsrt/mparty';
+import { Mparty } from '@tsrt/mparty';
 
 import { MpartyMiddleware, IMpartyMiddlewareOptions } from './types';
 import { throwErrorIfMiddlewareIsNotCalled, getMpartyOptions } from './utils';
@@ -8,23 +8,25 @@ import { throwErrorIfMiddlewareIsNotCalled, getMpartyOptions } from './utils';
 export function createMpartyMiddleware(options: IMpartyMiddlewareOptions): MpartyMiddleware {
   const mparty = new Mparty();
 
-  function mpartyMiddleware(limits?: IMpartyLimits): RequestHandler;
-  function mpartyMiddleware(filesFields?: string[], limitations?: IMpartyLimits): RequestHandler;
-  function mpartyMiddleware(filesFields?: string[] | IMpartyLimits, limitations?: IMpartyLimits): RequestHandler {
+  function mpartyMiddleware(routeOptions?: IMpartyMiddlewareOptions): RequestHandler;
+  function mpartyMiddleware(filesFields?: string[], routeOptions?: IMpartyMiddlewareOptions): RequestHandler;
+  function mpartyMiddleware(filesFields?: string[] | IMpartyMiddlewareOptions, routeOptions?: IMpartyMiddlewareOptions): RequestHandler {
     throwErrorIfMiddlewareIsNotCalled(filesFields);
 
     const limits = {
       ...options.limits,
-      ...limitations,
-      ...(!Array.isArray(filesFields) && filesFields),
+      ...routeOptions?.limits,
+      ...(!Array.isArray(filesFields) && filesFields?.limits),
     };
     if (Array.isArray(filesFields)) limits.allowedFiles = filesFields;
 
+    const mergedOptions = { ...options, ...routeOptions, limits };
+
     return async function uploadHandler(req, res, next): Promise<void> {
       try {
-        const mpartyOptions = await getMpartyOptions(req, options);
+        const mpartyOptions = await getMpartyOptions(req, mergedOptions);
 
-        const { fields, files, file } = await mparty.upload(req, { ...mpartyOptions, limits });
+        const { fields, files, file } = await mparty.upload(req, mpartyOptions);
 
         req.body = fields;
         req.files = files;
