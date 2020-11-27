@@ -1,7 +1,7 @@
 {
   "name": "@tsrt/mparty",
   "version": "0.2.0",
-  "description": "Typescript Reusable Tools: multipart/form-data upload",
+  "description": "Typescript Reusable Tools: Mparty - wrapper over busboy for multipart/form-data upload in nodejs",
   "keywords": [
     "multipart/form-data",
     "file-upload",
@@ -10,7 +10,7 @@
     "formdata"
   ],
   "author": "Danyil Moroz",
-  "license": "ISC",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

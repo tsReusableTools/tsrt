@@ -263,9 +263,9 @@ const options = {
 
 ### Disclaimer
 
-This module initially was created due to the reason that there were no file-upload packages which provides convenient ability to stream files in a multi-tenant way into AWS S3.
+This module initially was created due to the reason that i did not manage to found file-upload packages which provides convenient ability to stream files in a multi-tenant way into AWS S3.
 
-The main purpose was to provide ability create custom Adapters w/ async save/remove interface and ability to use not only as middleware.
+The main purpose was to provide ability to create custom Adapters w/ async save/remove interface and ability to use it not only as middleware.
 
 There were also added some useful validation utilities for files validation.
 

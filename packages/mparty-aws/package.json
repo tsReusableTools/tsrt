@@ -12,7 +12,7 @@
     "aws-s3"
   ],
   "author": "Danyil Moroz",
-  "license": "ISC",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -27,7 +27,7 @@
     "@tsrt/types": "^0.2.0"
   },
   "peerDependencies": {
-    "@tsrt/mparty": "^0.1.1",
+    "@tsrt/mparty": "^0.2.0",
     "aws-sdk": "^2.799.0"
   },
   "devDependencies": {

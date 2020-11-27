@@ -4,7 +4,7 @@
   "description": "Typescript Reusable Tools: web-components",
   "keywords": [],
   "author": "Danyil Moroz",
-  "license": "ISC",
+  "license": "MIT",
   "main": "public/dist/index.js",
   "types": "public/dist/index.d.ts",
   "module": "public/dist/index.mjs",

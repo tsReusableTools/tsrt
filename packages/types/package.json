@@ -4,7 +4,7 @@
   "description": "Typescript Reusable Tools: types",
   "keywords": [],
   "author": "Danyil Moroz",
-  "license": "ISC",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
