@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/logger",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typescript Reusable Tools: logger",
   "keywords": [],
   "author": "Danyil Moroz",

@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/cache",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typescript Reusable Tools: cache",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/logger": "^0.2.0",
-    "@tsrt/utils": "^0.2.0",
+    "@tsrt/logger": "^0.2.1",
+    "@tsrt/utils": "^0.2.1",
     "redis": "3.0.2"
   },
   "devDependencies": {

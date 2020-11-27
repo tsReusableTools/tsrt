@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/http",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Typescript Reusable Tools: http modules",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.2.0",
-    "@tsrt/utils": "^0.2.0",
+    "@tsrt/types": "^0.2.1",
+    "@tsrt/utils": "^0.2.1",
     "axios": "^0.20.0",
     "qs": "6.9.4"
   },
