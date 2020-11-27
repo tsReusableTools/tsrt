@@ -123,7 +123,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   public async read(queryParams?: IBaseRepositoryOptions): Promise<IPagedData<I>>;
   public async read(queryParams?: IBaseRepositoryOptions, id?: number | string): Promise<I>;
   public async read(queryParams: IBaseRepositoryOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
-    return id ? this.readOne(id, queryParams) : this.readMany(queryParams);
+    return id ? this.readOne(queryParams, id) : this.readMany(queryParams);
   }
 
   /**
@@ -132,7 +132,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param id - Entity id.
    *  @param [options] - Optional query params.
    */
-  public async readOne(id: number | string, queryParams?: IBaseRepositoryOptions): Promise<I> {
+  public async readOne(queryParams?: IBaseRepositoryOptions, id?: number | string): Promise<I> {
     try {
       const options = { ...queryParams };
 
@@ -147,7 +147,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       if (hasItemsWithoutOrderOrWithEqualOrders([value])) {
         const reordered = await this.updateItemsOrder([], options);
-        if (reordered) return this.readOne(id, options);
+        if (reordered) return this.readOne(options, id);
       }
 
       return value;
