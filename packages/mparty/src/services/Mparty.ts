@@ -2,6 +2,7 @@ import Busboy from 'busboy';
 import { IncomingMessage } from 'http';
 import { extname } from 'path';
 
+import { parseTypes } from '@tsrt/utils';
 import {
   IUploadResult, IFileMetadata, IMpartyOptions, IMpartyUploadOptions,
   IAdapter, BusboyOnFileArgs, BusboyOnFieldArgs, FilesFilter,
@@ -40,7 +41,9 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
         unpipe();
         uploadQueue.onError(async () => {
           if (removeOnError) await adapter.onRemove(req, uploadResult);
-          const error = errorOrCode instanceof Error ? errorOrCode : new MpartyError(errorOrCode, null, limits);
+          const error = errorOrCode instanceof Error
+            ? errorOrCode
+            : new MpartyError(errorOrCode, null, limits, null, !removeOnError && uploadResult);
           reject(error);
         });
       }
@@ -48,7 +51,6 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
       function onUploadDone(): void {
         if (!isParsed || !uploadQueue.isDone || uploadQueue.hasError) return;
         unpipe();
-        if (uploadResult.files?.length === 1) [uploadResult.file] = uploadResult.files;
         const isValid = MpartyValidator.validateRequiredFilesFields(Object.values(uploadResult.files), limits?.requiredFiles);
         if (!isValid) onError('REQUIRED_FIELDS_ERROR');
         else resolve(uploadResult);
@@ -88,6 +90,7 @@ export class Mparty<T extends IFileMetadata, Req extends IncomingMessage> {
 
           const result = await adapter.onUpload(req, file, fileMetadata);
           uploadResult.files.push(result);
+          if (uploadResult.files?.length === 1) [uploadResult.file] = uploadResult.files; else delete uploadResult.file;
 
           uploadQueue.remove();
           onUploadDone();

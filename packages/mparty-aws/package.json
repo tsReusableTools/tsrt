@@ -1,0 +1,51 @@
+{
+  "name": "@tsrt/mparty-aws",
+  "version": "0.1.1",
+  "description": "Typescript Reusable Tools: Mparty AWS S3 Adapter",
+  "keywords": [
+    "multipart/form-data",
+    "file-upload",
+    "express",
+    "form-data",
+    "formdata",
+    "aws",
+    "aws-s3"
+  ],
+  "author": "Danyil Moroz",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "rm -rf dist && tsc"
+  },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+    "@tsrt/types": "^0.1.1"
+  },
+  "peerDependencies": {
+    "@tsrt/mparty": "^0.1.1",
+    "aws-sdk": "^2.799.0"
+  },
+  "devDependencies": {
+    "@types/node": "14.11.8",
+    "@tsrt/mparty": "^0.1.1",
+    "aws-sdk": "^2.799.0",
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsReusableTools/tsrt"
+  },
+  "bugs": {
+    "url": "https://github.com/tsReusableTools/tsrt/issues/new"
+  },
+  "homepage": "https://github.com/tsReusableTools/tsrt/tree/master/packages/mparty-aws"
+}
