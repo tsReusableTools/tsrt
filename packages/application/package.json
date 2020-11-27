@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/application",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Typescript Reusable Tools: application",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,11 +16,11 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/api-utils": "^0.1.1",
-    "@tsrt/logger": "^0.1.1",
-    "@tsrt/session": "^0.1.1",
-    "@tsrt/types": "^0.1.1",
-    "@tsrt/utils": "^0.1.1",
+    "@tsrt/api-utils": "^0.2.0",
+    "@tsrt/logger": "^0.2.0",
+    "@tsrt/session": "^0.2.0",
+    "@tsrt/types": "^0.2.0",
+    "@tsrt/utils": "^0.2.0",
     "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",
