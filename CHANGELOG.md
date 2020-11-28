@@ -1,3 +1,24 @@
+## 0.2.2 - 0.2.3
+
+### New features
+
+- [@tsrt/mparty] Improved docs.
+- [@tsrt/mparty-aws] Improved docs.
+- [@tsrt/mparty-express] Improved docs.
+- [@tsrt/sequelize] Updated types for read options.
+- [@tsrt/sequelize] Added docs.
+
+---
+
+## 0.2.1
+
+### New features
+
+- [@tsrt/mparty-aws] Added Mparty AWS S3 Adapter and docs.
+- [@tsrt/mparty-express] Added Mparty Express middleware and docs.
+
+---
+
 ## 0.2.0
 
 ### New features
@@ -5,8 +26,6 @@
 - [@tsrt/mparty] Added framework agnostic package for handling multipart/form-data requests based on busboy
 - [@tsrt/mparty] Added default FileSystem Adapter
 - [@tsrt/mparty] Added files and fields basic validations
-
-### 
 
 ---
 
