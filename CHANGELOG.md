@@ -1,3 +1,11 @@
+## 0.2.4
+
+### New features
+
+- [@tsrt/application] Added docs.
+
+---
+
 ## 0.2.2 - 0.2.3
 
 ### New features
