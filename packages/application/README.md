@@ -1,5 +1,8 @@
 # Typescript Reusable Tools: Application
 
+[![npm version](https://img.shields.io/npm/v/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application) [![Downloads](https://img.shields.io/npm/dm/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application)
+
+
 Basic configurable Application built on top of awesome `express` framework.
 
 ## Usage
@@ -197,3 +200,7 @@ export type TypeOrArrayOfTypes<T> = T | T[];
 
 
 ```
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).
