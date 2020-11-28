@@ -1,5 +1,6 @@
-import { Sequelize, SequelizeOptions, Model } from 'sequelize-typescript';
+import { Sequelize, SequelizeOptions, Model, ModelCtor } from 'sequelize-typescript';
 import { log } from '@tsrt/logger';
+import { getObjectValuesList } from '@tsrt/utils';
 
 class SequalizeDatabase {
   private _connection: Sequelize;
@@ -21,6 +22,12 @@ class SequalizeDatabase {
   public get models(): { [x: string]: Model } {
     this.checkDatabaseConnection();
     return this._models;
+  }
+
+  /** Gets models list for `init` method */
+  /* eslint-disable-next-line */
+  public getModels(models: Record<string, any>): ModelCtor[] {
+    return getObjectValuesList(models).filter((item) => typeof item === 'function') as unknown as ModelCtor[];
   }
 
   /**

@@ -1,9 +1,10 @@
 import {
-  Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
+  ModelCtor, Model, Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
   WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions,
 } from 'sequelize';
-import { ModelCtor, Model } from 'sequelize-typescript';
+// import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
+import cloneDeep from 'lodash.clonedeep';
 
 import {
   IOrderedItem, IPagedData, isEmpty, capitalize, parseTypes, reorderItemsInArray,
@@ -117,24 +118,24 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [options] - Optional query params.
+   *  @param [queryOptions] - Optional query params.
    *  @param [id] - Optional Entity id.
    */
-  public async read(queryParams?: IBaseRepositoryOptions): Promise<IPagedData<I>>;
-  public async read(queryParams?: IBaseRepositoryOptions, id?: number | string): Promise<I>;
-  public async read(queryParams: IBaseRepositoryOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
-    return id ? this.readOne(queryParams, id) : this.readMany(queryParams);
+  public async read(queryOptions?: IBaseRepositoryOptions): Promise<IPagedData<I>>;
+  public async read(queryOptions?: IBaseRepositoryOptions, id?: number | string): Promise<I>;
+  public async read(queryOptions: IBaseRepositoryOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
+    return id ? this.readOne(queryOptions, id) : this.readMany(queryOptions);
   }
 
   /**
    *  Reads one record (default: by Id. Could be changed w/ `getBy` query param) from Db.
    *
+   *  @param [queryOptions] - Optional query params.
    *  @param id - Entity id.
-   *  @param [options] - Optional query params.
    */
-  public async readOne(queryParams?: IBaseRepositoryOptions, id?: number | string): Promise<I> {
+  public async readOne(queryOptions?: IBaseRepositoryOptions, id?: number | string): Promise<I> {
     try {
-      const options = { ...queryParams };
+      const options = { ...queryOptions };
 
       await this.onBeforeRead(options, id);
 
@@ -161,9 +162,9 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *
    *  @param [options] - Optional query params.
    */
-  public async readMany(queryParams: IBaseRepositoryOptions = { }): Promise<IPagedData<I>> {
+  public async readMany(queryOptions: IBaseRepositoryOptions = { }): Promise<IPagedData<I>> {
     try {
-      const options = { ...queryParams };
+      const options = { ...queryOptions };
 
       await this.onBeforeRead(options);
 
@@ -192,7 +193,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *
    *  @param body - Data to be updated.
    *  @param [id] - Entity id.
-   *  @param [customOptions] - Custom options for updating operation.
+   *  @param [updateOptions] - Custom options for updating operation.
    *  @param [through] - Data to add into association for Many to Many relations.
    */
   public async update(body: Partial<I>, id: number | string, updateOptions?: IUpdateOptions, through: GenericObject = { }): Promise<I> {
@@ -420,8 +421,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [model] - Model is necessary when we are going to add specific filter by some model
    *  Ex: by Tenant model. Also is necessary for filtering and ordering thought associations
    */
-  private async buildQuery(queryParams?: IBaseRepositoryOptions, id?: string | number): Promise<FindAndCountOptions> {
-    const { limit, skip, sort, select, include = [], filter, getBy = this.config.defaults.getBy, where } = queryParams;
+  private async buildQuery(queryOptions?: IBaseRepositoryOptions, id?: string | number): Promise<FindAndCountOptions> {
+    const { limit, skip, sort, select, include = [], filter, getBy = this.config.defaults.getBy, where } = queryOptions;
     const query: FindAndCountOptions = { where: { } };
 
     if (id) query.where = { [getBy]: id };
@@ -443,22 +444,22 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   private attributesParser(select: string | string[], query?: FindAndCountOptions): string[] {
     let attributes: string[] = [];
     if (select) attributes = Array.isArray(select) ? [...select] : String(select).split(',');
+    attributes = attributes.map((item) => String(item).trim());
     if (attributes) attributes = attributes.map((item) => String(item).trim());
     if (query && attributes && attributes.length) query.attributes = attributes;
     return attributes;
   }
 
-  private includeParser(include: string | string[], query?: FindAndCountOptions): IncludeOptions[] {
+  private includeParser(include: string | Array<string | IncludeOptions>, query?: FindAndCountOptions): IncludeOptions[] {
     let customInclude: IncludeOptions[] = [];
 
-    let associationsArray = Array.isArray(include)
-      ? [...include.map((item) => String(item).trim())]
-      : String(include).split(',').map((item) => String(item).trim());
-    associationsArray = associationsArray.filter((item) => !!item);
-    associationsArray.forEach((item) => customInclude.push(this.createSequelizeAssociations(item)));
+    let list: Array<string | IncludeOptions> = typeof include === 'string' ? String(include).split(',') : cloneDeep(include);
+    list = list.map((item) => (typeof item === 'string' ? String(item).trim() : item)).filter(Boolean);
+    list.forEach((item) => customInclude.push(typeof item === 'string' ? this.createSequelizeAssociations(item) : item));
 
     customInclude = this.insertNecessaryIncludeOptions(customInclude);
     if (query && customInclude && customInclude.length) query.include = customInclude;
+
     return customInclude;
   }
 
@@ -468,7 +469,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     const order: OrderItem[][] = [];
 
     if (sort && (typeof sort === 'string' || Array.isArray(sort))) {
-      const groups: string[] = Array.isArray(sort) ? [...sort] : String(sort).split(',');
+      let groups: string[] = Array.isArray(sort) ? [...sort] : String(sort).split(',');
+      groups = groups.map((item) => String(item).trim());
 
       groups.forEach((keyValuePair) => {
         const [key, value] = String(keyValuePair).trim().split(':');
@@ -664,7 +666,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const insertionOptions: IBaseRepositoryExtendedOptions = { associate: true, replaceOnJoin: true, returnData: true, ...options };
       const data = isEmpty(through) ? { } : { through: { ...through } };
-      let include: string[] = [];
+      let include: Array<string | IncludeOptions> = [];
       const promises: Array<Promise<void>> = [];
 
       Object.keys(this.model.associations).forEach((key) => {

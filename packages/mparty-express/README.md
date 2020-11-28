@@ -1,5 +1,7 @@
 # Typescript Reusable Tools: Mparty Express Middleware
 
+[![npm version](https://img.shields.io/npm/v/@tsrt/mparty-express.svg)](https://www.npmjs.com/package/@tsrt/mparty-express) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/mparty-express.svg)](https://www.npmjs.com/package/@tsrt/mparty-express) [![Downloads](https://img.shields.io/npm/dm/@tsrt/mparty-express.svg)](https://www.npmjs.com/package/@tsrt/mparty-express)
+
 An [Mparty](https://www.npmjs.com/package/@tsrt/mparty) Express middleware.
 
 Includes updated `Express Request` typings.
@@ -122,3 +124,7 @@ router.post('/upload1', mpartyMiddleware({ destionation: 'some/another/path' }),
 ## Todo
 
 - [ ] Update allowedFiles signature after [Mparty](https://www.npmjs.com/package/@tsrt/mparty) will implement it. The puspose is next: `upload(['file1', ['files', min, max], ['files', 1, 5]]) `
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).

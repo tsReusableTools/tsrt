@@ -1,5 +1,7 @@
 # Typescript Reusable Tools: Mparty AWS S3 Adapter
 
+[![npm version](https://img.shields.io/npm/v/@tsrt/mparty-aws.svg)](https://www.npmjs.com/package/@tsrt/mparty-aws) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/mparty-aws.svg)](https://www.npmjs.com/package/@tsrt/mparty-aws) [![Downloads](https://img.shields.io/npm/dm/@tsrt/mparty-aws.svg)](https://www.npmjs.com/package/@tsrt/mparty-aws)
+
 An [Mparty](https://www.npmjs.com/package/@tsrt/mparty) AWS S3 Adapter.
 
 Internally uses [aws-sdk](https://www.npmjs.com/package/aws-sdk) for managing file uploading / deletion. Thus all `aws-sdk` __S3 config and upload config__ options are available for `AwsAdapter` as well.
@@ -65,3 +67,7 @@ export async function uploadMiddleware(req: Request, res: Response, next: Next):
   }
 }
 ```
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).

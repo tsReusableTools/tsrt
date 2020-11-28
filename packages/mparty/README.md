@@ -1,6 +1,10 @@
 # Typescript Reusable Tools: Mparty
 
+[![npm version](https://img.shields.io/npm/v/@tsrt/mparty.svg)](https://www.npmjs.com/package/@tsrt/mparty) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/mparty.svg)](https://www.npmjs.com/package/@tsrt/mparty) [![Downloads](https://img.shields.io/npm/dm/@tsrt/mparty.svg)](https://www.npmjs.com/package/@tsrt/mparty)
+
 Mparty provides async/await API for handling `multipart/form-data` (in most cases for file uploading) using default or custom Adapter to store files (FileSystem, Memory, Aws or whatever is needed).
+
+It is build on top of [busboy](https://www.npmjs.com/package/busboy).
 ## Features
 
  - Ability to provide custom Adapter.
@@ -264,7 +268,7 @@ const options = {
 - [ ] Update allowedFiles signature to be as next: 
 `upload(['file1', ['files', min, max], ['files', 1, 5]])`
 
-### Disclaimer
+## Disclaimer
 
 This module initially was created due to the reason that i did not manage to found file-upload packages which provides convenient ability to stream files in a multi-tenant way into AWS S3.
 
@@ -277,3 +281,7 @@ In first version it was based on [multiparty](https://www.npmjs.com/package/mult
 While struggling with error handling and adopting busboy for usage I discovered that awesome [multer](https://www.npmjs.com/package/multer) which I used sometimes previously provides ability to create [custom storage engine](https://github.com/expressjs/multer/blob/master/StorageEngine.md) which indeed was what i really needed at the very beginnig of my path )
 
 Still a lot of work was done, and there are some existing code which depends on this, so i decided to publish it.
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).
