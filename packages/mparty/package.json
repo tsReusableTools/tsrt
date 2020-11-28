@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Typescript Reusable Tools: Mparty - wrapper over busboy for multipart/form-data upload in nodejs",
   "keywords": [
     "multipart/form-data",
