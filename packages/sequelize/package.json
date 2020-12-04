@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/sequelize",
-  "version": "0.2.3",
+  "version": "0.2.5",
   "description": "Typescript Reusable Tools: sequelize",
   "keywords": [],
   "author": "Danyil Moroz",
