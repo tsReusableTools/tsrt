@@ -22,7 +22,6 @@ export interface IBaseRepositoryOptions extends Omit<IQueryParams, 'include' | '
   include?: string | Array<string | IncludeOptions>;
   filter?: WhereAttributeHash;
   where?: WhereAttributeHash;
-  logging?: boolean | ((sql: string, timing?: number) => void);
 }
 
 /**

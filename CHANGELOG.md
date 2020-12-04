@@ -1,3 +1,12 @@
+## 0.2.6
+
+### Bugfixes
+
+- [@tsrt/sequelize] Fixed types for `onBeforeRead` hook.
+- [@tsrt/sequelize] Fixed readOptions applying order.
+
+---
+
 ## 0.2.5
 
 ### New features

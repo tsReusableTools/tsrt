@@ -314,7 +314,7 @@ onBeforeBulkCreate(_body: GenericObject[], _customOptions?: ICreateOptions): Pro
  *  @param [_options] - Query options
  *  @param [_id] - Id or query to find by
  */
-onBeforeRead(_options?: IBaseRepositoryOptions, _id?: string | number | boolean): Promise<void> { }
+onBeforeRead(_options?: IReadOptions, _id?: string | number | boolean): Promise<void> { }
 
 /**
  *  Hook which invokes directly before update operation
@@ -375,7 +375,7 @@ export interface IBaseRepositoryConfig {
   };
 }
 
-export interface IBaseRepositoryOptions extends Omit<IQueryParams, 'include'> {
+export interface IBaseRepositoryOptions {
   /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
   limit?: number | string;
 
@@ -444,9 +444,6 @@ export interface IBaseRepositoryOptions extends Omit<IQueryParams, 'include'> {
    *  }
    */
   where?: WhereAttributeHash;
-
-  /** Sequelize native option. */
-  logging?: boolean | ((sql: string, timing?: number) => void);
 }
 
 /**

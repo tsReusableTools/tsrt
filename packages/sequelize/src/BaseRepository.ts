@@ -139,9 +139,9 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       await this.onBeforeRead(options, id);
 
-      const originalQuery = await this.buildQuery(options, id);
+      const parsedQuery = await this.buildQuery(options, id);
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
-      const findQuery = { ...originalQuery, ...staticMethodOptions };
+      const findQuery = { ...staticMethodOptions, ...parsedQuery };
 
       const result = await this.model.findOne(findQuery);
       if (!result) throwHttpError.notFound('Item not found');
@@ -170,9 +170,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       await this.onBeforeRead(options);
 
-      const originalQuery = await this.buildQuery(options);
+      const parsedQuery = await this.buildQuery(options);
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
-      const findQuery = { ...originalQuery, ...staticMethodOptions };
+      const findQuery = { ...staticMethodOptions, ...parsedQuery };
+
       const fixedQuery = await this.fixSequeliseQueryWithLeftJoins(findQuery);
       const { query, total } = fixedQuery;
 
@@ -260,7 +261,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [options] - Additional Query options
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
-  public async updateItemsOrder<C extends IOrderedItem>(body: C[], options: IBaseRepositoryOptions = { }): Promise<I[]> {
+  public async updateItemsOrder<C extends IOrderedItem>(body: C[], options: IReadOptions = { }): Promise<I[]> {
     if (!this.model || !this.model.rawAttributes.order || !this.model.rawAttributes.id) {
       throwHttpError.badRequest('Unable to reorder entities without `id` or `order` property');
     }
@@ -391,7 +392,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [_options] - Query options
    *  @param [_id] - Id or query to find by
    */
-  protected async onBeforeRead(_options?: IBaseRepositoryOptions, _id?: string | number | boolean): Promise<void> { }
+  protected async onBeforeRead(_options?: IReadOptions, _id?: string | number | boolean): Promise<void> { }
 
   /**
    *  Hook which invokes directly before update operation
