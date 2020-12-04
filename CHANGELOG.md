@@ -1,3 +1,12 @@
+## 0.2.5
+
+### New features
+
+- [@tsrt/sequelize] Updated signature for read/readOne/readMany methods to provide appropriate ability to use native Sequelize FindOptions.
+- [@tsrt/sequelize] Updated signature for delete/softDelete/forceDelete methods to provide ability delete by id or only w/ deleteOptions.
+
+---
+
 ## 0.2.4
 
 ### New features

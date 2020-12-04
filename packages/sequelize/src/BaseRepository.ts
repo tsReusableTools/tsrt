@@ -14,7 +14,7 @@ import { log } from '@tsrt/logger';
 
 import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
-  ICreateOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions,
+  ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions,
 } from './interfaces';
 
 export class BaseRepository<I extends GenericObject = GenericObject, M extends Model = Model> {
@@ -121,10 +121,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [queryOptions] - Optional query params.
    *  @param [id] - Optional Entity id.
    */
-  public async read(queryOptions?: IBaseRepositoryOptions): Promise<IPagedData<I>>;
-  public async read(queryOptions?: IBaseRepositoryOptions, id?: number | string): Promise<I>;
-  public async read(queryOptions: IBaseRepositoryOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
-    return id ? this.readOne(queryOptions, id) : this.readMany(queryOptions);
+  public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
+  public async read(readOptions?: IReadOptions, id?: number | string): Promise<I>;
+  public async read(readOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
+    return id ? this.readOne(readOptions, id) : this.readMany(readOptions);
   }
 
   /**
@@ -133,15 +133,17 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [queryOptions] - Optional query params.
    *  @param id - Entity id.
    */
-  public async readOne(queryOptions?: IBaseRepositoryOptions, id?: number | string): Promise<I> {
+  public async readOne(readOptions?: IReadOptions, id?: number | string): Promise<I> {
     try {
-      const options = { ...queryOptions };
+      const options = { ...readOptions };
 
       await this.onBeforeRead(options, id);
 
       const originalQuery = await this.buildQuery(options, id);
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const findQuery = { ...originalQuery, ...staticMethodOptions };
 
-      const result = await this.model.findOne(originalQuery);
+      const result = await this.model.findOne(findQuery);
       if (!result) throwHttpError.notFound('Item not found');
 
       const value = this.mapSequelizeModelToPlainObject(result);
@@ -162,14 +164,16 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *
    *  @param [options] - Optional query params.
    */
-  public async readMany(queryOptions: IBaseRepositoryOptions = { }): Promise<IPagedData<I>> {
+  public async readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>> {
     try {
-      const options = { ...queryOptions };
+      const options = { ...readOptions };
 
       await this.onBeforeRead(options);
 
       const originalQuery = await this.buildQuery(options);
-      const fixedQuery = await this.fixSequeliseQueryWithLeftJoins(originalQuery);
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const findQuery = { ...originalQuery, ...staticMethodOptions };
+      const fixedQuery = await this.fixSequeliseQueryWithLeftJoins(findQuery);
       const { query, total } = fixedQuery;
 
       const result = await this.model.findAndCountAll({ ...query });
@@ -182,7 +186,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
         if (reordered) return this.readMany(options);
       }
 
-      return createPagedData(value, total || result.count, originalQuery);
+      return createPagedData(value, total || result.count, findQuery);
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
@@ -290,19 +294,22 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param id - Entity id.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
-  public async delete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string> {
+  public async delete(deleteOptions: IDeleteOptions): Promise<string>;
+  public async delete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async delete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
     try {
-      if (!id) throwHttpError.badRequest('Please, provide valid id');
+      if (!id) throwHttpError.badRequest('Please, provide at least valid id or deleteOptions');
 
-      const customOptions: IDeleteOptions = { ...deleteOptions, cascade: true };
-      await this.onBeforeDelete(id, customOptions);
-      const { where } = await this.buildQuery(customOptions, id) as UpdateOptions;
+      const genericOptions: IDeleteOptions = (typeof id === 'object' ? id : deleteOptions) || { };
+      const customOptions: IDeleteOptions = { ...genericOptions, cascade: true };
+      await this.onBeforeDelete(customOptions, typeof id !== 'object' && id);
+      const { where } = await this.buildQuery(customOptions, typeof id !== 'object' && id) as UpdateOptions;
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
       const result = await this.model.destroy({ ...options, where });
       if (!result) throwHttpError.badRequest(`Incorrect condition(s): ${JSON.stringify(where)}`);
 
-      return `Successfully deleted by id(s): ${id}`;
+      return typeof id !== 'object' ? `Successfully deleted by id: ${id}` : 'Successfully deleted by multiple conditions.';
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
@@ -314,8 +321,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param id - Entity id.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
-  public async softDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string> {
-    return this.delete(id, { ...deleteOptions, force: false });
+  public async softDelete(deleteOptions: IDeleteOptions): Promise<string>;
+  public async softDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async softDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof id === 'object' ? this.delete({ ...id, force: false }) : this.delete(id, { ...deleteOptions, force: false });
   }
 
   /**
@@ -324,8 +333,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param id - Entity id.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
-  public async forceDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string> {
-    return this.delete(id, { ...deleteOptions, force: true });
+  public async forceDelete(deleteOptions: IDeleteOptions): Promise<string>;
+  public async forceDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async forceDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof id === 'object' ? this.delete({ ...id, force: true }) : this.delete(id, { ...deleteOptions, force: true });
   }
 
   /**
@@ -397,7 +408,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [_id] - Id or query to find by
    *  @param [_customOptions] - Custom options for record (s) destroy
    */
-  protected async onBeforeDelete(_id: number | string, _customOptions: IDeleteOptions): Promise<void> { }
+  protected async onBeforeDelete(_customOptions: IDeleteOptions, _id?: number | string): Promise<void> { }
 
   /**
    *  Hook which fires right before adding associated data.

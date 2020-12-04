@@ -1,14 +1,17 @@
-import { CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash, IncludeOptions } from 'sequelize';
+import {
+  CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
+  IncludeOptions, FindAndCountOptions,
+} from 'sequelize';
 
 export interface IBaseRepositoryConfig {
   defaults: {
-    /** Defalt limit param for read operations. Defaults to 10 */
+    /** Defalt limit param for read operations. Default: 10. */
     limit: number;
 
-    /** Defalt order param for read operations. Defaults to 'order,asc' */
+    /** Defalt order param for read operations. Default: ['order', 'asc']. */
     order: string[];
 
-    /** Defalt param for read operations, by which to getBy. Defaults to 'id' */
+    /** Defalt param for read operations, by which to getBy. Default: 'id'. */
     getBy: string;
   };
 }
@@ -50,6 +53,9 @@ export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
 
 /** Interface for possible options of create method */
 export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+
+/** Interface for possible options of read method */
+export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
 export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}

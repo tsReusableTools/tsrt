@@ -128,7 +128,7 @@ interface IBaseRepository<I extends GenericObject> {
    *
    *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
    */
-  read(queryOptions: IBaseRepositoryOptions = { }, id?: number | string): Promise<I | IPagedData<I>>;
+  read(queryOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>>;
 
   /**
    *  Reads one record (default: by Id. Could be changed w/ `getBy` query option).
@@ -138,7 +138,7 @@ interface IBaseRepository<I extends GenericObject> {
    * 
    *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
    */
-  readOne(queryOptions?: IBaseRepositoryOptions, id?: number | string): Promise<I>;
+  readOne(queryOptions?: IReadOptions, id?: number | string): Promise<I>;
 
   /**
    *  Reads multiple entities and returns paged response.
@@ -147,7 +147,7 @@ interface IBaseRepository<I extends GenericObject> {
    * 
    *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
    */
-  readMany(queryOptions: IBaseRepositoryOptions = { }): Promise<IPagedData<I>>;
+  readMany(queryOptions: IReadOptions = { }): Promise<IPagedData<I>>;
 
   /**
    *  Updates entity.
@@ -184,28 +184,34 @@ interface IBaseRepository<I extends GenericObject> {
    *  Deletes entity by id.
    *  If `paranoid` mode is enabled - soft deletes. Alternatively deletes entity totally.
    *
-   *  @param id - Entity id.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param id | deleteOptions - Entity id. Or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
    */
+  delete(deleteOptions: IDeleteOptions): Promise<string>;
   delete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  delete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
    *  Soft deletes entity by id (only if `paranoid` mode enabled). Alternatively deletes entity totally.
    *  Alias for delete(id, { force: false }) or just delete(id);
    *
-   *  @param id - Entity id.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param id | deleteOptions - Entity id. Or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
    */
+  softDelete(deleteOptions: IDeleteOptions): Promise<string>;
   softDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  softDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
    *  Totally deletes entity by id.
    *  Alias for delete(id, { force: true });
    *
-   *  @param id - Entity id.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param id | deleteOptions - Entity id. Or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
    */
+  forceDelete(deleteOptions: IDeleteOptions): Promise<string>;
   forceDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  forceDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
    *  Restores soft deleted entity(-ies).
@@ -358,13 +364,13 @@ export interface IPagedData<T> {
 
 export interface IBaseRepositoryConfig {
   defaults: {
-    /** Defalt limit param for read operations. Defaults to 10 */
+    /** Defalt limit param for read operations. Default: 10. */
     limit: number;
 
-    /** Defalt order param for read operations. Defaults to 'order,asc' */
+    /** Defalt order param for read operations. Default: ['order', 'asc']. */
     order: string[];
 
-    /** Defalt param for read operations, by which to getBy. Defaults to 'id' */
+    /** Defalt param for read operations, by which to getBy. Default: 'id'. */
     getBy: string;
   };
 }
@@ -471,6 +477,9 @@ export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
 
 /** Interface for possible options of create method */
 export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+
+/** Interface for possible options of read method */
+export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
 export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
