@@ -1,6 +1,6 @@
 import {
   ModelCtor, Model, Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
-  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions,
+  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions, Transaction, TransactionOptions,
 } from 'sequelize';
 // import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
@@ -13,7 +13,7 @@ import {
 import { log } from '@tsrt/logger';
 
 import {
-  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
+  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, TransactionCallBack,
   ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions,
 } from './interfaces';
 
@@ -34,6 +34,25 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   }
 
   /**
+   *  Creates a transaction or executes a transaction callback
+   *
+   *  @param [options] - Transactions options
+   *  @param [cb] - Transaction callback to be executed for managed transactions
+   *
+   *  @see https://sequelize.org/master/manual/transactions
+   */
+  public async createTransaction(options?: TransactionOptions): Promise<Transaction>;
+  public async createTransaction<T = I>(cb?: TransactionCallBack<T>): Promise<T>;
+  public async createTransaction<T = I>(options?: TransactionOptions, cb?: TransactionCallBack<T>): Promise<T>;
+  public async createTransaction<T = I>(
+    optionsOrCb?: TransactionOptions | TransactionCallBack<T>, cb?: TransactionCallBack<T>,
+  ): Promise<T | Transaction> {
+    return typeof optionsOrCb === 'function'
+      ? this.model.sequelize.transaction(optionsOrCb)
+      : this.model.sequelize.transaction(optionsOrCb, cb);
+  }
+
+  /**
    *  Creates a new entity.
    *
    *  @param body - Entity data.
@@ -46,9 +65,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const customOptions: ICreateOptions = { ...createOptions };
       await this.onBeforeCreate(dataToSave, customOptions);
+      const { where } = await this.buildQuery(customOptions);
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
-      const result = await this.model.create(dataToSave, { ...options } as CreateOptions);
+      const result = await this.model.create(dataToSave, { ...options, where } as CreateOptions);
       return this.insertAssociatedWithEntityDataFromBody(result as M, dataToSave, customOptions, through);
     } catch (err) {
       this.throwCustomSequelizeError(err);
@@ -262,17 +282,21 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
   public async updateItemsOrder<C extends IOrderedItem>(body: C[], options: IReadOptions = { }): Promise<I[]> {
-    if (!this.model || !this.model.rawAttributes.order || !this.model.rawAttributes.id) {
+    if (!this.model?.rawAttributes?.order || !this.model?.rawAttributes?.id) {
       throwHttpError.badRequest('Unable to reorder entities without `id` or `order` property');
     }
 
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
 
-    const transaction = await this.model.sequelize.transaction();
+    const transaction = await this.createTransaction();
 
     try {
-      const query = await this.buildQuery({ ...options, limit: 'none' });
-      const available = await this.model.findAll({ ...query });
+      const parsedQuery = await this.buildQuery({ ...options, limit: 'none' });
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const findQuery = { ...staticMethodOptions, ...parsedQuery };
+
+      const available = await this.model.findAll({ ...findQuery });
+      this.model.bulkCreate
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
       const reordered = reorderItemsInArray(body, availableValue as unknown as C[]);
@@ -718,7 +742,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
   private retrieveSequelizeStaticMethodOptions<T extends IBaseRepositoryExtendedOptions>(options: T): T {
     const result: T = { ...options };
-    ['limit', 'skip', 'select', 'getBy', 'sort', 'include', 'filter'].forEach((item) => {
+    ['limit', 'skip', 'select', 'getBy', 'sort', 'include', 'filter', 'where'].forEach((item) => {
       if (Object.hasOwnProperty.call(result, item)) delete (result as GenericObject)[item];
     });
     return result;

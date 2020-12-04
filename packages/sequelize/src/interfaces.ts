@@ -1,6 +1,6 @@
 import {
   CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
-  IncludeOptions, FindAndCountOptions,
+  IncludeOptions, FindAndCountOptions, Transaction,
 } from 'sequelize';
 
 export interface IBaseRepositoryConfig {
@@ -64,3 +64,6 @@ export interface IDeleteOptions extends Omit<IBaseRepositoryOptions, 'limit'>, O
 
 /** Interface for possible options of restore method */
 export interface IRestoreOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<RestoreOptions>, 'where'> {}
+
+/** Type for transaction callback function */
+export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
