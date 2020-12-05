@@ -61,22 +61,22 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    */
   public async create(body: Partial<I> = { }, createOptions: ICreateOptions = { }, through: GenericObject = { }): Promise<I> {
     try {
+      const customOptions: ICreateOptions = cloneDeep(createOptions);
+      await this.onBeforeCreate(body, customOptions, through);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
-
-      const customOptions: ICreateOptions = { ...createOptions };
-      await this.onBeforeCreate(dataToSave, customOptions);
       const { where } = await this.buildQuery(customOptions);
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
       const result = await this.model.create(dataToSave, { ...options, where } as CreateOptions);
-      return this.insertAssociatedWithEntityDataFromBody(result as M, dataToSave, customOptions, through);
+      const resultWithAssociations = await this.insertAssociatedWithEntityDataFromBody(result as M, dataToSave, customOptions, through);
+      return resultWithAssociations ?? this.mapSequelizeModelToPlainObject(result);
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
   }
 
   /**
-   *  Creates multiple entities from provided list.
+   *  Creates multiple entities from provided list (inside transaction).
    *
    *  @param body - List of entities to be created.
    *  @param [createOptions] - Custom options for record creation. Include QueryOptions and CreateOptions.
@@ -90,50 +90,22 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     const transaction = await this.model.sequelize.transaction();
 
     try {
-      const results: I[] = [];
+      const customOptions: ICreateOptions = cloneDeep(createOptions);
+      await this.onBeforeBulkCreate(body, customOptions, through);
+      const dataToSave = body.map((item) => this.removeRestrictedPropertiesFromBody(item));
+      const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
+      const results = await this.model.bulkCreate<M>(dataToSave, { ...options, transaction } as CreateOptions);
 
-      for (const item of body) {
-        /* eslint-disable-next-line */
-        const result = await this.create(item, { ...createOptions }, through);
-        results.push(result);
-      }
+      const insertOptions = { ...options, returnData: false };
+      await Promise.all(results.map((item, i) => this.insertAssociatedWithEntityDataFromBody(item, dataToSave[i], insertOptions, through)));
 
       transaction.commit();
-      return results;
+      return this.mapSequelizeModelToPlainObject(results);
     } catch (err) {
       transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
-  // TODO. Finish this method (make it work inside transaction)
-  // public async bulkCreate(
-  //   body: Array<Partial<I>>, createOptions?: ICreateOptions, through?: GenericObject,
-  // ): Promise<I[]> {
-  //   if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to create.');
-  //
-  //   // const transaction = await this.model.sequelize.transaction();
-  //
-  //   try {
-  //     const dataToSave = body.map((item) => this.removeRestrictedPropertiesFromBody(item));
-  //
-  //     const customOptions: ICreateOptions = { ...createOptions };
-  //     await this.onBeforeBulkCreate(dataToSave, customOptions);
-  //     const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
-  //
-  //     const results = await this.model.bulkCreate(body, { ...options } as CreateOptions) as M[];
-  //     // const results = this.mapSequelizeModelToPlainObject(result);
-  //     const result: I[] = [];
-  //     for (const [i, item] of results.entries()) {
-  //       /* eslint-disable-next-line */
-  //       const entityWithAssociation = await this.insertAssociatedWithEntityDataFromBody(item, dataToSave[i], customOptions, through);
-  //       result.push(entityWithAssociation);
-  //     }
-  //     return result;
-  //   } catch (err) {
-  //     // transaction.rollback();
-  //     this.throwCustomSequelizeError(err);
-  //   }
-  // }
 
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
@@ -214,37 +186,47 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   }
 
   /**
-   *  Updates entity.
+   *  Updates entity(ies).
    *
    *  @param body - Data to be updated.
-   *  @param [id] - Entity id.
-   *  @param [updateOptions] - Custom options for updating operation.
+   *  @param id - Entity id or updateOptions.
+   *  @param [updateOptions] - Custom options for updating operation or through.
    *  @param [through] - Data to add into association for Many to Many relations.
    */
-  public async update(body: Partial<I>, id: number | string, updateOptions?: IUpdateOptions, through: GenericObject = { }): Promise<I> {
+  public async update(body: Partial<I>, updateOptions: IUpdateOptions, through?: GenericObject): Promise<I[]>;
+  public async update(body: Partial<I>, id: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
+  public async update(
+    body: Partial<I>, id: number | string | IUpdateOptions, updateOptions: IUpdateOptions = { }, through: GenericObject = { },
+  ): Promise<I | I[]> {
     try {
-      if (!id) throwHttpError.badRequest('Please, provide valid id');
+      if (!id) throwHttpError.badRequest('Please, provide valid id or updateOptions');
 
+      // Make type checking due to method overloading
+      const genericOptions: IUpdateOptions = cloneDeep(typeof id === 'object' ? id : updateOptions) ?? { };
+      const genericThrough: GenericObject = typeof id === 'object' ? updateOptions : through;
+
+      await this.onBeforeUpdate(body, typeof id !== 'object' && id, genericOptions, genericThrough);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
-
-      const customOptions: IUpdateOptions = { ...updateOptions };
-      await this.onBeforeUpdate(id, dataToSave, customOptions);
-      const { where } = await this.buildQuery(customOptions, id);
-      const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
+      const { where } = await this.buildQuery(genericOptions, typeof id !== 'object' && id);
+      const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
 
       // Do not use here `returning: true` because need solution not only for postgres.
       await this.model.update(dataToSave, { ...options, where } as UpdateOptions);
 
-      const entity = await this.model.findOne({ where });
-      if (!entity) throwHttpError.notFound();
-      return this.insertAssociatedWithEntityDataFromBody(entity as M, dataToSave, customOptions, through);
+      const result = typeof id !== 'object'
+        ? await this.model.findOne({ where }) as M
+        : await this.model.findAll({ where }) as M[];
+      if (!result || (Array.isArray(result) && !result?.length)) throwHttpError.notFound();
+
+      if (!Array.isArray(result)) return this.insertAssociatedWithEntityDataFromBody(result, dataToSave, genericOptions, genericThrough);
+      return Promise.all(result.map((i) => this.insertAssociatedWithEntityDataFromBody(i, dataToSave, genericOptions, genericThrough)));
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
   }
 
   /**
-   *  Updates multiple entities from provided list.
+   *  Updates multiple entities from provided list (inside transaction).
    *
    *  @param body - List of entities to be updated.
    *  @param [updateOptions] - Custom options for updating operation.
@@ -296,7 +278,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       const findQuery = { ...staticMethodOptions, ...parsedQuery };
 
       const available = await this.model.findAll({ ...findQuery });
-      this.model.bulkCreate
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
       const reordered = reorderItemsInArray(body, availableValue as unknown as C[]);
@@ -388,27 +369,29 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Hook called after query was built.
    *
-   *  @param [query] - Previously parsed query params into Sequelize appropriate find and count options.
+   *  @param [parsedQuery] - Previously parsed query params into Sequelize appropriate find and count options.
    */
-  protected async onAfterQueryBuilt(query?: FindAndCountOptions): Promise<FindAndCountOptions> {
-    return { ...query };
+  protected async onAfterQueryBuilt(parsedQuery?: FindAndCountOptions): Promise<FindAndCountOptions> {
+    return { ...parsedQuery };
   }
 
   /**
    *  Hook which invokes directly before create operation
    *
-   *  @param _body - Body for record creation
+   *  @param _body - Body for entity creation.
    *  @param [_customOptions] - Custom options for record creation
+   *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeCreate(_body: GenericObject, _customOptions?: ICreateOptions): Promise<void> { }
+  protected async onBeforeCreate(_body: GenericObject, _customOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before bulk create operation.
    *
    *  @param _body - Body for record creation.
    *  @param [_customOptions] - Custom options for record creation.
+   *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeBulkCreate(_body: GenericObject[], _customOptions?: ICreateOptions): Promise<void> { }
+  protected async onBeforeBulkCreate(_body: GenericObject[], _customOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before read operations.
@@ -424,8 +407,11 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param _id - Record it or query
    *  @param _body - Body for record creation
    *  @param [_customOptions] - Custom options for record update
+   *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeUpdate(_id: number | string, _body: GenericObject, _customOptions?: IUpdateOptions): Promise<void> { }
+  protected async onBeforeUpdate(
+    _body: GenericObject, _id: number | string, _customOptions?: IUpdateOptions, _through?: GenericObject,
+  ): Promise<void> { }
 
   /**
    *  Hook which invokes directly before delete operation
@@ -448,6 +434,15 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   ): Promise<void> { }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */
+
+  protected removeRestrictedPropertiesFromBody(body: Partial<I> = { }): Partial<I> {
+    const result = { ...body };
+    if (Object.hasOwnProperty.call(result, 'id')) delete result.id;
+    if (Object.hasOwnProperty.call(result, 'createdAt')) delete result.createdAt;
+    if (Object.hasOwnProperty.call(result, 'updatedAt')) delete result.updatedAt;
+    if (Object.hasOwnProperty.call(result, 'deletedAt')) delete result.deletedAt;
+    return result;
+  }
 
   /**
    *  Builds query for read operation
@@ -848,15 +843,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
-  }
-
-  private removeRestrictedPropertiesFromBody(body: Partial<I> = { }): Partial<I> {
-    const result = { ...body };
-    if (Object.hasOwnProperty.call(result, 'id')) delete result.id;
-    if (Object.hasOwnProperty.call(result, 'createdAt')) delete result.createdAt;
-    if (Object.hasOwnProperty.call(result, 'updatedAt')) delete result.updatedAt;
-    if (Object.hasOwnProperty.call(result, 'deletedAt')) delete result.deletedAt;
-    return result;
   }
 
   /* eslint-disable-next-line */
