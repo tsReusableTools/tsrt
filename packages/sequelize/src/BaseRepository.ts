@@ -13,25 +13,23 @@ import {
 import { log } from '@tsrt/logger';
 
 import {
-  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, TransactionCallBack,
-  ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions,
+  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
+  ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions, TransactionCallBack,
 } from './interfaces';
+import { defaultConfig } from './utils';
 
 export class BaseRepository<I extends GenericObject = GenericObject, M extends Model = Model> {
   public constructor(
     public readonly model: ModelCtor<M>,
     protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
-    this.config = {
-      defaults: {
-        limit: 10,
-        order: ['id', 'asc'],
-        getBy: 'id',
-      },
-    };
-
+    this.config = defaultConfig;
     if (config) this.config.defaults = { ...this.config.defaults, ...config.defaults };
   }
+
+  public get pk(): string { return this.config?.defaults?.primaryKey ?? defaultConfig.defaults.primaryKey; }
+
+  public get defaults(): IBaseRepositoryDefaults { return { ...(this.config?.defaults ?? defaultConfig.defaults) }; }
 
   /**
    *  Creates a transaction or executes a transaction callback
@@ -111,27 +109,27 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  Alias for common read operations. Works for both readOne and readMany.
    *
    *  @param [queryOptions] - Optional query params.
-   *  @param [id] - Optional Entity id.
+   *  @param [pk] - Optional Entity primaryKey.
    */
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
-  public async read(readOptions?: IReadOptions, id?: number | string): Promise<I>;
-  public async read(readOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>> {
-    return id ? this.readOne(readOptions, id) : this.readMany(readOptions);
+  public async read(readOptions?: IReadOptions, pk?: number | string): Promise<I>;
+  public async read(readOptions: IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>> {
+    return pk ? this.readOne(readOptions, pk) : this.readMany(readOptions);
   }
 
   /**
-   *  Reads one record (default: by Id. Could be changed w/ `getBy` query param) from Db.
+   *  Reads one record from Db.
    *
    *  @param [queryOptions] - Optional query params.
-   *  @param id - Entity id.
+   *  @param pk - Entity primaryKey.
    */
-  public async readOne(readOptions?: IReadOptions, id?: number | string): Promise<I> {
+  public async readOne(readOptions?: IReadOptions, pk?: number | string): Promise<I> {
     try {
       const options = { ...readOptions };
 
-      await this.onBeforeRead(options, id);
+      await this.onBeforeRead(options, pk);
 
-      const parsedQuery = await this.buildQuery(options, id);
+      const parsedQuery = await this.buildQuery(options, pk);
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
       const findQuery = { ...staticMethodOptions, ...parsedQuery };
 
@@ -142,7 +140,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       if (hasItemsWithoutOrderOrWithEqualOrders([value])) {
         const reordered = await this.updateItemsOrder([], options);
-        if (reordered) return this.readOne(options, id);
+        if (reordered) return this.readOne(options, pk);
       }
 
       return value;
@@ -189,31 +187,31 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  Updates entity(ies).
    *
    *  @param body - Data to be updated.
-   *  @param id - Entity id or updateOptions.
+   *  @param pk - Entity primaryKey or updateOptions.
    *  @param [updateOptions] - Custom options for updating operation or through.
    *  @param [through] - Data to add into association for Many to Many relations.
    */
   public async update(body: Partial<I>, updateOptions: IUpdateOptions, through?: GenericObject): Promise<I[]>;
-  public async update(body: Partial<I>, id: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
+  public async update(body: Partial<I>, pk: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
   public async update(
-    body: Partial<I>, id: number | string | IUpdateOptions, updateOptions: IUpdateOptions = { }, through: GenericObject = { },
+    body: Partial<I>, pk: number | string | IUpdateOptions, updateOptions: IUpdateOptions = { }, through: GenericObject = { },
   ): Promise<I | I[]> {
     try {
-      if (!id) throwHttpError.badRequest('Please, provide valid id or updateOptions');
+      if (!pk) throwHttpError.badRequest('Please, provide valid primaryKey or updateOptions');
 
       // Make type checking due to method overloading
-      const genericOptions: IUpdateOptions = cloneDeep(typeof id === 'object' ? id : updateOptions) ?? { };
-      const genericThrough: GenericObject = typeof id === 'object' ? updateOptions : through;
+      const genericOptions: IUpdateOptions = cloneDeep(typeof pk === 'object' ? pk : updateOptions) ?? { };
+      const genericThrough: GenericObject = typeof pk === 'object' ? updateOptions : through;
 
-      await this.onBeforeUpdate(body, typeof id !== 'object' && id, genericOptions, genericThrough);
+      await this.onBeforeUpdate(body, typeof pk !== 'object' && pk, genericOptions, genericThrough);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
-      const { where } = await this.buildQuery(genericOptions, typeof id !== 'object' && id);
+      const { where } = await this.buildQuery(genericOptions, typeof pk !== 'object' && pk);
       const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
 
       // Do not use here `returning: true` because need solution not only for postgres.
       await this.model.update(dataToSave, { ...options, where } as UpdateOptions);
 
-      const result = typeof id !== 'object'
+      const result = typeof pk !== 'object'
         ? await this.model.findOne({ where }) as M
         : await this.model.findAll({ where }) as M[];
       if (!result || (Array.isArray(result) && !result?.length)) throwHttpError.notFound();
@@ -241,10 +239,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       const results: I[] = [];
 
       for (const item of body) {
-        if (!item.id) throwHttpError.badRequest('There should be an `id` property in each entity to update');
+        if (!item[this.pk]) throwHttpError.badRequest(`There should be an '${this.pk}' (primaryKey) property in each entity to update`);
 
         /* eslint-disable-next-line */
-        const result = await this.update(item, item.id, { ...updateOptions, transaction }, through);
+        const result = await this.update(item, item[this.pk], { ...updateOptions, transaction }, through);
         results.push(result);
       }
 
@@ -259,13 +257,13 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Update entities order in DB (reordering).
    *
-   *  @param body - Items with new orders or array of changes
+   *  @param body - Items with new orders or array of changes. Each item should contain at leaset order and primaryKey properties.
    *  @param [options] - Additional Query options
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
   public async updateItemsOrder<C extends IOrderedItem>(body: C[], options: IReadOptions = { }): Promise<I[]> {
-    if (!this.model?.rawAttributes?.order || !this.model?.rawAttributes?.id) {
-      throwHttpError.badRequest('Unable to reorder entities without `id` or `order` property');
+    if (!this.model?.rawAttributes || !this.model?.rawAttributes.order || !this.model?.rawAttributes[this.pk]) {
+      throwHttpError.badRequest(`Unable to reorder entities without '${this.pk}'(primaryKey) or 'order' property`);
     }
 
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
@@ -283,7 +281,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       const reordered = reorderItemsInArray(body, availableValue as unknown as C[]);
 
       /* eslint-disable-next-line no-await-in-loop */
-      for (const item of reordered) await this.model.update({ order: item.order }, { where: { id: item.id }, transaction });
+      for (const item of reordered) await this.model.update({ order: item.order }, { where: { [this.pk]: item[this.pk] }, transaction });
 
       transaction.commit();
       return reordered as unknown as I[];
@@ -294,55 +292,55 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   }
 
   /**
-   *  Deletes entity by id.
+   *  Deletes entity by primaryKey.
    *  If `paranoid` mode is enabled - soft deletes. Alternatively deletes entity totally.
    *
-   *  @param id - Entity id.
+   *  @param pk - Entity primaryKey.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
   public async delete(deleteOptions: IDeleteOptions): Promise<string>;
-  public async delete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  public async delete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+  public async delete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async delete(pk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
     try {
-      if (!id) throwHttpError.badRequest('Please, provide at least valid id or deleteOptions');
+      if (!pk) throwHttpError.badRequest('Please, provide at least valid primaryKey or deleteOptions');
 
-      const genericOptions: IDeleteOptions = (typeof id === 'object' ? id : deleteOptions) || { };
+      const genericOptions: IDeleteOptions = (typeof pk === 'object' ? pk : deleteOptions) || { };
       const customOptions: IDeleteOptions = { ...genericOptions, cascade: true };
-      await this.onBeforeDelete(customOptions, typeof id !== 'object' && id);
-      const { where } = await this.buildQuery(customOptions, typeof id !== 'object' && id) as UpdateOptions;
+      await this.onBeforeDelete(customOptions, typeof pk !== 'object' && pk);
+      const { where } = await this.buildQuery(customOptions, typeof pk !== 'object' && pk) as UpdateOptions;
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
       const result = await this.model.destroy({ ...options, where });
       if (!result) throwHttpError.badRequest(`Incorrect condition(s): ${JSON.stringify(where)}`);
 
-      return typeof id !== 'object' ? `Successfully deleted by id: ${id}` : 'Successfully deleted by multiple conditions.';
+      return typeof pk !== 'object' ? `Successfully deleted by primaryKey: ${pk}` : 'Successfully deleted by multiple conditions.';
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
   }
 
   /**
-   *  Soft deletes entity by id (only if `paranoid` mode enabled). Alternatively deletes entity totally.
+   *  Soft deletes entity by primaryKey (only if `paranoid` mode enabled). Alternatively deletes entity totally.
    *
-   *  @param id - Entity id.
+   *  @param pk - Entity primaryKey.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
   public async softDelete(deleteOptions: IDeleteOptions): Promise<string>;
-  public async softDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  public async softDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
-    return typeof id === 'object' ? this.delete({ ...id, force: false }) : this.delete(id, { ...deleteOptions, force: false });
+  public async softDelete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async softDelete(pk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof pk === 'object' ? this.delete({ ...pk, force: false }) : this.delete(pk, { ...deleteOptions, force: false });
   }
 
   /**
-   *  Totally deletes entity by id.
+   *  Totally deletes entity by primaryKey.
    *
-   *  @param id - Entity id.
+   *  @param pk - Entity primaryKey.
    *  @param [deleteOptions] - Custom options for entity deletion.
    */
   public async forceDelete(deleteOptions: IDeleteOptions): Promise<string>;
-  public async forceDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  public async forceDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
-    return typeof id === 'object' ? this.delete({ ...id, force: true }) : this.delete(id, { ...deleteOptions, force: true });
+  public async forceDelete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
+  public async forceDelete(pk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof pk === 'object' ? this.delete({ ...pk, force: true }) : this.delete(pk, { ...deleteOptions, force: true });
   }
 
   /**
@@ -376,10 +374,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   }
 
   /**
-   *  Hook which invokes directly before create operation
+   *  Hook which invokes directly before create operation.
    *
    *  @param _body - Body for entity creation.
-   *  @param [_customOptions] - Custom options for record creation
+   *  @param [_customOptions] - Custom options for record creation.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
   protected async onBeforeCreate(_body: GenericObject, _customOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
@@ -396,30 +394,30 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Hook which invokes directly before read operations.
    *
-   *  @param [_options] - Query options
-   *  @param [_id] - Id or query to find by
+   *  @param [_options] - Read options.
+   *  @param [_pk] - PrimaryKey.
    */
-  protected async onBeforeRead(_options?: IReadOptions, _id?: string | number | boolean): Promise<void> { }
+  protected async onBeforeRead(_options?: IReadOptions, _pk?: string | number | boolean): Promise<void> { }
 
   /**
-   *  Hook which invokes directly before update operation
+   *  Hook which invokes directly before update operation.
    *
-   *  @param _id - Record it or query
-   *  @param _body - Body for record creation
-   *  @param [_customOptions] - Custom options for record update
+   *  @param _body - Body for record creation.
+   *  @param _pk - Entity primaryKey or query. __Note__, it could be null.
+   *  @param [_customOptions] - Custom options for record update.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
   protected async onBeforeUpdate(
-    _body: GenericObject, _id: number | string, _customOptions?: IUpdateOptions, _through?: GenericObject,
+    _body: GenericObject, _pk: number | string, _customOptions?: IUpdateOptions, _through?: GenericObject,
   ): Promise<void> { }
 
   /**
-   *  Hook which invokes directly before delete operation
+   *  Hook which invokes directly before delete operation.
    *
-   *  @param [_id] - Id or query to find by
-   *  @param [_customOptions] - Custom options for record (s) destroy
+   *  @param [_customOptions] - Custom options for record (s) destroy.
+   *  @param [_pk] - primaryKey.
    */
-  protected async onBeforeDelete(_customOptions: IDeleteOptions, _id?: number | string): Promise<void> { }
+  protected async onBeforeDelete(_customOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
 
   /**
    *  Hook which fires right before adding associated data.
@@ -437,32 +435,27 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
   protected removeRestrictedPropertiesFromBody(body: Partial<I> = { }): Partial<I> {
     const result = { ...body };
-    if (Object.hasOwnProperty.call(result, 'id')) delete result.id;
-    if (Object.hasOwnProperty.call(result, 'createdAt')) delete result.createdAt;
-    if (Object.hasOwnProperty.call(result, 'updatedAt')) delete result.updatedAt;
-    if (Object.hasOwnProperty.call(result, 'deletedAt')) delete result.deletedAt;
+    [this.pk, ...this.defaults.restrictedProperties].forEach((key) => { if (Object.hasOwnProperty.call(result, key)) delete result[key]; });
     return result;
   }
 
   /**
-   *  Builds query for read operation
+   *  Parses IBaseRepositoryOptions into Sequelize consumable FindAndCountOptions.
    *
-   *  @param options - Custom query options
-   *  @param [id] - Id or query to find by
-   *  @param [model] - Model is necessary when we are going to add specific filter by some model
-   *  Ex: by Tenant model. Also is necessary for filtering and ordering thought associations
+   *  @param options - Custom options.
+   *  @param [pk] - PrimaryKey.
    */
-  private async buildQuery(queryOptions?: IBaseRepositoryOptions, id?: string | number): Promise<FindAndCountOptions> {
-    const { limit, skip, sort, select, include = [], filter, getBy = this.config.defaults.getBy, where } = queryOptions;
+  private async buildQuery(options?: IBaseRepositoryOptions, pk?: string | number): Promise<FindAndCountOptions> {
+    const { limit, skip, sort, select, include = [], filter, getBy = this.pk, where } = options;
     const query: FindAndCountOptions = { where: { } };
 
-    if (id) query.where = { [getBy]: id };
+    if (pk) query.where = { [getBy]: pk };
 
     this.attributesParser(select, query);
     this.includeParser(include, query);
-    this.filterParser(id ? { } : filter, where, query);
+    this.filterParser(pk ? { } : filter, where, query);
 
-    if (!id) {
+    if (!pk) {
       this.orderParser(sort, null, query);
       this.offsetParser(skip, query);
       this.limitParser(limit, query);
@@ -475,7 +468,6 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   private attributesParser(select: string | string[], query?: FindAndCountOptions): string[] {
     let attributes: string[] = [];
     if (select) attributes = Array.isArray(select) ? [...select] : String(select).split(',');
-    attributes = attributes.map((item) => String(item).trim());
     if (attributes) attributes = attributes.map((item) => String(item).trim());
     if (query && attributes && attributes.length) query.attributes = attributes;
     return attributes;
@@ -511,7 +503,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
         const listOfNestedKeys = key.trim().split('.');
         order.push([...listOfNestedKeys, value.trim()]);
       });
-    } else order.push(this.config.defaults.order);
+    } else order.push(this.defaults.order ?? [this.pk, 'asc']);
 
     if (order.length && sort && (attributes || query.attributes)) {
       const attrs: FindAttributeOptions = attributes || query.attributes as ProjectionAlias[];
@@ -548,22 +540,16 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     filter: GenericObject, where: GenericObject, query?: FindAndCountOptions,
   ): WhereAttributeHash {
     let parsedFilters: GenericObject = typeof filter === 'object' ? { ...filter } : { };
-
-    if (where && typeof where === 'object' && !isEmpty(where)) {
-      parsedFilters = { ...parsedFilters, ...where };
-    }
-
+    if (where && typeof where === 'object' && !isEmpty(where)) parsedFilters = { ...parsedFilters, ...where };
     parsedFilters = this.parseQueryFiltersWithNestedAssociationsLiterals(parsedFilters, this.model.associations, query);
-
     if (query) query.where = { ...query.where, ...parsedFilters };
-
     return parsedFilters;
   }
 
   /**
    *  Parses object created from queryString, to define and correctly
-   *  convert 'solutions.id' like keys into appropriate for Sequelize
-   *  (annotated with '$' at the start and end) -> '$solutions.id$'
+   *  convert 'solutions.someColumn' like keys into appropriate for Sequelize
+   *  (annotated with '$' at the start and end) -> '$solutions.someColumn$'
    *
    *  @param filter - Object with filters created by qs.parse() + optional custom 'where'
    *  @param associations - Model associations, to validate input
@@ -691,7 +677,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     entity: M, body: GenericObject, options?: IBaseRepositoryExtendedOptions, through: GenericObject = { },
   ): Promise<I | void> {
     try {
-      if (!entity || !(entity as GenericObject).id) return entity as unknown as I;
+      if (!entity || !(entity as GenericObject)[this.pk]) return entity as unknown as I;
 
       await this.onBeforeInsertAssociatedWithEntityDataFromBody(entity, body, options, through);
 
@@ -711,7 +697,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       if (insertionOptions.include) include = include.concat(insertionOptions.include).filter(Boolean);
       if (!insertionOptions.returnData) { return; }
 
-      return this.read({ ...options, include }, this.mapSequelizeModelToPlainObject(entity).id);
+      return this.read({ ...options, include }, this.mapSequelizeModelToPlainObject(entity)[this.pk]);
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
@@ -723,11 +709,11 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     if (!Array.isArray(body[key]) || !options.associate) return;
 
     const allAssociatedEntities: GenericObject[] = await (entity as GenericObject)[`get${capitalize(key)}`]();
-    const toRemoveArray = allAssociatedEntities.map((item) => +item.id).filter((item) => !body[key].includes(item));
+    const toRemoveArray = allAssociatedEntities.map((item) => +item[this.pk]).filter((item) => !body[key].includes(item));
     const toAddArray: number[] = [];
 
     body[key].forEach((item: number) => {
-      const found = allAssociatedEntities.find((unit) => +unit.id === +item);
+      const found = allAssociatedEntities.find((unit) => +unit[this.pk] === +item);
       if (!found) toAddArray.push(item);
     });
 
@@ -767,29 +753,29 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Workaround for Sequelize illogical behavior when quering with LEFT JOINS and having LIMIT / OFFSET
    *
-   *  Here we group by 'id' prop of main (source) model, abd using undocumented 'includeIgnoreAttributes'
+   *  Here we group by 'primaryKey' prop of main (source) model, abd using undocumented 'includeIgnoreAttributes'
    *  Sequelize prop (it is used in its static count() method) in order to get correct SQL request
    *  Without usage of 'includeIgnoreAttributes' there are a lot of extra invalid columns in SELECT statement
    *
    *  Incorrect example without 'includeIgnoreAttributes'. Here we will get correct SQL query
    *  BUT useless according to business logic:
    *
-   *  SELECT "Media"."id", "Solutions->MediaSolutions"."mediaId", "Industries->MediaIndustries"."mediaId",...,
+   *  SELECT "Media"."primaryKey", "Solutions->MediaSolutions"."mediaId", "Industries->MediaIndustries"."mediaId",...,
    *  FROM "Medias" AS "Media"
    *  LEFT JOIN ...
    *  WHERE ...
-   *  GROUP BY "Media"."id"
+   *  GROUP BY "Media"."primaryKey"
    *  ORDER BY ...
    *  LIMIT ...
    *  OFFSET ...
    *
    *  Correct example with 'includeIgnoreAttributes':
    *
-   *  SELECT "Media"."id"
+   *  SELECT "Media"."primaryKey"
    *  FROM "Medias" AS "Media"
    *  LEFT JOIN ...
    *  WHERE ...
-   *  GROUP BY "Media"."id"
+   *  GROUP BY "Media"."primaryKey"
    *  ORDER BY ...
    *  LIMIT ...
    *  OFFSET ...
@@ -808,8 +794,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const firstQuery = {
         ...fixedQuery,
-        group: [`${modelAlias}.id`],
-        attributes: ['id'],
+        group: [`${modelAlias}.${this.pk}`],
+        attributes: [this.pk],
         raw: true,
         includeIgnoreAttributes: false,
         distinct: true,
@@ -831,8 +817,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       if (ids && ids.rows && ids.rows.length) {
         fixedQuery.where = {
           ...fixedQuery.where,
-          id: {
-            [Op.in]: ids.rows.map((item: GenericObject) => item.id),
+          [this.pk]: {
+            [Op.in]: ids.rows.map((item: GenericObject) => item[this.pk]),
           },
         };
         delete fixedQuery.limit;

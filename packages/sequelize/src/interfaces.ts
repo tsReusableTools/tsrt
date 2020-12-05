@@ -3,24 +3,102 @@ import {
   IncludeOptions, FindAndCountOptions, Transaction,
 } from 'sequelize';
 
-export interface IBaseRepositoryConfig {
-  defaults: {
-    /** Defalt limit param for read operations. Default: 10. */
-    limit: number;
+export interface IBaseRepositoryDefaults {
+  /** Model's primary key. Default: 'id'. */
+  primaryKey?: string,
 
-    /** Defalt order param for read operations. Default: ['order', 'asc']. */
-    order: string[];
+  /**
+   *  Properties, which would ne stripped while update/create operations.
+   *  Default: [`primaryKey`, 'createdAt', 'updatedAt', 'deletedAt'].
+   */
+  restrictedProperties?: string[],
 
-    /** Defalt param for read operations, by which to getBy. Default: 'id'. */
-    getBy: string;
-  };
+  /** Defalt limit param for read operations. Default: 10. */
+  limit?: number;
+
+  /** Defalt order param for read operations. Default: ['order', 'asc']. */
+  order?: string[];
 }
 
-export interface IBaseRepositoryOptions extends Omit<IQueryParams, 'include' | 'select' | 'sort' | 'filter'> {
-  sort?: string | string[];
+export interface IBaseRepositoryConfig {
+  defaults: IBaseRepositoryDefaults;
+}
+
+export interface IBaseRepositoryOptions {
+  /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
+  limit?: number | string;
+
+  /** Offset for Sql query. @default: 0. */
+  skip?: number;
+
+  /**
+   *  Applies only in case of reading by id (`readOne or read` methods) and gives an alias for reading by value if some field.
+   *  @default: 'id'.
+   */
+  getBy?: string;
+
+  /** Select attributes from main entity to query for. @example: 'id, title' or ['id', 'title'] */
   select?: string | string[];
+
+  /**
+   * Sorting conditions. Key:value paires.
+   * @example: 'id:asc,title:desc' or ['id:asc', 'title:desc'].
+   * @default: 'id:asc'.
+   */
+  sort?: string | string[];
+
+  /**
+   *  Associations for eager loading.
+   *
+   *  Could a string of aliases, define in model definition (for example if come as queryString from client).
+   *  @example: 'nested1, nested2'.
+   *
+   *  Array of aliases, define in model definition.
+   *  @example: ['nested1', 'nested2'].
+   *
+   *  Also could be nested in both above cases.
+   *  @example: ['nested1.deepNested1'].
+   *
+   *  Or list of full IncludeOptions from Sequelize.
+   *  @example: [{ association: 'test' }, { model: SomeModel, as: 'test2', required: false }].
+   */
   include?: string | Array<string | IncludeOptions>;
+
+  /**
+   *  Filtering (aka `where`) conditions. This one could be shared to get filters from client side.
+   *  Will be merged and replaced by conditions from `where` property.
+   *
+   *  @note - Supports for nested conditions by dot notation.
+   *  @note - Supports all Sequelize operators. Operators should be prefixed with `$`.
+   *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
+   *
+   *  @example:
+   *  filter: {
+   *    $or: {
+   *      id: 1,
+   *      title: { $iLike: '%hello%' }
+   *      'nested.id': 10,
+   *    }
+   *  }
+   */
   filter?: WhereAttributeHash;
+
+  /**
+   *  `Where` conditions. Has priority over `filter` property.
+   *
+   *  @note - Supports for nested conditions by dot notation.
+   *  @note - Supports all Sequelize operators. Operators should be prefixed with `$`.
+   *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
+   *
+   *  @example:
+   *  where: {
+   *    $or: {
+   *      id: 1,
+   *      title: { $iLike: '%hello%' }
+   *      'nested.id': 10,
+   *    }
+   *  }
+   */
   where?: WhereAttributeHash;
 }
 

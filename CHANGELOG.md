@@ -1,3 +1,14 @@
+## 0.3.0
+
+### New features
+
+- [@tsrt/sequelize] Updated signatures update/onBeforeUpdate/onBeforeCreate/onBeforeBulkCreate methods.
+- [@tsrt/sequelize] Added ability for update method to proceed not only w/ primaryKey, but also updateOptions insead. For example for multiple rows updates.
+- [@tsrt/sequelize] Finished bulkCreate method to work properly inside transactions.
+- [@tsrt/sequelize] Added `primaryKey` and `restrictedProperties` configurable and default Repository options.
+
+---
+
 ## 0.2.6
 
 ### Bugfixes

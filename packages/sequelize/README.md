@@ -362,17 +362,25 @@ export interface IPagedData<T> {
   value: T[];
 }
 
+export interface IBaseRepositoryDefaults {
+  /** Model's primary key. Default: 'id'. */
+  primaryKey?: string,
+
+  /**
+   *  Properties, which would ne stripped while update/create operations.
+   *  Default: [`primaryKey`, 'createdAt', 'updatedAt', 'deletedAt'].
+   */
+  restrictedProperties?: string[],
+
+  /** Defalt limit param for read operations. Default: 10. */
+  limit?: number;
+
+  /** Defalt order param for read operations. Default: ['order', 'asc']. */
+  order?: string[];
+}
+
 export interface IBaseRepositoryConfig {
-  defaults: {
-    /** Defalt limit param for read operations. Default: 10. */
-    limit: number;
-
-    /** Defalt order param for read operations. Default: ['order', 'asc']. */
-    order: string[];
-
-    /** Defalt param for read operations, by which to getBy. Default: 'id'. */
-    getBy: string;
-  };
+  defaults: IBaseRepositoryDefaults;
 }
 
 export interface IBaseRepositoryOptions {
@@ -382,33 +390,21 @@ export interface IBaseRepositoryOptions {
   /** Offset for Sql query. @default: 0. */
   skip?: number;
 
-  /** Applies only in case of reading by id (`readOne or read` methods) and gives an alias for reading by value if some field. @default: 'id'. */
+  /**
+   *  Applies only in case of reading by id (`readOne or read` methods) and gives an alias for reading by value if some field.
+   *  @default: 'id'.
+   */
   getBy?: string;
 
   /** Select attributes from main entity to query for. @example: 'id, title' or ['id', 'title'] */
   select?: string | string[];
 
-  /** Sorting conditions. Key:value paires. @example: 'id:asc,title:desc' or ['id:asc', 'title:desc']. @default: 'id:asc'. */
-  sort?: string | string[];
-
   /**
-   *  Filtering (aka `where`) conditions. This one could be shared to get filters from client side. 
-   *  Will be merged and replaced by conditions from `where` property.
-   *
-   *  @note - Supports for nested conditions by dot notation.
-   *  @note - Supports all Sequelize operators. Operators should be prefixed with `$`.
-   *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
-   *
-   *  @example:
-   *  filter: { 
-   *    $or: {
-   *      id: 1, 
-   *      title: { $iLike: '%hello%' }
-   *      'nested.id': 10,
-   *    }
-   *  }
+   * Sorting conditions. Key:value paires.
+   * @example: 'id:asc,title:desc' or ['id:asc', 'title:desc'].
+   * @default: 'id:asc'.
    */
-  filter?: WhereAttributeHash;
+  sort?: string | string[];
 
   /**
    *  Associations for eager loading.
@@ -428,6 +424,25 @@ export interface IBaseRepositoryOptions {
   include?: string | Array<string | IncludeOptions>;
 
   /**
+   *  Filtering (aka `where`) conditions. This one could be shared to get filters from client side.
+   *  Will be merged and replaced by conditions from `where` property.
+   *
+   *  @note - Supports for nested conditions by dot notation.
+   *  @note - Supports all Sequelize operators. Operators should be prefixed with `$`.
+   *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
+   *
+   *  @example:
+   *  filter: {
+   *    $or: {
+   *      id: 1,
+   *      title: { $iLike: '%hello%' }
+   *      'nested.id': 10,
+   *    }
+   *  }
+   */
+  filter?: WhereAttributeHash;
+
+  /**
    *  `Where` conditions. Has priority over `filter` property.
    *
    *  @note - Supports for nested conditions by dot notation.
@@ -435,9 +450,9 @@ export interface IBaseRepositoryOptions {
    *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
    *
    *  @example:
-   *  where: { 
+   *  where: {
    *    $or: {
-   *      id: 1, 
+   *      id: 1,
    *      title: { $iLike: '%hello%' }
    *      'nested.id': 10,
    *    }
@@ -486,6 +501,10 @@ export interface IDeleteOptions extends Omit<IBaseRepositoryOptions, 'limit'>, O
 
 /** Interface for possible options of restore method */
 export interface IRestoreOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<RestoreOptions>, 'where'> {}
+
+/** Type for transaction callback function */
+export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
+
 
 ```
 
