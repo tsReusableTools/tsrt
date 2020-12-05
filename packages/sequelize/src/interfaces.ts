@@ -4,19 +4,16 @@ import {
 } from 'sequelize';
 
 export interface IBaseRepositoryDefaults {
-  /** Model's primary key. Default: 'id'. */
-  primaryKey?: string,
-
   /**
    *  Properties, which would ne stripped while update/create operations.
-   *  Default: [`primaryKey`, 'createdAt', 'updatedAt', 'deletedAt'].
+   *  Default: ['createdAt', 'updatedAt', 'deletedAt'].
    */
   restrictedProperties?: string[],
 
   /** Defalt limit param for read operations. Default: 10. */
   limit?: number;
 
-  /** Defalt order param for read operations. Default: ['order', 'asc']. */
+  /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
   order?: string[];
 }
 

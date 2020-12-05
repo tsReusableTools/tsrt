@@ -27,7 +27,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
     if (config) this.config.defaults = { ...this.config.defaults, ...config.defaults };
   }
 
-  public get pk(): string { return this.config?.defaults?.primaryKey ?? defaultConfig.defaults.primaryKey; }
+  public get pk(): string { return this.model.primaryKeyAttribute; }
 
   public get defaults(): IBaseRepositoryDefaults { return { ...(this.config?.defaults ?? defaultConfig.defaults) }; }
 
