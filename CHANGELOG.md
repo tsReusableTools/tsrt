@@ -4,11 +4,12 @@
 
 - __[@tsrt/utils]__ Totally refactored reordering utils. Old utils are now marked as deprecated and will be removed in future.
 - __[@tsrt/utils]__ New customizable OrderingService w/ optimized and improved abilities (_maybe will be moved to separate package in future_).
+- __[@tsrt/utils]__ OrderingService accepts `GenericOrderingItemType` and options for `primaryKey`, `orderKey`, `allowOrdersOutOfRange`.
 
 - __[@tsrt/sequelize]__ Updated signatures update/onBeforeUpdate/onBeforeCreate/onBeforeBulkCreate methods.
 - __[@tsrt/sequelize]__ Added ability for update method to proceed not only w/ primaryKey, but also updateOptions insead. For example for multiple rows updates.
 - __[@tsrt/sequelize]__ Finished bulkCreate method to work properly inside transactions.
-- __[@tsrt/sequelize]__ Added `primaryKey` and `restrictedProperties` configurable and default Repository options.
+- __[@tsrt/sequelize]__ Added  `restrictedProperties` configurable and default Repository options.
 - __[@tsrt/sequelize]__ Utilizes usage of new customizable OrderingService.
 - __[@tsrt/sequelize]__ Refactored Database class. Now it behaves as factory for database connections.
 - __[@tsrt/sequelize]__ Improved types.
