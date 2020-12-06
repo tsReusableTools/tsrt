@@ -1,4 +1,4 @@
 import { BaseRepository } from '../../src';
-import { City, ICityEntity } from '../models';
+import { City, ICityEntity, ICity } from '../models';
 
-export const CitiesRepository = new BaseRepository<ICityEntity>(City);
+export const CitiesRepository = new BaseRepository<ICityEntity, ICity>(City);

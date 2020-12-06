@@ -1,3 +1,4 @@
 export * from './BaseEntity';
 export * from './City';
-export * from './User';
+export * from './Provider';
+export * from './ProviderCity';

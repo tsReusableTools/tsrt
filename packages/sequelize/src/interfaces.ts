@@ -34,6 +34,9 @@ export interface IBaseRepositoryDefaults {
 
   /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
   order: string[];
+
+  /** Whether to log BaseRepository errors. */
+  logError?: boolean;
 }
 
 export interface IBaseRepositoryConfig {
@@ -148,16 +151,25 @@ export interface IBaseRepositoryExtendedOptions extends Omit<IBaseRepositoryOpti
 
   /** Whether to return response data, after adding all associations. If false -> return empty response */
   returnData?: boolean;
+
+  /** Whether it is bulk query. It is necessary for insertAssociations optimizations. */
+  isBulk?: boolean;
 }
 
 /** Interface for possible options of create method */
 export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+
+/** Interface for possible options of bulk create method */
+export type IBulkCreateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
 
 /** Interface for possible options of read method */
 export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
 export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
+
+/** Interface for possible options of bulk update method */
+export type IBulkUpdateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
 
 /** Interface for possible options of delete method */
 export interface IDeleteOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<DestroyOptions>, 'where'> {}
@@ -167,3 +179,6 @@ export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Par
 
 /** Type for transaction callback function */
 export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
+
+/** Options for associations insertion */
+export interface IInsertAssociationsOptions extends IBaseRepositoryExtendedOptions { isBulk?: boolean; }

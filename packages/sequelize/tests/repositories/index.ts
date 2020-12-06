@@ -1,2 +1,2 @@
 export * from './CitiesRepository';
-export * from './UsersRepository';
+export * from './ProvidersRepository';

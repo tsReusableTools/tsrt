@@ -85,6 +85,6 @@ export class Database {
   }
 
   protected checkDatabaseConnection(): void {
-    if (!this._connection) throw new Error('Please, call `init()` method first');
+    if (!this._connection) throw new Error('Please, call `createConnection()` first');
   }
 }

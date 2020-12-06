@@ -418,6 +418,9 @@ export interface IBaseRepositoryDefaults {
 
   /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
   order: string[];
+
+  /** Whether to log BaseRepository errors. */
+  logError?: boolean;
 }
 
 export interface IBaseRepositoryConfig {
