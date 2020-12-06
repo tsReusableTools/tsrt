@@ -105,12 +105,15 @@
         "no-shadow": "off",
         "@typescript-eslint/no-shadow": "error",
 
-        # Disable eslint rule and apply enhanced ts-eslint rule
+        # Disable eslint rule and apply enhanced ts-es-eslint rule
         "no-use-before-define": "off",
         "@typescript-eslint/no-use-before-define": ["error"],
 
         #
-        "@typescript-eslint/explicit-module-boundary-types": ["error", { "allowArgumentsExplicitlyTypedAsAny": true }]
+        "@typescript-eslint/explicit-module-boundary-types": ["error", { "allowArgumentsExplicitlyTypedAsAny": true }],
+
+        # Allow imports from devDependencies for tests
+        "import/no-extraneous-dependencies": ["error", { "devDependencies": ["**/*.spec.ts", "**/*.spec.tsx"] }],
       }
     }
   ]

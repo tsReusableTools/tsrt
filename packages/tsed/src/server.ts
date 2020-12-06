@@ -38,7 +38,7 @@ export class Server {
 
   public $beforeRoutesInit(): void {
     this._app.config.setDefaultMiddlewares();
-    // this._app.config.setSendResponseMiddleware((getNotContainingStringsRegExp('/api-docs')));
+    // this._app.config.setSendResponseMiddleware((regExpExcludedStrings('/api-docs')));
     this._app.config.setRequestIdMiddleware();
     this._app.config.setSession();
     this._app.config.setStatics();

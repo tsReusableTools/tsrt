@@ -138,22 +138,22 @@ interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, 
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [readOptions] - Optional read options.
+   *  @param [readOptionsOrPk] - Optional read options or primaryKey..
    *  @param [id] - Optional Entity id.
    *
    *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
    */
-  read(readOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>>;
+  read(readOptionsOrPk: number | string | IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>>
 
   /**
    *  Reads one record (default: by Id. Could be changed w/ `getBy` query option).
    *
-   *  @param readOptions - Read options.
+   *  @param readOptionsOrPk - Read options or primaryKey.
    *  @param [pk] - Entity primaryKey.
    * 
    *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
    */
-  readOne(readOptions?: IReadOptions, id?: number | string): Promise<I>;
+  readOne(readOptionsOrPk: number | string | IReadOptions, pk?: number | string): Promise<I>
 
   /**
    *  Reads multiple entities and returns paged response.
@@ -388,6 +388,23 @@ export interface IPagedData<T> {
   value: T[];
 }
 
+/** Database factory config */
+export interface IDatabaseConfig {
+  /** Whether to sync (Sequelize sync()) after connection established. */
+  sync?: boolean;
+
+  /** Whether to log into console connection info after connection established. */
+  logConnectionInfo?: boolean;
+
+  /**
+   *  Callback, which would be called after connection establised.
+   *  Here it is possible, for example, associate Models, if using pure Sequelize (not `sequelize-typescript`).
+   *
+   *  @param sequelize - Sequelize connection.
+   */
+  cbAfterConnected?: (sequelize: Sequelize) => Promise<void>;
+}
+
 /** Default repository options. */
 export interface IBaseRepositoryDefaults {
   /**
@@ -413,7 +430,7 @@ export interface IBaseRepositoryConfig {
 
 export interface IBaseRepositoryOptions {
   /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
-  limit?: number | string;
+  limit?: number | 'none';
 
   /** Offset for Sql query. @default: 0. */
   skip?: number;

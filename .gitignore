@@ -9,3 +9,7 @@ dist
 
 ### JS
 # **/*.js
+
+
+### Env
+.env

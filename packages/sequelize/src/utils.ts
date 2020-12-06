@@ -10,4 +10,4 @@ export const defaultBaseRepositoryConfig: IBaseRepositoryConfig = {
   },
 };
 
-export const defaultDatabaseConfig: IDatabaseConfig = { shouldSyncAfterConnection: false };
+export const defaultDatabaseConfig: IDatabaseConfig = { sync: false, logConnectionInfo: true };

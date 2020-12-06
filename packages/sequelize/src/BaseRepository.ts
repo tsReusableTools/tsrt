@@ -25,9 +25,9 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
     protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
     const { defaults: { limit, order, restrictedProperties }, orderingServiceConfig: { orderKey } } = defaultBaseRepositoryConfig;
-    if (!config) this.config = defaultBaseRepositoryConfig;
-    if (!config.defaults) this.config.defaults = defaultBaseRepositoryConfig.defaults;
-    if (!config.orderingServiceConfig) this.config.orderingServiceConfig = defaultBaseRepositoryConfig.orderingServiceConfig;
+    if (!this.config) this.config = defaultBaseRepositoryConfig;
+    if (!this.config.defaults) this.config.defaults = defaultBaseRepositoryConfig.defaults;
+    if (!this.config.orderingServiceConfig) this.config.orderingServiceConfig = defaultBaseRepositoryConfig.orderingServiceConfig;
     if (!this.config.defaults.limit) this.config.defaults.limit = limit;
     if (!this.config.defaults.order) this.config.defaults.order = order;
     if (!this.config.defaults.restrictedProperties) this.config.defaults.restrictedProperties = restrictedProperties;
@@ -36,10 +36,6 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
   }
 
   public get pk(): string { return this.model.primaryKeyAttribute; }
-
-  public get defaults(): IBaseRepositoryDefaults {
-    return { ...(this.config?.defaults ?? defaultBaseRepositoryConfig.defaults) } as IBaseRepositoryDefaults;
-  }
 
   /**
    *  Creates a transaction or executes a transaction callback.
@@ -118,29 +114,35 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [readOptions] - Optional read options.
+   *  @param [readOptionsOrPk] - Optional read options or primaryKey.
    *  @param [pk] - Optional Entity primaryKey.
    */
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
-  public async read(readOptions?: IReadOptions, pk?: number | string): Promise<I>;
-  public async read(readOptions: IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>> {
-    return pk ? this.readOne(readOptions, pk) : this.readMany(readOptions);
+  public async read(pk: number | string): Promise<I>;
+  public async read(readOptions: IReadOptions, pk: number | string): Promise<I>;
+  public async read(readOptionsOrPk: number | string | IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>> {
+    const genericId = typeof readOptionsOrPk === 'object' ? pk : readOptionsOrPk;
+    const readOptions = typeof readOptionsOrPk === 'object' ? { ...readOptionsOrPk } : { };
+    return genericId ? this.readOne(readOptions, genericId) : this.readMany(readOptions);
   }
 
   /**
-   *  Reads one record from Db.
+   *  Reads one record.
    *
-   *  @param readOptions - Read options.
+   *  @param readOptionsOrPk - Read options or primaryKey.
    *  @param [pk] - Entity primaryKey.
    */
-  public async readOne(readOptions: IReadOptions, pk?: number | string): Promise<I> {
+  public async readOne(pk: number | string): Promise<I>;
+  public async readOne(readOptions: IReadOptions, pk?: number | string): Promise<I>;
+  public async readOne(readOptionsOrPk: number | string | IReadOptions, pk?: number | string): Promise<I> {
     try {
-      const options = { ...readOptions };
+      const genericId = typeof readOptionsOrPk === 'object' ? pk : readOptionsOrPk;
+      const readOptions = typeof readOptionsOrPk === 'object' ? { ...readOptionsOrPk } : { };
 
-      await this.onBeforeRead(options, pk);
+      await this.onBeforeRead(readOptions, genericId);
 
-      const parsedQuery = await this.buildQuery(options, pk);
-      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const parsedQuery = await this.buildQuery(readOptions, genericId);
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(readOptions) as FindAndCountOptions;
       const findQuery = { ...staticMethodOptions, ...parsedQuery };
 
       const result = await this.model.findOne(findQuery);
@@ -148,9 +150,9 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
 
       const value = this.mapSequelizeModelToPlainObject(result);
 
-      if (this.orderingService.hasDuplicateOrEmptyOrders([value])) {
-        const reordered = await this.updateItemsOrder([], options);
-        if (reordered) return this.readOne(options, pk);
+      if (this.model.rawAttributes[this.orderKey] && this.orderingService.hasDuplicateOrEmptyOrders([value])) {
+        const reordered = await this.updateItemsOrder([], readOptions);
+        if (reordered) return this.readOne(readOptions, genericId);
       }
 
       return value;
@@ -182,7 +184,7 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
 
-      if (this.orderingService.hasDuplicateOrEmptyOrders(value)) {
+      if (this.model.rawAttributes[this.orderKey] && this.orderingService.hasDuplicateOrEmptyOrders(value)) {
         const reordered = await this.updateItemsOrder([], options);
         if (reordered) return this.readMany(options);
       }
@@ -272,8 +274,10 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
   public async updateItemsOrder<C extends Required<O>>(body: C[], options: IReadOptions = { }): Promise<I[]> {
-    if (!this.model?.rawAttributes || !this.model?.rawAttributes.order || !this.model?.rawAttributes[this.pk]) {
-      throwHttpError.badRequest(`Unable to reorder entities without '${this.pk}'(primaryKey) or 'order' property`);
+    if (!this.model?.rawAttributes || !this.model?.rawAttributes[this.orderKey] || !this.model?.rawAttributes[this.pk]) {
+      throwHttpError.badRequest(
+        `Unable to reorder entities without '${this.pk}'(primaryKey) or '${this.orderKey}'(orderKey) property`,
+      );
     }
 
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
@@ -290,8 +294,10 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
 
       const reordered = this.orderingService.reorder(availableValue as unknown as C[], body);
 
-      /* eslint-disable-next-line no-await-in-loop */
-      for (const item of reordered) await this.model.update({ order: item.order }, { where: { [this.pk]: item[this.pk] }, transaction });
+      for (const item of reordered) {
+        /* eslint-disable-next-line no-await-in-loop */
+        await this.model.update({ [this.orderKey]: item[this.orderKey] }, { where: { [this.pk]: item[this.pk] }, transaction });
+      }
 
       transaction.commit();
       return reordered as unknown as I[];
@@ -446,6 +452,14 @@ export class BaseRepository<I extends GenericObject & O, M extends Model = Model
   ): Promise<void> { }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */
+
+  protected get defaults(): IBaseRepositoryDefaults {
+    return { ...(this.config?.defaults ?? defaultBaseRepositoryConfig.defaults) } as IBaseRepositoryDefaults;
+  }
+
+  protected get orderKey(): string {
+    return this.config.orderingServiceConfig?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceConfig.orderKey;
+  }
 
   protected removeRestrictedPropertiesFromBody(body: Partial<I> = { }): Partial<I> {
     const result = { ...body };

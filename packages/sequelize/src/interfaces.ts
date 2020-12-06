@@ -4,9 +4,13 @@ import {
 } from 'sequelize';
 import { IOrderingServiceConfig } from '@tsrt/utils';
 
+/** Database factory config */
 export interface IDatabaseConfig {
   /** Whether to sync (Sequelize sync()) after connection established. */
-  shouldSyncAfterConnection?: boolean;
+  sync?: boolean;
+
+  /** Whether to log into console connection info after connection established. */
+  logConnectionInfo?: boolean;
 
   /**
    *  Callback, which would be called after connection establised.
@@ -14,7 +18,6 @@ export interface IDatabaseConfig {
    *
    *  @param sequelize - Sequelize connection.
    */
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   cbAfterConnected?: (sequelize: Sequelize) => Promise<void>;
 }
 
@@ -43,7 +46,7 @@ export interface IBaseRepositoryConfig {
 
 export interface IBaseRepositoryOptions {
   /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
-  limit?: number | string;
+  limit?: number | 'none';
 
   /** Offset for Sql query. @default: 0. */
   skip?: number;

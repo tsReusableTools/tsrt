@@ -49,27 +49,29 @@ export class Database {
     if (this._connection) return;
 
     const { host, port, database, username, password, dialect } = this.sequelizeOptions;
-    const { shouldSyncAfterConnection, cbAfterConnected } = this.databaseConfig;
+    const { sync, logConnectionInfo, cbAfterConnected } = this.databaseConfig;
 
-    if (host || port || database || username || password || !dialect) {
+    if (!host || !port || !database || !username || !password || !dialect) {
       throw new Error('Please, provide at least `host`, `port`, `database`, `username`, `password` and `dialect` options');
     }
 
     try {
       this._connection = new this.SequelizeInstance({ ...this.sequelizeOptions });
 
-      await this._connection.authenticate();
-      log.info(
-        'Database connection established: \n'
-        + `host: ${host} \n`
-        + `port: ${port} \n`
-        + `database: ${database} \n`
-        + `username: ${username} \n`,
-      );
+      await this._connection.authenticate({ logging: false });
+      if (logConnectionInfo) {
+        log.info(
+          'Database connection established: \n'
+          + `host: ${host} \n`
+          + `port: ${port} \n`
+          + `database: ${database} \n`
+          + `username: ${username} \n`,
+        );
+      }
 
       if (cbAfterConnected) await cbAfterConnected(this._connection);
 
-      if (shouldSyncAfterConnection) await this._connection.sync();
+      if (sync) await this._connection.sync();
 
       return this.connection;
     } catch (err) {

@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IPagedData } from './types';
 import { isEmpty } from './objectUtils';
+
+/** Clone deep from `lodash.clonedeep`. */
+export { default as cloneDeep } from 'lodash.clonedeep';
 
 /** Checks whether environment is NodeJS */
 export function isNodeJsEnvironment(): void {
@@ -20,7 +24,7 @@ export const formUrlEncoded = (query: GenericObject): string => Object
 export const addZero = (data: number): string => (+data < 10 && +data >= 0 ? `0${data}` : `${data}`);
 
 /** Capitalizes provided string */
-export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1);
+export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1).toLowerCase();
 
 /** Removes params from provided url */
 export const removeParams = (url: string): string => url.replace(/\?.*/gi, '');
@@ -91,7 +95,6 @@ export const singleton = <S extends Constructor>(
       return this._instance;
     }
 
-    /* eslint-disable-next-line */
     private constructor(...xargs: any[]) { super(...xargs); }
   }
 
@@ -105,20 +108,16 @@ export const singleton = <S extends Constructor>(
  *
  *  @param data - Data to parse
  */
-/* eslint-disable-next-line */
 export const parseArrayLikeObjectIntoArray = (data: any): any => {
   if (typeof data !== 'object') return data;
 
-  /* eslint-disable-next-line */
+  /* eslint-disable-next-line no-param-reassign */
   Object.keys(data).forEach((key) => { data[key] = parseArrayLikeObjectIntoArray(data[key]); });
 
   let allKeysAreIndexes = true;
-  Object.keys(data).forEach((key, i) => {
-    if (!allKeysAreIndexes) return;
-    allKeysAreIndexes = +key === +i;
-  });
+  Object.keys(data).forEach((key, i) => { if (allKeysAreIndexes) allKeysAreIndexes = +key === +i; });
 
-  /* eslint-disable-next-line */
+  /* eslint-disable-next-line no-param-reassign */
   if (allKeysAreIndexes) data = Object.keys(data).map((key) => data[key]);
 
   return data;
@@ -134,7 +133,6 @@ export const parseArrayLikeObjectIntoArray = (data: any): any => {
  *
  *  @param lists - List of arrays to merge.
  */
-/* eslint-disable-next-line */
 export function getUniqueValues<I = any>(...lists: I[][]): I[] {
   const result: I[] = [];
   lists.forEach((item) => (Array.isArray(item) ? result.push(...item) : undefined));
@@ -149,7 +147,7 @@ export function getUniqueValues<I = any>(...lists: I[][]): I[] {
  *
  *  @param data - Original data object, for which there would be created a structure.
  */
-export const createDataStructure = <T extends GenericObject | string | number | boolean>(
+export const createOpenApiDataStructure = <T extends GenericObject | string | number | boolean>(
   data: T,
 ): GenericObject => {
   const structure: GenericObject = { };
@@ -159,13 +157,13 @@ export const createDataStructure = <T extends GenericObject | string | number | 
   } else if (typeof data === 'object' && data != null) {
     if (Array.isArray(data)) {
       structure.type = 'array';
-      structure.items = createDataStructure(data[0]);
+      structure.items = createOpenApiDataStructure(data[0]);
     } else {
       structure.type = typeof data;
       structure.properties = { };
 
       Object.keys(data).forEach((key) => {
-        structure.properties[key] = createDataStructure((data as GenericObject)[key]);
+        structure.properties[key] = createOpenApiDataStructure((data as GenericObject)[key]);
       });
     }
   } else {
@@ -179,42 +177,52 @@ export const createDataStructure = <T extends GenericObject | string | number | 
 export const getFileExtension = (filename: string): string => (filename ? filename.split('.').pop() : filename);
 
 /** Creates RegExp for not containing provided string | strings  */
-export function getNotContainingStringsRegExp(str: string | string[]): RegExp {
+export function regExpExcludedStrings(str: string | string[]): RegExp {
   return typeof str === 'string'
     ? new RegExp(`^((?!${str}).)*$`)
     : new RegExp(`^((?!(${str.join('|')})).)*$`);
 }
 
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export async function delay<T = any>(timeout: number, data?: T): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(data), timeout));
+/**
+ *  Waits for provided amount of milliseconds and optionaly returns data/invokes callback.
+ *
+ *  @param timeout - Timeout for delay.
+ *  @param [cbOrData] - Optional data or callback, to be executed after delay.
+ */
+export async function delay<T>(timeout: number, cbOrData?: T | (() => Promise<T | void>)): Promise<T | void> {
+  return new Promise((resolve, reject) => setTimeout(async () => {
+    if (typeof cbOrData !== 'function') return resolve(cbOrData);
+    try {
+      const result = await (cbOrData as () => Promise<T>)();
+      return resolve(result);
+    } catch (err) { return reject(err); }
+  }, timeout ?? 0));
 }
 
 /** Gets random string */
-export const getRandomString = (): string => Math.random().toString(36).substring(2, 15);
+export const randomString = (): string => Math.random().toString(36).substring(2, 15);
 
 /**
- *  Gets random number from provided diapason
+ *  Gets random number from provided diapason.
  *
- *  @param min - Minimal threshold
- *  @param max - Maximum threshold
+ *  @param min - Minimal threshold.
+ *  @param max - Maximum threshold.
  */
-export const getRandomInt = (min = 1, max = 100): number => Math.floor(Math.random() * (max - min + 1)) + min;
+export const randomInt = (min = 0, max = 1): number => Math.floor(Math.random() * (max - min + 1)) + min;
 
 /**
- *  Gets random value from provided values
+ *  Gets random value from provided values.
  *
- *  @param args - List of values to get random from
+ *  @param args - List of values to get random from.
  */
-/* eslint-disable-next-line */
-export const getRandom = (...args: any[]): any => args[getRandomInt(0, args.length - 1)];
+export const random = (...args: any[]): any => args[randomInt(0, args.length - 1)];
 
 /**
  *  Sort array by provided property. Ascending or descanding dirs are allowed.
  *
- *  @param array - Array to sort
- *  @param prop - Prop to sort by
- *  @param [dir='asc'] - Direction to sort
+ *  @param array - Array to sort.
+ *  @param prop - Prop to sort by.
+ *  @param [dir='asc'] - Direction to sort.
  */
 export function sortBy<T extends GenericObject, P extends keyof T>(arr: T[], prop: P, dir: 'asc' | 'desc' = 'asc'): T[] {
   const result = [...arr];
@@ -237,9 +245,7 @@ export function sortBy<T extends GenericObject, P extends keyof T>(arr: T[], pro
 
     if (type === 'number') return a[propString] - b[propString];
     if (type === 'string') return a[propString].localeCompare(b[propString]);
-    /* eslint-disable-next-line */
-    // @ts-ignore
-    if (type === 'Date') return new Date(a[propString]) - new Date(b[propString]);
+    if (type === 'Date') return (new Date(a[propString]) as any) - (new Date(b[propString]) as any);
     return 1;
   });
 
@@ -247,11 +253,11 @@ export function sortBy<T extends GenericObject, P extends keyof T>(arr: T[], pro
 }
 
 /**
- *  Removes item from array and returns new array
+ *  Removes item from array and returns new array.
  *
- *  @param array - Array to remove item from
- *  @param propToFindAndRemoveBy - Property name to find necessary item by
- *  @param valueToFindAndRemoveBy - Value to find necessary item by
+ *  @param array - Array to remove item from.
+ *  @param propToFindAndRemoveBy - Property name to find necessary item by.
+ *  @param valueToFindAndRemoveBy - Value to find necessary item by.
  */
 export function removeItemFromArray<T extends GenericObject = GenericObject>(
   array: T[], propToFindAndRemoveBy: string, valueToFindAndRemoveBy: number | string | boolean,
@@ -306,7 +312,7 @@ export function createPagedData<I>(value: I[], total: number, query: { offset?: 
  *  @param tags - List of allowed (forbidden) tags.
  *  @param [removeProvidedTags=false] - Whether to remove provided tags or leave.
  */
-export function getHtmlWithAllowedTags(html: string, tags: string[] = [], removeProvidedTags = false): string {
+export function htmlWithAllowedTags(html: string, tags: string[] = [], removeProvidedTags = false): string {
   if (removeProvidedTags) {
     let result = html;
     tags.forEach((item) => { result = result.replace(new RegExp(`</?${item}(.|\n)*?>`, 'gi'), ''); });
@@ -316,7 +322,7 @@ export function getHtmlWithAllowedTags(html: string, tags: string[] = [], remove
   const htmlTagsWithAttributes = html.match(/<\/?(.|\n)*?>/gi) || [];
   const htmlTagsWithoutAttributes = htmlTagsWithAttributes.map((item) => item.replace(/<\/?\s*(\w+)(.|\n)*?>/gi, '$1'));
   const htmlTags = getUniqueValues(htmlTagsWithoutAttributes).filter((item) => !tags.includes(item));
-  return getHtmlWithAllowedTags(html, htmlTags, true);
+  return htmlWithAllowedTags(html, htmlTags, true);
 
   // Browser only alternative.
   // const tag = document.createElement('div');
