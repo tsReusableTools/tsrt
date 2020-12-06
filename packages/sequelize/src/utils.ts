@@ -1,8 +1,13 @@
-import { IBaseRepositoryConfig } from './interfaces';
+import { IBaseRepositoryConfig, IDatabaseConfig } from './interfaces';
 
-export const defaultConfig: IBaseRepositoryConfig = {
+export const defaultBaseRepositoryConfig: IBaseRepositoryConfig = {
   defaults: {
     restrictedProperties: ['createdAt', 'updatedAt', 'deletedAt'],
     limit: 10,
   },
+  orderingServiceConfig: {
+    orderKey: 'order',
+  },
 };
+
+export const defaultDatabaseConfig: IDatabaseConfig = { shouldSyncAfterConnection: false };

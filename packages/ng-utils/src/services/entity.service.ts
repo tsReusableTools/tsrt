@@ -161,8 +161,8 @@ export class EntityService {
       // to store reordered items in array and accumulate it on clientside for each table separately
       // in order to optimize client-server communication
       if (title && reorderTimeouts && reorderedItems) {
-        // const reorderedItem = this.getReorderedItem(data.id, previousIndex, currentIndex, array);
-        const reorderedItem = getReorderedItem(data.id, newOrder, null, null, emitWholeItemValue);
+        let reorderedItem: IOrderedItem = newOrder.find((item) => item.id === data.id);
+        reorderedItem = emitWholeItemValue ? { ...reorderedItem } : { id: reorderedItem.id, order: reorderedItem.order };
 
         if (!reorderedItems[title]) reorderedItems[title] = [];
         reorderedItems[title].push(reorderedItem);

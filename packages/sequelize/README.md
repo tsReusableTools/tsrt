@@ -18,7 +18,7 @@ import { Database } from '@tsrt/sequelize';
 import * as Models from 'path/to/models';
 
 async function bootstrap(): Promise<void> {
-  const databaseConfig: SequelizeOptions = {
+  const sequelizeOptions: SequelizeOptions = {
     logging: false,
     dialect: 'postgres',
     database: 'database',
@@ -26,9 +26,16 @@ async function bootstrap(): Promise<void> {
     password: 'password',
     host: 'localhost',
     port: 5432,
-    models: Database.getModels(Models),
+    models: Database.getModelsList(Models),
   };
-  await Database.init(Sequelize, databaseConfig);
+  const database1 = await Database.createConnection(Sequelize, sequelizeOptions);
+  const database2 = await Database.createConnection(Sequelize, { ... });
+
+  // Close connection:
+  // await Database.closeConnection(database1);
+
+  // Use current connection (for example, models):
+  // console.log(database1.connection.models);
 
   // ... start application
 }
@@ -88,11 +95,19 @@ router.get('/entities', async (req, res) => {
 ## Available methods
 
 ```ts
-type GenericObject<T = any> = Record<string, T>;
-
-interface IBaseRepository<I extends GenericObject> {
+interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, O extends GenericObject = IOrderingItemDefault> {
   /** A reference to Model, provided for BaseRepository constructor. Could be used as native sequelize Active Record pattern. */
   model: Model;
+
+  /**
+   *  Creates a transaction or executes a transaction callback.
+   *
+   *  @param [options] - Transactions options.
+   *  @param [cb] - Transaction callback to be executed for managed transactions.
+   *
+   *  @see https://sequelize.org/master/manual/transactions
+   */
+  createTransaction<T = I>(optionsOrCb?: TransactionOptions | TransactionCallBack<T>, cb?: TransactionCallBack<T>): Promise<T | Transaction>;
 
   /**
    *  Creates entity w/ additional ICreateOptions options.
@@ -100,11 +115,11 @@ interface IBaseRepository<I extends GenericObject> {
    *  @param body - Entity data.
    *  @param [customOptions] - Custom options for entity creation.
    *  @param [through] - Data to add into association for Many to Many relations.
-
+   *
    *  Under the hood can create relations if they are define in model definition.
    *  For example if model has a BelongsToMany association w/ model, and association alias is `types`.
    *  Is is possible to provide next body (types array is list of ids):
-
+   *
    *  @example:
    *  create({ name: 'test', types: [1, 2] }, { ... }, { defaultType: 'test' }).
    *  So it will create entity w/ name 'test', created references w/ `types` and inserts { defaultType: 'test' } into those references.
@@ -112,7 +127,7 @@ interface IBaseRepository<I extends GenericObject> {
   create(body: Partial<I>, createOptions?: ICreateOptions, through?: GenericObject): Promise<I>;
 
   /**
-   *  Creates multiple entities from provided list.
+   *  Creates multiple entities from provided list (inside transaction).
    *
    *  @param body - List of entities to be created.
    *  @param [createOptions] - Custom options for record creation. Include QueryOptions and CreateOptions.
@@ -123,43 +138,43 @@ interface IBaseRepository<I extends GenericObject> {
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [queryOptions] - Optional query params.
+   *  @param [readOptions] - Optional read options.
    *  @param [id] - Optional Entity id.
    *
-   *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
    */
-  read(queryOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>>;
+  read(readOptions: IReadOptions = { }, id?: number | string): Promise<I | IPagedData<I>>;
 
   /**
    *  Reads one record (default: by Id. Could be changed w/ `getBy` query option).
    *
-   *  @param [queryOptions] - Optional query params.
-   *  @param id - Entity id.
+   *  @param readOptions - Read options.
+   *  @param [pk] - Entity primaryKey.
    * 
-   *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
    */
-  readOne(queryOptions?: IReadOptions, id?: number | string): Promise<I>;
+  readOne(readOptions?: IReadOptions, id?: number | string): Promise<I>;
 
   /**
    *  Reads multiple entities and returns paged response.
    *
-   *  @param [queryOptions] - Optional query params.
+   *  @param [readOptions] - Optional read options.
    * 
-   *  If entity has `order` column, will ensure for each request that all entities for similar conditions have valid order (no NULL and collisions).
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
    */
-  readMany(queryOptions: IReadOptions = { }): Promise<IPagedData<I>>;
+  readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>>;
 
   /**
    *  Updates entity.
    *
    *  @param body - Data to be updated.
-   *  @param [id] - Entity id.
-   *  @param [updateOptions] - Custom options for updating operation.
+   *  @param pk - Entity primaryKey or updateOptions.
+   *  @param [updateOptions] - Custom options for updating operation or through.
    *  @param [through] - Data to add into association for Many to Many relations.
    *
    *  Creates associations same as `create` method.
    */
-  update(body: Partial<I>, id: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
+  update(body: Partial<I>, pk: number | string | IUpdateOptions, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
 
   /**
    *  Updates multiple entities from provided list.
@@ -178,7 +193,7 @@ interface IBaseRepository<I extends GenericObject> {
    *  @param [options] - Additional Query options
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
-  updateItemsOrder<C extends IOrderedItem>(body: C[], options: IBaseRepositoryOptions = { }): Promise<I[]>;
+  updateItemsOrder<C extends Required<O>>(body: C[], options: IReadOptions = { }): Promise<I[]>;
 
   /**
    *  Deletes entity by id.
@@ -241,21 +256,21 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
     return queryWithContext;
   }
 
-  protected async onBeforeCreate(body: GenericObject, customOptions: IBaseRepositoryMethodOptions): Promise<void> {
+  protected async onBeforeCreate(body: GenericObject, createOptions: IBaseRepositoryMethodOptions): Promise<void> {
     const context = await this.provideContext();
     if (!context) return;
 
-    customOptions.context = context;
+    createOptions.context = context;
     Object.keys(context).forEach((key) => { body[key] = context[key]; });
   }
 
   protected async onBeforeUpdate(
-    _id: GenericId, body: GenericObject, customOptions?: IBaseRepositoryMethodOptions,
+    _id: GenericId, body: GenericObject, updateOptions?: IBaseRepositoryMethodOptions,
   ): Promise<void> {
     const context = await this.provideContext();
     if (!context) return;
 
-    customOptions.context = context;
+    updateOptions.context = context;
     Object.keys(context).forEach((key) => { body[key] = context[key]; });
   }
 
@@ -284,66 +299,75 @@ export const SomeModelRepository = new CustomRepository(SomeModel);
 
 ```ts
 /**
- *  Hook called after query was built.
- *
- *  @param [query] - Previously parsed query params into Sequelize appropriate find and count options.
- */
-onAfterQueryBuilt(query?: FindAndCountOptions): Promise<FindAndCountOptions> {
-  return { ...query };
-}
+   *  Hook called after query was built.
+   *
+   *  @param [parsedQuery] - Previously parsed query params into Sequelize appropriate find and count options.
+   *
+   *  @note Unlike other hooks should return updated query.
+   */
+  onAfterQueryBuilt(parsedQuery?: FindAndCountOptions): Promise<FindAndCountOptions> {
+    return { ...parsedQuery };
+  }
 
-/**
- *  Hook which invokes directly before create operation
- *
- *  @param _body - Body for record creation
- *  @param [_customOptions] - Custom options for record creation
- */
-onBeforeCreate(_body: GenericObject, _customOptions?: ICreateOptions): Promise<void> { }
+  /**
+   *  Hook which invokes directly before create operation.
+   *
+   *  @param _body - Body for entity creation.
+   *  @param [_createOptions] - Custom options for record creation.
+   *  @param [_through] - Data to add into association for Many to Many relations.
+   */
+  onBeforeCreate(_body: GenericObject, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
-/**
- *  Hook which invokes directly before bulk create operation.
- *
- *  @param _body - Body for record creation.
- *  @param [_customOptions] - Custom options for record creation.
- */
-onBeforeBulkCreate(_body: GenericObject[], _customOptions?: ICreateOptions): Promise<void> { }
+  /**
+   *  Hook which invokes directly before bulk create operation.
+   *
+   *  @param _body - Body for record creation.
+   *  @param [_createOptions] - Custom options for record creation.
+   *  @param [_through] - Data to add into association for Many to Many relations.
+   */
+  onBeforeBulkCreate(_body: GenericObject[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
-/**
- *  Hook which invokes directly before read operations.
- *
- *  @param [_options] - Query options
- *  @param [_id] - Id or query to find by
- */
-onBeforeRead(_options?: IReadOptions, _id?: string | number | boolean): Promise<void> { }
+  /**
+   *  Hook which invokes directly before read operations.
+   *
+   *  @param [_options] - Read options.
+   *  @param [_pk] - PrimaryKey.
+   */
+  onBeforeRead(_options?: IReadOptions, _pk?: string | number | boolean): Promise<void> { }
 
-/**
- *  Hook which invokes directly before update operation
- *
- *  @param _id - Record it or query
- *  @param _body - Body for record creation
- *  @param [_customOptions] - Custom options for record update
- */
-onBeforeUpdate(_id: number | string, _body: GenericObject, _customOptions?: IUpdateOptions): Promise<void> { }
+  /**
+   *  Hook which invokes directly before update operation.
+   *
+   *  @param _body - Body for record creation.
+   *  @param _pk - Entity primaryKey or query.
+   *  @param [_updateOptions] - Custom options for record update.
+   *  @param [_through] - Data to add into association for Many to Many relations.
+   *
+   *  @note `_pk` arg could be null.
+   */
+  onBeforeUpdate(
+    _body: GenericObject, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
+  ): Promise<void> { }
 
-/**
- *  Hook which invokes directly before delete operation
- *
- *  @param [_id] - Id or query to find by
- *  @param [_customOptions] - Custom options for record (s) destroy
- */
-onBeforeDelete(_id: number | string, _customOptions: IDeleteOptions): Promise<void> { }
+  /**
+   *  Hook which invokes directly before delete operation.
+   *
+   *  @param [_deleteOptions] - Custom options for record (s) destroy.
+   *  @param [_pk] - primaryKey.
+   */
+  onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
 
-/**
- *  Hook which fires right before adding associated data.
- *
- *  @param _entity - Previously created / updated entity.
- *  @param _body - Data / body to find associated data in.
- *  @param [_options] - Optional query params.
- *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
- */
-onBeforeInsertAssociatedWithEntityDataFromBody(
-  _entity: Model, _body: GenericObject, _options?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
-): Promise<void> { }
+  /**
+   *  Hook which fires right before adding associated data.
+   *
+   *  @param _entity - Previously created / updated entity.
+   *  @param _body - Data / body to find associated data in.
+   *  @param [_insertOptions] - Optional params.
+   *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
+   */
+  onBeforeInsertAssociatedWithEntityDataFromBody(
+    _entity: M, _body: GenericObject, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
+  ): Promise<void> { }
 ```
 
 ## Options
@@ -351,7 +375,9 @@ onBeforeInsertAssociatedWithEntityDataFromBody(
 ```ts
 import { CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash, IncludeOptions } from 'sequelize';
 
-export interface IOrderedItem {
+type GenericObject<T = any> = Record<string, T>;
+
+export interface IOrderingItemDefault {
   id: number;
   order?: number;
 }
@@ -362,22 +388,27 @@ export interface IPagedData<T> {
   value: T[];
 }
 
+/** Default repository options. */
 export interface IBaseRepositoryDefaults {
   /**
    *  Properties, which would ne stripped while update/create operations.
    *  Default: ['createdAt', 'updatedAt', 'deletedAt'].
    */
-  restrictedProperties?: string[],
+  restrictedProperties: string[],
 
   /** Defalt limit param for read operations. Default: 10. */
-  limit?: number;
+  limit: number;
 
   /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
-  order?: string[];
+  order: string[];
 }
 
 export interface IBaseRepositoryConfig {
-  defaults: IBaseRepositoryDefaults;
+  /** Default repository options. */
+  defaults: Partial<IBaseRepositoryDefaults>;
+
+  /** Config for OrderingService. */
+  orderingServiceConfig: IOrderingServiceConfig;
 }
 
 export interface IBaseRepositoryOptions {

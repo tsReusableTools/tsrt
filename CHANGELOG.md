@@ -2,10 +2,17 @@
 
 ### New features
 
-- [@tsrt/sequelize] Updated signatures update/onBeforeUpdate/onBeforeCreate/onBeforeBulkCreate methods.
-- [@tsrt/sequelize] Added ability for update method to proceed not only w/ primaryKey, but also updateOptions insead. For example for multiple rows updates.
-- [@tsrt/sequelize] Finished bulkCreate method to work properly inside transactions.
-- [@tsrt/sequelize] Added `primaryKey` and `restrictedProperties` configurable and default Repository options.
+- __[@tsrt/utils]__ Totally refactored reordering utils. Old utils are now marked as deprecated and will be removed in future.
+- __[@tsrt/utils]__ New customizable OrderingService w/ optimized and improved abilities (_maybe will be moved to separate package in future_).
+
+- __[@tsrt/sequelize]__ Updated signatures update/onBeforeUpdate/onBeforeCreate/onBeforeBulkCreate methods.
+- __[@tsrt/sequelize]__ Added ability for update method to proceed not only w/ primaryKey, but also updateOptions insead. For example for multiple rows updates.
+- __[@tsrt/sequelize]__ Finished bulkCreate method to work properly inside transactions.
+- __[@tsrt/sequelize]__ Added `primaryKey` and `restrictedProperties` configurable and default Repository options.
+- __[@tsrt/sequelize]__ Utilizes usage of new customizable OrderingService.
+- __[@tsrt/sequelize]__ Refactored Database class. Now it behaves as factory for database connections.
+- __[@tsrt/sequelize]__ Improved types.
+- __[@tsrt/sequelize]__ Improved docs.
 
 ---
 
@@ -13,8 +20,8 @@
 
 ### Bugfixes
 
-- [@tsrt/sequelize] Fixed types for `onBeforeRead` hook.
-- [@tsrt/sequelize] Fixed readOptions applying order.
+- __[@tsrt/sequelize]__ Fixed types for `onBeforeRead` hook.
+- __[@tsrt/sequelize]__ Fixed readOptions applying order.
 
 ---
 
@@ -22,8 +29,8 @@
 
 ### New features
 
-- [@tsrt/sequelize] Updated signature for read/readOne/readMany methods to provide appropriate ability to use native Sequelize FindOptions.
-- [@tsrt/sequelize] Updated signature for delete/softDelete/forceDelete methods to provide ability delete by id or only w/ deleteOptions.
+- __[@tsrt/sequelize]__ Updated signature for read/readOne/readMany methods to provide appropriate ability to use native Sequelize FindOptions.
+- __[@tsrt/sequelize]__ Updated signature for delete/softDelete/forceDelete methods to provide ability delete by id or only w/ deleteOptions.
 
 ---
 
@@ -31,7 +38,7 @@
 
 ### New features
 
-- [@tsrt/application] Added docs.
+- __[@tsrt/application]__ Added docs.
 
 ---
 
@@ -39,11 +46,11 @@
 
 ### New features
 
-- [@tsrt/mparty] Improved docs.
-- [@tsrt/mparty-aws] Improved docs.
-- [@tsrt/mparty-express] Improved docs.
-- [@tsrt/sequelize] Updated types for read options.
-- [@tsrt/sequelize] Added docs.
+- __[@tsrt/mparty]__ Improved docs.
+- __[@tsrt/mparty-aws]__ Improved docs.
+- __[@tsrt/mparty-express]__ Improved docs.
+- __[@tsrt/sequelize]__ Updated types for read options.
+- __[@tsrt/sequelize]__ Added docs.
 
 ---
 
@@ -51,8 +58,8 @@
 
 ### New features
 
-- [@tsrt/mparty-aws] Added Mparty AWS S3 Adapter and docs.
-- [@tsrt/mparty-express] Added Mparty Express middleware and docs.
+- __[@tsrt/mparty-aws]__ Added Mparty AWS S3 Adapter and docs.
+- __[@tsrt/mparty-express]__ Added Mparty Express middleware and docs.
 
 ---
 
@@ -60,9 +67,9 @@
 
 ### New features
 
-- [@tsrt/mparty] Added framework agnostic package for handling multipart/form-data requests based on busboy
-- [@tsrt/mparty] Added default FileSystem Adapter
-- [@tsrt/mparty] Added files and fields basic validations
+- __[@tsrt/mparty]__ Added framework agnostic package for handling multipart/form-data requests based on busboy
+- __[@tsrt/mparty]__ Added default FileSystem Adapter
+- __[@tsrt/mparty]__ Added files and fields basic validations
 
 ---
 
@@ -70,8 +77,8 @@
 
 ### New features
 
-- [@tsrt/web-components] Fixed handling for cases where root container is `svg` element itself
-- [@tsrt/web-components] Fixed bundles: now there are `umd` and `esm` bundles available
+- __[@tsrt/web-components]__ Fixed handling for cases where root container is `svg` element itself
+- __[@tsrt/web-components]__ Fixed bundles: now there are `umd` and `esm` bundles available
 
 ---
 

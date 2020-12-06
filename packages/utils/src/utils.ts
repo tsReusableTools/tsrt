@@ -53,7 +53,7 @@ export const parseTypes = <T extends GenericAny>(input: T, deepness?: number): T
 
     // Parse array
     if (Array.isArray(data) && data.length) {
-      return data.map((item) => parser(item, deepLevel + 1)) as T;
+      return (data as T[]).map((item: T) => parser(item, deepLevel + 1)) as T;
     }
 
     // Parse Date
@@ -260,21 +260,35 @@ export function removeItemFromArray<T extends GenericObject = GenericObject>(
   array.splice(toDelete, 1);
 }
 
-export function exlcude<T extends GenericObject, K extends keyof T>(input: T, keys: K[], values?: Array<T[K]>): T;
-export function exlcude<T extends GenericObject, K extends keyof T>(input: T[], keys: K[], values?: Array<T[K]>): T[];
-export function exlcude<T extends GenericObject, K extends keyof T>(input: T | T[], keys: K[], values?: Array<T[K]>): T | T[] {
-  if (Array.isArray(input) && values) return input.filter((item) => !keys.find((key) => values.includes(item[key])));
+/**
+ *  Excludes `keys` from provided target when they meets values.
+ *
+ *  @param target - Target to exclude values from.
+ *  @param keys - List of keys to exclude.
+ *  @param values - List of values to compare against for exclude.
+ */
+export function exlcude<T extends GenericObject, K extends keyof T>(target: T, keys: K[], values?: Array<T[K]>): T;
+export function exlcude<T extends GenericObject, K extends keyof T>(target: T[], keys: K[], values?: Array<T[K]>): T[];
+export function exlcude<T extends GenericObject, K extends keyof T>(target: T | T[], keys: K[], values?: Array<T[K]>): T | T[] {
+  if (Array.isArray(target) && values) return target.filter((item) => !keys.find((key) => values.includes(item[key])));
 
-  if (!Array.isArray(input)) {
-    const result = { ...input };
+  if (!Array.isArray(target)) {
+    const result = { ...target };
     if (!values) keys.forEach((key) => delete result[key]);
     else keys.forEach((key) => { if (values.find((value) => value === result[key])) delete result[key]; });
     return result;
   }
 }
 
-export function createPagedData<I>(value: I[], total: number, query: GenericObject): IPagedData<I> {
-  const nextSkip = +query.offset + +query.limit;
+/**
+ *  Create paged response w/ data and [total, nextPage] metadata.
+ *
+ *  @param value - Array (page) w/ data to be returned.
+ *  @param total - Total amount of records existed under similar conditions.
+ *  @param query - Query w/ offset and limit properties to calculate next page offset.
+ */
+export function createPagedData<I>(value: I[], total: number, query: { offset?: number; limit?: number | string; }): IPagedData<I> {
+  const nextSkip = (+query.offset ?? 0) + (+query.limit ?? 0);
 
   const result: IPagedData<I> = query.limit && total && nextSkip && total > nextSkip
     ? { nextSkip, total, value }
@@ -284,3 +298,65 @@ export function createPagedData<I>(value: I[], total: number, query: GenericObje
 
   return result;
 }
+
+/**
+ *  Parses provided html and leaves allowed (removes forbidden) html tags.
+ *
+ *  @param html - Valid html.
+ *  @param tags - List of allowed (forbidden) tags.
+ *  @param [removeProvidedTags=false] - Whether to remove provided tags or leave.
+ */
+export function getHtmlWithAllowedTags(html: string, tags: string[] = [], removeProvidedTags = false): string {
+  if (removeProvidedTags) {
+    let result = html;
+    tags.forEach((item) => { result = result.replace(new RegExp(`</?${item}(.|\n)*?>`, 'gi'), ''); });
+    return result;
+  }
+
+  const htmlTagsWithAttributes = html.match(/<\/?(.|\n)*?>/gi) || [];
+  const htmlTagsWithoutAttributes = htmlTagsWithAttributes.map((item) => item.replace(/<\/?\s*(\w+)(.|\n)*?>/gi, '$1'));
+  const htmlTags = getUniqueValues(htmlTagsWithoutAttributes).filter((item) => !tags.includes(item));
+  return getHtmlWithAllowedTags(html, htmlTags, true);
+
+  // Browser only alternative.
+  // const tag = document.createElement('div');
+  // tag.innerHTML = html;
+  // const t = tag.getElementsByTagName('*');
+  // const ele = [];
+  // for (let i = 0; i < t.length; i++) ele.push(t[i].tagName);
+}
+
+/**
+ *  Checks whether a provided url is valid.
+ *
+ *  @see https://stackoverflow.com/a/5717133/10521225.
+ */
+export function isValidUrl(url: string): boolean {
+  const pattern = new RegExp('^(https?:\\/\\/)?' // protocol
+    + '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' // domain name
+    + '((\\d{1,3}\\.){3}\\d{1,3}))' // OR ip (v4) address
+    + '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' // port and path
+    + '(\\?[;&a-z\\d%_.~+=-]*)?' // query string
+    + '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+  return !!pattern.test(url);
+}
+
+/**
+ *  Create Array of numbers w/ specified [from, ..., to] range and step.
+ *
+ *  @param from - Range min value.
+ *  @param to - Range max value.
+ *  @param [step=1] - Range step.
+ */
+export function range(from: number, to: number, step = 1): number[] {
+  return [...Array(Math.floor((to - from) / step) + 1)].map((_, i) => from + i * step);
+}
+
+/**
+ *  Returns a number whose value is limited to the given range.
+ *
+ *  @param value - The value to be clamped.
+ *  @param max - The upper boundary of the output range.
+ *  @param [min=0] - The lower boundary of the output range.
+ */
+export function clamp(value: number, max: number, min = 0): number { return Math.min(Math.max(min, value), max); }

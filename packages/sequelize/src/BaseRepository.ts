@@ -7,8 +7,7 @@ import { singular } from 'pluralize';
 import cloneDeep from 'lodash.clonedeep';
 
 import {
-  IOrderedItem, IPagedData, isEmpty, capitalize, parseTypes, reorderItemsInArray,
-  hasItemsWithoutOrderOrWithEqualOrders, throwHttpError, createPagedData,
+  IPagedData, isEmpty, capitalize, parseTypes, throwHttpError, createPagedData, OrderingService, IOrderingItemDefault,
 } from '@tsrt/utils';
 import { log } from '@tsrt/logger';
 
@@ -16,26 +15,37 @@ import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
   ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions, TransactionCallBack,
 } from './interfaces';
-import { defaultConfig } from './utils';
+import { defaultBaseRepositoryConfig } from './utils';
 
-export class BaseRepository<I extends GenericObject = GenericObject, M extends Model = Model> {
+export class BaseRepository<I extends GenericObject & O, M extends Model = Model, O extends GenericObject = IOrderingItemDefault> {
+  protected readonly orderingService: OrderingService<O>;
+
   public constructor(
     public readonly model: ModelCtor<M>,
     protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
-    this.config = defaultConfig;
-    if (config) this.config.defaults = { ...this.config.defaults, ...config.defaults };
+    const { defaults: { limit, order, restrictedProperties }, orderingServiceConfig: { orderKey } } = defaultBaseRepositoryConfig;
+    if (!config) this.config = defaultBaseRepositoryConfig;
+    if (!config.defaults) this.config.defaults = defaultBaseRepositoryConfig.defaults;
+    if (!config.orderingServiceConfig) this.config.orderingServiceConfig = defaultBaseRepositoryConfig.orderingServiceConfig;
+    if (!this.config.defaults.limit) this.config.defaults.limit = limit;
+    if (!this.config.defaults.order) this.config.defaults.order = order;
+    if (!this.config.defaults.restrictedProperties) this.config.defaults.restrictedProperties = restrictedProperties;
+    if (!this.config.orderingServiceConfig.orderKey) this.config.orderingServiceConfig.orderKey = orderKey;
+    this.orderingService = new OrderingService<O>({ ...this.config.orderingServiceConfig, primaryKey: this.pk });
   }
 
   public get pk(): string { return this.model.primaryKeyAttribute; }
 
-  public get defaults(): IBaseRepositoryDefaults { return { ...(this.config?.defaults ?? defaultConfig.defaults) }; }
+  public get defaults(): IBaseRepositoryDefaults {
+    return { ...(this.config?.defaults ?? defaultBaseRepositoryConfig.defaults) } as IBaseRepositoryDefaults;
+  }
 
   /**
-   *  Creates a transaction or executes a transaction callback
+   *  Creates a transaction or executes a transaction callback.
    *
-   *  @param [options] - Transactions options
-   *  @param [cb] - Transaction callback to be executed for managed transactions
+   *  @param [options] - Transactions options.
+   *  @param [cb] - Transaction callback to be executed for managed transactions.
    *
    *  @see https://sequelize.org/master/manual/transactions
    */
@@ -108,7 +118,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [queryOptions] - Optional query params.
+   *  @param [readOptions] - Optional read options.
    *  @param [pk] - Optional Entity primaryKey.
    */
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
@@ -120,10 +130,10 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Reads one record from Db.
    *
-   *  @param [queryOptions] - Optional query params.
-   *  @param pk - Entity primaryKey.
+   *  @param readOptions - Read options.
+   *  @param [pk] - Entity primaryKey.
    */
-  public async readOne(readOptions?: IReadOptions, pk?: number | string): Promise<I> {
+  public async readOne(readOptions: IReadOptions, pk?: number | string): Promise<I> {
     try {
       const options = { ...readOptions };
 
@@ -138,7 +148,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const value = this.mapSequelizeModelToPlainObject(result);
 
-      if (hasItemsWithoutOrderOrWithEqualOrders([value])) {
+      if (this.orderingService.hasDuplicateOrEmptyOrders([value])) {
         const reordered = await this.updateItemsOrder([], options);
         if (reordered) return this.readOne(options, pk);
       }
@@ -152,7 +162,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
   /**
    *  Reads multiple entities from Db and returns paged response.
    *
-   *  @param [options] - Optional query params.
+   *  @param [readOptions] - Optional read options.
    */
   public async readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>> {
     try {
@@ -172,7 +182,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
 
-      if (hasItemsWithoutOrderOrWithEqualOrders(value)) {
+      if (this.orderingService.hasDuplicateOrEmptyOrders(value)) {
         const reordered = await this.updateItemsOrder([], options);
         if (reordered) return this.readMany(options);
       }
@@ -261,7 +271,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  @param [options] - Additional Query options
    *  @param [checkPermissions=true] - Whether to check permissions or not
    */
-  public async updateItemsOrder<C extends IOrderedItem>(body: C[], options: IReadOptions = { }): Promise<I[]> {
+  public async updateItemsOrder<C extends Required<O>>(body: C[], options: IReadOptions = { }): Promise<I[]> {
     if (!this.model?.rawAttributes || !this.model?.rawAttributes.order || !this.model?.rawAttributes[this.pk]) {
       throwHttpError.badRequest(`Unable to reorder entities without '${this.pk}'(primaryKey) or 'order' property`);
     }
@@ -278,7 +288,7 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
       const available = await this.model.findAll({ ...findQuery });
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
-      const reordered = reorderItemsInArray(body, availableValue as unknown as C[]);
+      const reordered = this.orderingService.reorder(availableValue as unknown as C[], body);
 
       /* eslint-disable-next-line no-await-in-loop */
       for (const item of reordered) await this.model.update({ order: item.order }, { where: { [this.pk]: item[this.pk] }, transaction });
@@ -368,6 +378,8 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  Hook called after query was built.
    *
    *  @param [parsedQuery] - Previously parsed query params into Sequelize appropriate find and count options.
+   *
+   *  @note Unlike other hooks should return updated query.
    */
   protected async onAfterQueryBuilt(parsedQuery?: FindAndCountOptions): Promise<FindAndCountOptions> {
     return { ...parsedQuery };
@@ -377,19 +389,19 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  Hook which invokes directly before create operation.
    *
    *  @param _body - Body for entity creation.
-   *  @param [_customOptions] - Custom options for record creation.
+   *  @param [_createOptions] - Custom options for record creation.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeCreate(_body: GenericObject, _customOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+  protected async onBeforeCreate(_body: GenericObject, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before bulk create operation.
    *
    *  @param _body - Body for record creation.
-   *  @param [_customOptions] - Custom options for record creation.
+   *  @param [_createOptions] - Custom options for record creation.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeBulkCreate(_body: GenericObject[], _customOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+  protected async onBeforeBulkCreate(_body: GenericObject[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before read operations.
@@ -403,32 +415,34 @@ export class BaseRepository<I extends GenericObject = GenericObject, M extends M
    *  Hook which invokes directly before update operation.
    *
    *  @param _body - Body for record creation.
-   *  @param _pk - Entity primaryKey or query. __Note__, it could be null.
-   *  @param [_customOptions] - Custom options for record update.
+   *  @param _pk - Entity primaryKey or query.
+   *  @param [_updateOptions] - Custom options for record update.
    *  @param [_through] - Data to add into association for Many to Many relations.
+   *
+   *  @note `_pk` arg could be null.
    */
   protected async onBeforeUpdate(
-    _body: GenericObject, _pk: number | string, _customOptions?: IUpdateOptions, _through?: GenericObject,
+    _body: GenericObject, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
   ): Promise<void> { }
 
   /**
    *  Hook which invokes directly before delete operation.
    *
-   *  @param [_customOptions] - Custom options for record (s) destroy.
+   *  @param [_deleteOptions] - Custom options for record (s) destroy.
    *  @param [_pk] - primaryKey.
    */
-  protected async onBeforeDelete(_customOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
+  protected async onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
 
   /**
    *  Hook which fires right before adding associated data.
    *
    *  @param _entity - Previously created / updated entity.
    *  @param _body - Data / body to find associated data in.
-   *  @param [_options] - Optional query params.
+   *  @param [_insertOptions] - Optional params.
    *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
    */
   protected async onBeforeInsertAssociatedWithEntityDataFromBody(
-    _entity: M, _body: GenericObject, _options?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
+    _entity: M, _body: GenericObject, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
   ): Promise<void> { }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */

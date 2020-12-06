@@ -1,24 +1,44 @@
 import {
   CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
-  IncludeOptions, FindAndCountOptions, Transaction,
+  IncludeOptions, FindAndCountOptions, Transaction, Sequelize,
 } from 'sequelize';
+import { IOrderingServiceConfig } from '@tsrt/utils';
 
+export interface IDatabaseConfig {
+  /** Whether to sync (Sequelize sync()) after connection established. */
+  shouldSyncAfterConnection?: boolean;
+
+  /**
+   *  Callback, which would be called after connection establised.
+   *  Here it is possible, for example, associate Models, if using pure Sequelize (not `sequelize-typescript`).
+   *
+   *  @param sequelize - Sequelize connection.
+   */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  cbAfterConnected?: (sequelize: Sequelize) => Promise<void>;
+}
+
+/** Default repository options. */
 export interface IBaseRepositoryDefaults {
   /**
    *  Properties, which would ne stripped while update/create operations.
    *  Default: ['createdAt', 'updatedAt', 'deletedAt'].
    */
-  restrictedProperties?: string[],
+  restrictedProperties: string[],
 
   /** Defalt limit param for read operations. Default: 10. */
-  limit?: number;
+  limit: number;
 
   /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
-  order?: string[];
+  order: string[];
 }
 
 export interface IBaseRepositoryConfig {
-  defaults: IBaseRepositoryDefaults;
+  /** Default repository options. */
+  defaults: Partial<IBaseRepositoryDefaults>;
+
+  /** Config for OrderingService. */
+  orderingServiceConfig: IOrderingServiceConfig;
 }
 
 export interface IBaseRepositoryOptions {
@@ -99,11 +119,13 @@ export interface IBaseRepositoryOptions {
   where?: WhereAttributeHash;
 }
 
+type IBaseRepositoryCroppedOptions = Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort' | 'limit' | 'include'>;
+
 /**
  *  Interface for CRUD controller method options, which influence on adding association data and
  *  response object (whether to create association between tables, or return JOINed result).
  */
-export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
+export interface IBaseRepositoryExtendedOptions extends Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort'> {
   /** Whether it is necessary to associate (create reference) if reference id list provided */
   associate?: boolean;
 
@@ -135,10 +157,10 @@ export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindA
 export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
 
 /** Interface for possible options of delete method */
-export interface IDeleteOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<DestroyOptions>, 'where'> {}
+export interface IDeleteOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<DestroyOptions>, 'where'> {}
 
 /** Interface for possible options of restore method */
-export interface IRestoreOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<RestoreOptions>, 'where'> {}
+export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<RestoreOptions>, 'where'> {}
 
 /** Type for transaction callback function */
 export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;

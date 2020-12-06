@@ -20,12 +20,13 @@ export function msg<T = any>(config: Partial<IHttpError<T>>): IHttpError<T>;
 export function msg<T = any>(statusCode: number, body?: T, customCode?: number | string): IHttpError<T>;
 export function msg<T = any>(config: number | Partial<IHttpError<T>>, body?: T, customCode?: number | string): IHttpError<T> {
   const status = (config && typeof config === 'object' ? config.status : config as number) || stc.OK;
-  const data = (config && typeof config === 'object' ? config.data : body) || (stc as GenericObject)[status];
+  const statusText = (stc as GenericObject)[status];
+  const data = (config && typeof config === 'object' ? config.data : body) || statusText;
   const code = (config && typeof config === 'object' ? config.code : customCode);
   let _isValid = config && typeof config === 'object' ? config._isValid : true;
   if (isNil(_isValid)) _isValid = true;
-  const message = typeof data === 'string' ? data : (stc as GenericObject)[status];
-  const statusText = (stc as GenericObject)[status];
+  let message = typeof data === 'string' ? data : statusText;
+  if (config && typeof config === 'object' && config.message) message = config.message;
   return { message, data, status, statusText, code, _isValid };
 }
 

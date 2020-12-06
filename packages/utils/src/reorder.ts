@@ -1,13 +1,14 @@
-import { IOrderedItem } from './types';
+import { IOrderingItemDefault } from './types';
 import { parseTypes } from './utils';
 import { throwHttpError } from './HttpError';
 
 /**
  *  Checks whether array of ordered items has items withour order / with duplicating orders
  *
+ *  @deprecated. Use OrderingService and its methods instead.
  *  @param array - Array of items
  */
-export const hasItemsWithoutOrderOrWithEqualOrders = <T extends GenericObject = IOrderedItem>(
+export const hasItemsWithoutOrderOrWithEqualOrders = <T extends GenericObject = IOrderingItemDefault>(
   array: T[],
 ): boolean => {
   let itemsWithoutOrder = false;
@@ -29,9 +30,10 @@ export const hasItemsWithoutOrderOrWithEqualOrders = <T extends GenericObject = 
 /**
  *  Provides order for those items, which doesn't has it, according to their position in array
  *
+ *  @deprecated. Use OrderingService and its methods instead.
  *  @param array - Original array with items
  */
-export const provideOrderForItemsWithoutIt = <T extends GenericObject = IOrderedItem>(array: T[]): T[] => {
+export const provideOrderForItemsWithoutIt = <T extends GenericObject = IOrderingItemDefault>(array: T[]): T[] => {
   let invalidArg = false;
   let allWithOrders = true;
   array.forEach((item) => {
@@ -67,9 +69,10 @@ export const provideOrderForItemsWithoutIt = <T extends GenericObject = IOrdered
 /**
  *  Checks for duplicating orders and correctly fixes this
  *
+ *  @deprecated. Use OrderingService and its methods instead.
  *  @param array - Original array with items
  */
-export const reorderItemsWithDuplicatingOrders = <T extends GenericObject = IOrderedItem>(array: T[]): T[] => {
+export const reorderItemsWithDuplicatingOrders = <T extends GenericObject = IOrderingItemDefault>(array: T[]): T[] => {
   let duplicates = false;
   let result = [...parseTypes(array)];
 
@@ -94,9 +97,10 @@ export const reorderItemsWithDuplicatingOrders = <T extends GenericObject = IOrd
  *  @param reorderedArray - Array of items with new orders
  *  @param originalData - Original array of items before reordering
  *
+ *  @deprecated. Use OrderingService and its methods instead.
  *  @returns reordered array of items
  */
-export const reorderItemsInArray = <I extends IOrderedItem>(
+export const reorderItemsInArray = <I extends IOrderingItemDefault>(
   reorderedArray: I[], originalData: I[],
 ): I[] => {
   let result = [...parseTypes(originalData)];
@@ -175,8 +179,10 @@ export const reorderItemsInArray = <I extends IOrderedItem>(
  *  @param prevIndex - Reordered item prev index
  *  @param newIndex - Reordered item new index
  *  @param array - Reordered array of items
+ *
+ *  @deprecated. Use OrderingService and its methods instead.
  */
-export function updateItemsOrderInArray<T extends IOrderedItem = IOrderedItem>(
+export function updateItemsOrderInArray<T extends IOrderingItemDefault = IOrderingItemDefault>(
   id: number, prevIndex: number, newIndex: number, array: T[],
 ): T[] {
   // if (!(id && id !== 0) || (!prevIndex && prevIndex !== 0) || (!newIndex && newIndex !== 0) || !array) return;
@@ -212,10 +218,12 @@ export function updateItemsOrderInArray<T extends IOrderedItem = IOrderedItem>(
  *  @param newIndex - Reordered item new index.
  *  @param array - Reordered array of items.
  *  @param [emitWholeItemValue=false] - Whether to emit whole item value instead of just [id, order] list.
+ *
+ *  @deprecated. Use OrderingService and its methods instead.
  */
-export function getReorderedItem<T extends IOrderedItem = IOrderedItem>(
+export function getReorderedItem<T extends IOrderingItemDefault = IOrderingItemDefault>(
   id: number, prevIndex: number | T[], newIndex?: number, array?: T[], emitWholeItemValue = false,
-): IOrderedItem {
+): IOrderingItemDefault {
   // if (
   //   (typeof prevIndex === 'number'
   //   && (!(id && id !== 0) || (!prevIndex && prevIndex !== 0) || (!newIndex && newIndex !== 0) || !array))
@@ -232,7 +240,7 @@ export function getReorderedItem<T extends IOrderedItem = IOrderedItem>(
 
   const reorderedItem = reordered.find((item) => item.id === id);
 
-  const result: IOrderedItem = emitWholeItemValue
+  const result: IOrderingItemDefault = emitWholeItemValue
     ? { ...reorderedItem }
     : { id: reorderedItem.id, order: reorderedItem.order };
 
