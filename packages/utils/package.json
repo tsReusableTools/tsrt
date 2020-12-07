@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/utils",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Typescript Reusable Tools: utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.2.1",
+    "@tsrt/types": "^0.3.0",
     "http-status": "1.4.2",
     "lodash.clonedeep": "4.5.0"
   },
