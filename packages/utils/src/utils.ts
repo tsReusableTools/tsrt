@@ -50,14 +50,14 @@ export const parseTypes = <T extends GenericAny>(input: T, deepness?: number): T
       if (trimmed.toLowerCase() === 'true') return true as T;
       if (trimmed.toLowerCase() === 'false') return false as T;
       if (trimmed === '') return data as T;
-      if (!Number.isNaN(+trimmed) && trimmed[0] !== '0') return +data as T;
+      if (!Number.isNaN(+trimmed) && (trimmed[0] !== '0' || +trimmed === 0)) return +data as T;
 
       return data as T;
     }
 
     // Parse array
     if (Array.isArray(data) && data.length) {
-      return (data as T[]).map((item: T) => parser(item, deepLevel + 1)) as T;
+      return data.map((item) => parser(item, deepLevel + 1)) as T;
     }
 
     // Parse Date
