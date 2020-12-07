@@ -5,6 +5,10 @@
 
 Basic configurable Application built on top of awesome `express` framework.
 
+## Important
+
+Until version 1.0.0 Api should be considered as unstable and may be changed.
+
 ## Usage
 
 ```ts
