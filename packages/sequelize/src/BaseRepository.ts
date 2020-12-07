@@ -7,26 +7,35 @@ import { singular } from 'pluralize';
 import cloneDeep from 'lodash.clonedeep';
 
 import {
-  IPagedData, isEmpty, capitalize, parseTypes, throwHttpError, createPagedData, OrderingService, IOrderingItemDefault, HttpError, isNil,
+  IPagedData, isEmpty, capitalize, parseTypes, throwHttpError, createPagedData, OrderingService, HttpError, isNil,
 } from '@tsrt/utils';
 import { log } from '@tsrt/logger';
 
 import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
   ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions, TransactionCallBack,
-  IBulkCreateOptions, IBulkUpdateOptions, IInsertAssociationsOptions,
+  IBulkCreateOptions, IBulkUpdateOptions, IBaseOrderingItem,
 } from './interfaces';
 import { defaultBaseRepositoryConfig } from './utils';
 
-export class BaseRepository
-<I extends GenericObject & O, R extends Partial<I> = Partial<I>, O extends GenericObject = IOrderingItemDefault, M extends Model = Model> {
+export class BaseRepository<
+  I extends GenericObject & O,
+  // R extends Partial<I> = Partial<I>,
+  R = Partial<I>,
+  O extends GenericObject = IBaseOrderingItem,
+  M extends Model & I = Model<I, I> & I,
+> {
   protected readonly orderingService: OrderingService<O>;
 
   public constructor(
     public readonly model: ModelCtor<M>,
     protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
-    const { defaults: { limit, order, restrictedProperties, logError }, orderingServiceConfig: { orderKey } } = defaultBaseRepositoryConfig;
+    const {
+      defaults: { limit, order, restrictedProperties, logError },
+      orderingServiceConfig: { orderKey },
+    } = defaultBaseRepositoryConfig;
+
     if (!this.config) this.config = defaultBaseRepositoryConfig;
     if (!this.config.defaults) this.config.defaults = defaultBaseRepositoryConfig.defaults;
     if (!this.config.defaults.limit) this.config.defaults.limit = limit;
@@ -69,6 +78,8 @@ export class BaseRepository
    */
   public async create(body: R, createOptions: ICreateOptions = { }, through: GenericObject = { }): Promise<I> {
     if (isNil(body)) throwHttpError.badRequest('Body should not be null or undefined');
+    const transaction = createOptions?.transaction ?? await this.createTransaction();
+
     try {
       const customOptions: ICreateOptions = cloneDeep(createOptions);
       await this.onBeforeCreate(body, customOptions, through);
@@ -76,9 +87,12 @@ export class BaseRepository
       const { where } = await this.buildQuery(customOptions);
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
-      const result = await this.model.create(dataToSave, { ...options, where } as CreateOptions);
-      return this.insertAssociations(result as M, dataToSave, customOptions, through);
+      const created = await this.model.create<M>(dataToSave, { ...options, where, transaction } as CreateOptions);
+      const result = await this.insertAssociations(created, dataToSave, { ...customOptions, transaction }, through);
+      if (!createOptions?.transaction) await transaction.commit();
+      return result;
     } catch (err) {
+      if (!createOptions?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -94,7 +108,6 @@ export class BaseRepository
     body: R[], createOptions?: IBulkCreateOptions, through?: GenericObject,
   ): Promise<I[]> {
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to create.');
-
     const transaction = createOptions?.transaction ?? await this.createTransaction();
 
     try {
@@ -106,13 +119,14 @@ export class BaseRepository
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
       const results = await this.model.bulkCreate<M>(dataToSave, { ...options, transaction } as CreateOptions);
 
-      const insertOptions = { ...options, isBulk: true };
+      const insertOptions = { ...options, transaction };
       const result = await Promise.all(results.map((item, i) => this.insertAssociations(item, dataToSave[i], insertOptions, through)));
 
-      await transaction.commit();
+      if (!createOptions?.transaction) await transaction.commit();
+      if (createOptions && !createOptions.returnData) return;
       return result;
     } catch (err) {
-      transaction.rollback();
+      if (!createOptions?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -121,37 +135,41 @@ export class BaseRepository
    *  Alias for common read operations. Works for both readOne and readMany.
    *
    *  @param [readOptionsOrPk] - Optional read options or primaryKey.
-   *  @param [pk] - Optional Entity primaryKey.
+   *  @param [readOptions] - Reqd options if primaryKey provided as first arument.
+   *
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
-  public async read(pk: number | string): Promise<I>;
-  public async read(readOptions: IReadOptions, pk: number | string): Promise<I>;
-  public async read(readOptionsOrPk: number | string | IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>> {
+  public async read(pk?: number | string, readOptions?: IReadOptions): Promise<I>;
+  public async read(readOptionsOrPk: number | string | IReadOptions = { }, readOptions?: IReadOptions): Promise<I | IPagedData<I>> {
     // Make type checking due to method overloading
-    const genericId = typeof readOptionsOrPk === 'object' ? pk : readOptionsOrPk;
-    const readOptions = typeof readOptionsOrPk === 'object' ? { ...readOptionsOrPk } : { };
-    return genericId ? this.readOne(readOptions, genericId) : this.readMany(readOptions);
+    const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
+    return genericPk ? this.readOne(genericPk, genericOptions) : this.readMany(genericOptions);
   }
 
   /**
-   *  Reads one record.
+   *  Reads one record (by pk or options).
    *
    *  @param readOptionsOrPk - Read options or primaryKey.
-   *  @param [pk] - Entity primaryKey.
+   *  @param [readOptions] - Reqd options if primaryKey provided as first arument.
+   *
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
-  public async readOne(pk: number | string): Promise<I>;
-  public async readOne(readOptions: IReadOptions, pk?: number | string): Promise<I>;
-  public async readOne(readOptionsOrPk: number | string | IReadOptions, pk?: number | string): Promise<I> {
+  public async readOne(readOptions: IReadOptions): Promise<I>;
+  public async readOne(pk: number | string, readOptions?: IReadOptions): Promise<I>;
+  public async readOne(readOptionsOrPk: number | string | IReadOptions, readOptions?: IReadOptions): Promise<I> {
+    // Make type checking due to method overloading
+    const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
+    const transaction = genericOptions?.transaction ?? await this.createTransaction();
+
     try {
-      // Make type checking due to method overloading
-      const genericId = typeof readOptionsOrPk === 'object' ? pk : readOptionsOrPk;
-      const readOptions = typeof readOptionsOrPk === 'object' ? cloneDeep(readOptionsOrPk) : { };
+      await this.onBeforeRead(genericOptions, genericPk);
 
-      await this.onBeforeRead(readOptions, genericId);
-
-      const parsedQuery = await this.buildQuery(readOptions, genericId);
-      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(readOptions) as FindAndCountOptions;
-      const findQuery = { ...staticMethodOptions, ...parsedQuery };
+      const parsedQuery = await this.buildQuery(genericOptions, genericPk);
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(genericOptions) as FindAndCountOptions;
+      const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const result = await this.model.findOne(findQuery);
       if (!result) throwHttpError.notFound('Item not found');
@@ -159,12 +177,14 @@ export class BaseRepository
       const value = this.mapSequelizeModelToPlainObject(result);
 
       if (this.model.rawAttributes[this.orderKey] && this.orderingService.hasDuplicateOrEmptyOrders([value])) {
-        const reordered = await this.updateItemsOrder([], readOptions);
-        if (reordered) return this.readOne(readOptions, genericId);
+        const reordered = await this.updateItemsOrder([], { ...genericOptions, transaction });
+        if (reordered) return this.readOne(genericPk, { ...genericOptions, transaction });
       }
 
+      if (!genericOptions?.transaction) await transaction.commit();
       return value;
     } catch (err) {
+      if (!genericOptions?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -173,8 +193,13 @@ export class BaseRepository
    *  Reads multiple entities from Db and returns paged response.
    *
    *  @param [readOptions] - Optional read options.
+   *
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
   public async readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>> {
+    const transaction = readOptions?.transaction ?? await this.createTransaction();
+
     try {
       const options = { ...readOptions };
 
@@ -182,23 +207,25 @@ export class BaseRepository
 
       const parsedQuery = await this.buildQuery(options);
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
-      const findQuery = { ...staticMethodOptions, ...parsedQuery };
+      const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const fixedQuery = await this.fixSequeliseQueryWithLeftJoins(findQuery);
       const { query, total } = fixedQuery;
 
-      const result = await this.model.findAndCountAll({ ...query });
+      const result = await this.model.findAndCountAll({ ...query, transaction });
       if (!result) throwHttpError.notFound('Items not found');
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
 
       if (this.model.rawAttributes[this.orderKey] && this.orderingService.hasDuplicateOrEmptyOrders(value)) {
-        const reordered = await this.updateItemsOrder([], options);
-        if (reordered) return this.readMany(options);
+        const reordered = await this.updateItemsOrder([], { ...options, transaction });
+        if (reordered) return this.readMany({ ...options, transaction });
       }
 
+      if (!readOptions?.transaction) await transaction.commit();
       return createPagedData(value, total || result.count, findQuery);
     } catch (err) {
+      if (!readOptions?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -211,17 +238,18 @@ export class BaseRepository
    *  @param [updateOptions] - Custom options for updating operation or through.
    *  @param [through] - Data to add into association for Many to Many relations.
    */
-  public async update(body: Partial<I>, updateOptions: IUpdateOptions, through?: GenericObject): Promise<I[]>;
-  public async update(body: Partial<I>, pk: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
+  public async update(body: Partial<R>, updateOptions: IUpdateOptions, through?: GenericObject): Promise<I[]>;
+  public async update(body: Partial<R>, pk: number | string, updateOptions?: IUpdateOptions, through?: GenericObject): Promise<I>;
   public async update(
-    body: Partial<I>, updateOptionsOrPk: number | string | IUpdateOptions, updateOptions?: IUpdateOptions, through: GenericObject = { },
+    body: Partial<R>, updateOptionsOrPk: number | string | IUpdateOptions, updateOptions?: IUpdateOptions, through: GenericObject = { },
   ): Promise<I | I[]> {
+    // Make type checking due to method overloading
+    const { genericPk, genericOptions } = this.getGenericOptionsAndPk(updateOptionsOrPk, updateOptions);
+    const genericThrough: GenericObject = (typeof updateOptionsOrPk === 'object' ? updateOptions : through) ?? { };
+    const transaction = genericOptions?.transaction ?? await this.createTransaction();
+
     try {
       if (!updateOptionsOrPk) throwHttpError.badRequest('Please, provide valid primaryKey or updateOptions');
-
-      // Make type checking due to method overloading
-      const { genericPk, genericOptions } = this.getGenericOptionsAndPk(updateOptionsOrPk, updateOptions);
-      const genericThrough: GenericObject = (typeof updateOptionsOrPk === 'object' ? updateOptions : through) ?? { };
 
       await this.onBeforeUpdate(body, genericPk, genericOptions, genericThrough);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
@@ -229,16 +257,21 @@ export class BaseRepository
       const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
 
       // Do not use here `returning: true` because need solution not only for postgres.
-      await this.model.update(dataToSave, { ...options, where } as UpdateOptions);
+      await this.model.update(dataToSave, { ...options, where, transaction } as UpdateOptions);
 
-      const result = genericPk
-        ? await this.model.findOne({ where }) as M
-        : await this.model.findAll({ where }) as M[];
-      if (!result || (Array.isArray(result) && !result?.length)) throwHttpError.notFound();
+      const updated = genericPk
+        ? await this.model.findOne({ where, transaction }) as M
+        : await this.model.findAll({ where, transaction }) as M[];
+      if (!updated || (Array.isArray(updated) && !updated?.length)) throwHttpError.notFound();
 
-      if (!Array.isArray(result)) return this.insertAssociations(result, dataToSave, genericOptions, genericThrough) as Promise<I>;
-      return Promise.all(result.map((i) => this.insertAssociations(i, dataToSave, genericOptions, genericThrough))) as Promise<I[]>;
+      const insertOptions = { ...genericOptions, transaction };
+      const result = !Array.isArray(updated)
+        ? await this.insertAssociations(updated, dataToSave, insertOptions, genericThrough)
+        : await Promise.all(updated.map((i) => this.insertAssociations(i, dataToSave, insertOptions, genericThrough)));
+      if (!genericOptions?.transaction) await transaction.commit();
+      return result;
     } catch (err) {
+      if (!genericOptions?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -250,27 +283,26 @@ export class BaseRepository
    *  @param [updateOptions] - Custom options for updating operation.
    *  @param [through] - Data to add into association for Many to Many relations.
    */
-  public async bulkUpdate(body: Array<Partial<I>>, updateOptions?: IBulkUpdateOptions, through?: GenericObject): Promise<I[]> {
+  public async bulkUpdate(body: Array<Partial<R>>, updateOptions?: IBulkUpdateOptions, through?: GenericObject): Promise<I[]> {
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
-
     const transaction = updateOptions?.transaction ?? await this.createTransaction();
 
     try {
-      const pks: Array<string | number> = [];
+      const results: I[] = [];
 
       for (const item of body) {
-        if (!item[this.pk]) throwHttpError.badRequest(`There should be an '${this.pk}' (primaryKey) property in each entity to update`);
+        const pk = (item as GenericObject)[this.pk];
+        if (!pk) throwHttpError.badRequest(`There should be an '${this.pk}' (primaryKey) property in each entity to update`);
         /* eslint-disable-next-line no-await-in-loop */
-        await this.update(item, item[this.pk], { ...updateOptions, transaction, isBulk: true }, through);
-        pks.push(item[this.pk]);
+        const result = await this.update(item, pk, { ...updateOptions, transaction }, through);
+        results.push(result);
       }
 
-      await transaction.commit();
+      if (!updateOptions?.transaction) await transaction.commit();
       if (updateOptions && !updateOptions.returnData) return;
-      const results = await this.readMany({ ...updateOptions, limit: 'none', where: { [this.pk]: pks } });
-      return results.value;
+      return results;
     } catch (err) {
-      transaction.rollback();
+      if (!updateOptions?.transaction) await transaction.rollback();
       if (err instanceof HttpError) throw err;
       this.throwCustomSequelizeError(err);
     }
@@ -289,15 +321,13 @@ export class BaseRepository
         `Unable to reorder entities without '${this.pk}'(primaryKey) or '${this.orderKey}'(orderKey) property`,
       );
     }
-
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
-
     const transaction = options?.transaction ?? await this.createTransaction();
 
     try {
       const parsedQuery = await this.buildQuery({ ...options, limit: 'none' });
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
-      const findQuery = { ...staticMethodOptions, ...parsedQuery };
+      const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const available = await this.model.findAll({ ...findQuery });
       const availableValue = this.mapSequelizeModelToPlainObject(available);
@@ -309,10 +339,10 @@ export class BaseRepository
         await this.model.update({ [this.orderKey]: item[this.orderKey] }, { where: { [this.pk]: item[this.pk] }, transaction });
       }
 
-      await transaction.commit();
+      if (!options?.transaction) await transaction.commit();
       return reordered as unknown as I[];
     } catch (err) {
-      transaction.rollback();
+      if (!options?.transaction) await transaction.rollback();
       this.throwCustomSequelizeError(err);
     }
   }
@@ -321,8 +351,8 @@ export class BaseRepository
    *  Deletes entity by primaryKey.
    *  If `paranoid` mode is enabled - soft deletes. Alternatively deletes entity totally.
    *
-   *  @param pk - Entity primaryKey.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
   public async delete(deleteOptions: IDeleteOptions): Promise<string>;
   public async delete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
@@ -349,25 +379,29 @@ export class BaseRepository
   /**
    *  Soft deletes entity by primaryKey (only if `paranoid` mode enabled). Alternatively deletes entity totally.
    *
-   *  @param pk - Entity primaryKey.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
   public async softDelete(deleteOptions: IDeleteOptions): Promise<string>;
   public async softDelete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  public async softDelete(pk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
-    return typeof pk === 'object' ? this.delete({ ...pk, force: false }) : this.delete(pk, { ...deleteOptions, force: false });
+  public async softDelete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof deleteOptionsOrPk === 'object'
+      ? this.delete({ ...deleteOptionsOrPk, force: false })
+      : this.delete(deleteOptionsOrPk, { ...deleteOptions, force: false });
   }
 
   /**
    *  Totally deletes entity by primaryKey.
    *
-   *  @param pk - Entity primaryKey.
-   *  @param [deleteOptions] - Custom options for entity deletion.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
   public async forceDelete(deleteOptions: IDeleteOptions): Promise<string>;
   public async forceDelete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  public async forceDelete(pk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
-    return typeof pk === 'object' ? this.delete({ ...pk, force: true }) : this.delete(pk, { ...deleteOptions, force: true });
+  public async forceDelete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
+    return typeof deleteOptionsOrPk === 'object'
+      ? this.delete({ ...deleteOptionsOrPk, force: true })
+      : this.delete(deleteOptionsOrPk, { ...deleteOptions, force: true });
   }
 
   /**
@@ -409,7 +443,7 @@ export class BaseRepository
    *  @param [_createOptions] - Custom options for record creation.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeCreate(_body: GenericObject, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+  protected async onBeforeCreate(_body: R, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before bulk create operation.
@@ -418,7 +452,7 @@ export class BaseRepository
    *  @param [_createOptions] - Custom options for record creation.
    *  @param [_through] - Data to add into association for Many to Many relations.
    */
-  protected async onBeforeBulkCreate(_body: GenericObject[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+  protected async onBeforeBulkCreate(_body: R[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
 
   /**
    *  Hook which invokes directly before read operations.
@@ -439,7 +473,7 @@ export class BaseRepository
    *  @note `_pk` arg could be null.
    */
   protected async onBeforeUpdate(
-    _body: GenericObject, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
+    _body: Partial<R>, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
   ): Promise<void> { }
 
   /**
@@ -472,9 +506,11 @@ export class BaseRepository
     return this.config.orderingServiceConfig?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceConfig.orderKey;
   }
 
-  protected removeRestrictedPropertiesFromBody(body: Partial<I> = { }): Partial<I> {
+  protected removeRestrictedPropertiesFromBody(body: Partial<R> = { }): Partial<R> {
     const result = { ...body };
-    [this.pk, ...this.defaults.restrictedProperties].forEach((key) => { if (Object.hasOwnProperty.call(result, key)) delete result[key]; });
+    [this.pk, ...this.defaults.restrictedProperties].forEach((key) => {
+      if (Object.hasOwnProperty.call(result, key)) delete (result as GenericObject)[key];
+    });
     return result;
   }
 
@@ -716,51 +752,51 @@ export class BaseRepository
    *  @param [through] - Data which should be added into associated entities (for Many to Many relations).
    */
   private async insertAssociations(
-    entity: M, body: GenericObject, options?: IInsertAssociationsOptions, through: GenericObject = { },
+    entity: M, body: GenericObject, options?: IBaseRepositoryExtendedOptions, through: GenericObject = { },
   ): Promise<I> {
     try {
       if (!entity || !(entity as GenericObject)[this.pk]) return entity as unknown as I;
 
       await this.onBeforeInsertAssociatedWithEntityDataFromBody(entity, body, options, through);
 
-      const insertionOptions: IInsertAssociationsOptions = { associate: true, replaceOnJoin: true, returnData: true, ...options };
+      const insertionOptions: IBaseRepositoryExtendedOptions = { associate: true, replaceAssociations: true, returnData: true, ...options };
       const data = isEmpty(through) ? { } : { through: { ...through } };
       let include: Array<string | IncludeOptions> = [];
       const promises: Array<Promise<void>> = [];
 
       Object.keys(this.model.associations).forEach((key) => {
         if (!body || !Object.keys(body).includes(key) || !body[key]) return;
+        // if (!body && !Array.isArray(body[key]) && !Array.isArray(body[`${key}${this.defaults.relationPksSuffix}`])) return;
         include.push(key);
-        promises.push(this.addOrRemoveAssociatedWithEntityData(entity, key, data, body, insertionOptions));
+        promises.push(this.addOrRemoveAssociation(entity, key, data, body[key], insertionOptions));
       });
 
       if (promises.length) await Promise.all(promises);
       if (insertionOptions.include) include = include.concat(insertionOptions.include).filter(Boolean);
       if (!insertionOptions.returnData) { return; }
-      if (insertionOptions.isBulk) { return this.mapSequelizeModelToPlainObject(entity); }
 
-      return this.readOne({ ...options, include }, this.mapSequelizeModelToPlainObject(entity)[this.pk]);
+      return this.readOne(this.mapSequelizeModelToPlainObject(entity)[this.pk], { ...options, include });
     } catch (err) {
       this.throwCustomSequelizeError(err);
     }
   }
 
-  private async addOrRemoveAssociatedWithEntityData(
-    entity: M, key: string, through: GenericObject, body: GenericObject, options?: IBaseRepositoryExtendedOptions,
+  private async addOrRemoveAssociation(
+    entity: M, key: string, through: GenericObject, association: Array<number | string>, options?: IBaseRepositoryExtendedOptions,
   ): Promise<void> {
-    if (!Array.isArray(body[key]) || !options.associate) return;
+    if (!Array.isArray(association) || !options.associate) return;
 
-    const allAssociatedEntities: GenericObject[] = await (entity as GenericObject)[`get${capitalize(key)}`]();
-    const toRemoveArray = allAssociatedEntities.map((item) => +item[this.pk]).filter((item) => !body[key].includes(item));
-    const toAddArray: number[] = [];
+    const opts = { transaction: options.transaction };
+    const allAssociatedEntities: GenericObject[] = await (entity as GenericObject)[`get${capitalize(key)}`](opts);
 
-    body[key].forEach((item: number) => {
-      const found = allAssociatedEntities.find((unit) => +unit[this.pk] === +item);
-      if (!found) toAddArray.push(item);
-    });
+    const newIds = parseTypes(association);
+    const existingIds: Array<number | string> = parseTypes(allAssociatedEntities.map((item) => item[this.pk]));
 
-    if (options.replaceOnJoin) await (entity as GenericObject)[`remove${capitalize(key)}`](toRemoveArray);
-    await (entity as GenericObject)[`add${capitalize(key)}`](toAddArray, through);
+    const toRemoveArray = existingIds.filter((item) => !newIds.includes(item));
+    const toAddArray = newIds.filter((item) => !existingIds.includes(item));
+
+    if (options.replaceAssociations) await (entity as GenericObject)[`remove${capitalize(key)}`](toRemoveArray, opts);
+    await (entity as GenericObject)[`add${capitalize(key)}`](toAddArray, { ...opts, through });
   }
 
   private retrieveSequelizeStaticMethodOptions<T extends IBaseRepositoryExtendedOptions>(options: T): T {

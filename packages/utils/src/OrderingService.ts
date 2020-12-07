@@ -204,12 +204,12 @@ export class OrderingService<T extends GenericObject> {
 
   private get confgiIsMsg(): string { return `Config is: ${JSON.stringify(this._config)}`; }
 
-  private getUniqueValues(target: number[]): number[] { return Array.from(new Set(target)).filter(Boolean); }
+  private getUniqueValues(target: number[]): number[] { return Array.from(new Set(target)).filter((item) => !isNil(item)); }
 
   private getUniqueValue(values: number[]): [number, number[]] {
     const { min, max } = this.getOrderRange(values);
     let unique = range(min, max).find((item) => !values.includes(item));
-    if (!unique) unique = min > 0 ? min - 1 : max + 1;
+    if (isNil(unique)) unique = min > 0 ? min - 1 : max + 1;
     return [unique, values.concat(unique)];
   }
 

@@ -13,6 +13,7 @@ export class Provider extends BaseEntity<IProviderEntity> implements IProviderEn
   public phone: string;
 
   @BelongsToMany(() => City, 'ProviderCities', 'providerId', 'cityId')
+  // @BelongsToMany(() => Provider, { through: 'ProviderCities', foreignKey: 'providerId', otherKey: 'cityId', uniqueKey: 'id' })
   public cities?: ICityEntity[];
 }
 

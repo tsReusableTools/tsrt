@@ -12,8 +12,10 @@
 - __[@tsrt/sequelize]__ Added  `restrictedProperties` configurable and default Repository options.
 - __[@tsrt/sequelize]__ Utilizes usage of new customizable OrderingService.
 - __[@tsrt/sequelize]__ Refactored Database class. Now it behaves as factory for database connections.
+- __[@tsrt/sequelize]__ Wrapped all methods (not only bulk) in transactions.
 - __[@tsrt/sequelize]__ Improved types.
 - __[@tsrt/sequelize]__ Improved docs.
+- __[@tsrt/sequelize]__ Added [tests](https://github.com/tsReusableTools/tsrt/tree/master/packages/sequelize/tests) for Database and BaseRepository.
 
 ---
 

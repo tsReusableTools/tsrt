@@ -2,10 +2,12 @@
 
 [![npm version](https://img.shields.io/npm/v/@tsrt/sequelize.svg)](https://www.npmjs.com/package/@tsrt/sequelize) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/sequelize.svg)](https://www.npmjs.com/package/@tsrt/sequelize) [![Downloads](https://img.shields.io/npm/dm/@tsrt/sequelize.svg)](https://www.npmjs.com/package/@tsrt/sequelize)
 
-Basic Sequlize Connection Manager and BaseRepository build on top of [sequelize](https://www.npmjs.com/package/sequelize) (v5*).
+Basic Sequlize Connection Factory and BaseRepository build on top of [sequelize](https://www.npmjs.com/package/sequelize) (v5*).
 
-Could be used (and i'm personally recommend) [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript).
+Could be used (and i'm personally recommend) with [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript).
 ## Usage
+
+More examples could be found in [tests](https://github.com/tsReusableTools/tsrt/tree/master/packages/sequelize/tests).
 
 #### Init connection
 
@@ -94,8 +96,31 @@ router.get('/entities', async (req, res) => {
 
 ## Available methods
 
+All methods will create its own transaction, execute all queries inside it and commits/rollback at the end.
+
+If method provided w/ transaction manually - it will execute all queries inside it and wiil __NOT__ commit/rollback at the end, it should be done manually by developer when needed.
+
+In such a way it is possible to execute a bunch of different queries inside 1 transaction.
+
 ```ts
-interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, O extends GenericObject = IOrderingItemDefault> {
+interface IBaseRepository<
+  /** DatabaseEntity interface. Common return type and body type for update/create methods. */
+  I extends GenericObject & O,
+  
+  /**
+   *  Entity specific interface without database specific fields like pk, deletedAt.
+   *  Common body type for update/create methods.
+   *  Here could be defined virtual properties such as associations primaryKeys array.
+   *  Could be used to improve TS typechecking and intellisense.
+   */
+  R = Partial<I>,
+
+  /** Interface for Entity with ordering properties: `primaryKey` and `orderKey`. */
+  O extends GenericObject = IOrderingItemDefault,
+
+  /** Repository Model. */
+  M extends Model = Model
+> {
   /** A reference to Model, provided for BaseRepository constructor. Could be used as native sequelize Active Record pattern. */
   model: Model;
 
@@ -138,20 +163,22 @@ interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, 
   /**
    *  Alias for common read operations. Works for both readOne and readMany.
    *
-   *  @param [readOptionsOrPk] - Optional read options or primaryKey..
-   *  @param [id] - Optional Entity id.
+   *  @param [readOptionsOrPk] - Optional read options or primaryKey.
+   *  @param [readOptions] - Reqd options if primaryKey provided as first arument.
    *
-   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
-  read(readOptionsOrPk: number | string | IReadOptions = { }, pk?: number | string): Promise<I | IPagedData<I>>
+  read(readOptionsOrPk: number | string | IReadOptions = { }, readOptions?: IReadOptions): Promise<I | IPagedData<I>>
 
   /**
-   *  Reads one record (default: by Id. Could be changed w/ `getBy` query option).
+   *  Reads one record (by pk or options).
    *
    *  @param readOptionsOrPk - Read options or primaryKey.
-   *  @param [pk] - Entity primaryKey.
-   * 
-   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
+   *  @param [readOptions] - Reqd options if primaryKey provided as first arument.
+   *
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
   readOne(readOptionsOrPk: number | string | IReadOptions, pk?: number | string): Promise<I>
 
@@ -160,7 +187,8 @@ interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, 
    *
    *  @param [readOptions] - Optional read options.
    * 
-   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions have valid `orderKey` (no NULL(s) and duplicates).
+   *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
+   *  have valid `orderKey` (no NULL(s) and duplicates).
    */
   readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>>;
 
@@ -187,7 +215,6 @@ interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, 
 
   /**
    *  Update entities order (reordering).
-   *  @note for now supports reordering ONLY for entites w/ `id` as primary key and order INTEGER column as for storing order.
    *
    *  @param body - Items with new orders or array of changes
    *  @param [options] - Additional Query options
@@ -196,37 +223,31 @@ interface IBaseRepository<I extends GenericObject & O, M extends Model = Model, 
   updateItemsOrder<C extends Required<O>>(body: C[], options: IReadOptions = { }): Promise<I[]>;
 
   /**
-   *  Deletes entity by id.
+   *  Deletes entity by pk.
    *  If `paranoid` mode is enabled - soft deletes. Alternatively deletes entity totally.
    *
-   *  @param id | deleteOptions - Entity id. Or deleteOptions.
-   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
-  delete(deleteOptions: IDeleteOptions): Promise<string>;
-  delete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  delete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
+  delete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
-   *  Soft deletes entity by id (only if `paranoid` mode enabled). Alternatively deletes entity totally.
-   *  Alias for delete(id, { force: false }) or just delete(id);
+   *  Soft deletes entity by pk (only if `paranoid` mode enabled). Alternatively deletes entity totally.
+   *  Alias for delete(pk, { force: false }) or just delete(pk);
    *
-   *  @param id | deleteOptions - Entity id. Or deleteOptions.
-   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
-  softDelete(deleteOptions: IDeleteOptions): Promise<string>;
-  softDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  softDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
+  softDelete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
-   *  Totally deletes entity by id.
-   *  Alias for delete(id, { force: true });
+   *  Totally deletes entity by pk.
+   *  Alias for delete(pk, { force: true });
    *
-   *  @param id | deleteOptions - Entity id. Or deleteOptions.
-   *  @param [deleteOptions] - Custom options for entity deletion in case if entity id is also provided.
+   *  @param deleteOptionsOrPk - Entity primaryKey or deleteOptions.
+   *  @param [deleteOptions] - Custom options for entity deletion if first argument is primaryKey.
    */
-  forceDelete(deleteOptions: IDeleteOptions): Promise<string>;
-  forceDelete(id: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
-  forceDelete(id: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
+  forceDelete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string>;
 
   /**
    *  Restores soft deleted entity(-ies).
@@ -245,7 +266,7 @@ For example here we can provide some __tenant__ specific context in a multi-tena
 ##### Example: 
 
 ```ts
-export class CustomRepository<I extends GenericObject, M extends Model = Model> extends BaseRepository<I, M> {
+export class CustomRepository<I extends GenericObject, R = Partial<I>, IOrderingItem, M extends Model = Model> extends BaseRepository<I, R, O, M> {
   protected async provideContext(): Promise<IContext> {
     // ...retrieve some context, for example using `express-http-context` package. Or `async_hooks`.
   }
@@ -256,7 +277,7 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
     return queryWithContext;
   }
 
-  protected async onBeforeCreate(body: GenericObject, createOptions: IBaseRepositoryMethodOptions): Promise<void> {
+  protected async onBeforeCreate(body: R, createOptions?: IBaseRepositoryMethodOptions, through?: GenericObject): Promise<void> {
     const context = await this.provideContext();
     if (!context) return;
 
@@ -265,7 +286,7 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
   }
 
   protected async onBeforeUpdate(
-    _id: GenericId, body: GenericObject, updateOptions?: IBaseRepositoryMethodOptions,
+    body: Partial<R>, pk?: number | string, updateOptions?: IUpdateOptions, through?: GenericObject,
   ): Promise<void> {
     const context = await this.provideContext();
     if (!context) return;
@@ -275,7 +296,7 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
   }
 
   protected async onBeforeInsertAssociatedWithEntityDataFromBody(
-    _entity: M, _body: GenericObject, _options?: IBaseRepositoryMethodOptions, through?: GenericObject,
+    _entity: M, _body: I, _options?: IBaseRepositoryExtendedOptions, through?: GenericObject,
   ): Promise<void> {
     const context = await this.provideContext();
     if (!context) return;
@@ -284,7 +305,7 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
     Object.keys(context).forEach((key) => { body[key] = context[key]; });
   }
 
-  protected async onBeforeDelete(id: GenericId, customOptions: IBaseRepositoryMethodOptions): Promise<void> {
+  protected async onBeforeDelete(deleteOptions: IDeleteOptions, pk?: number | string): Promise<void> {
     const context = await this.provideContext();
     if (someCondition) throw new Error('Cannot delete');
   }
@@ -292,7 +313,15 @@ export class CustomRepository<I extends GenericObject, M extends Model = Model> 
 
 // ... and then
 
-export const SomeModelRepository = new CustomRepository(SomeModel);
+export const SomeModelRepository = new CustomRepository<ISomeModelInterface>(SomeModel);
+
+// ... or with all types for better typization
+
+export const SomeModelRepository = new CustomRepository<ISomeModelInterface, ICreateInterface, IOrdering, SomeModel>(SomeModel);
+
+// Note, that it is alos possible to set default Ordering type by declaring IBaseOrderingItem for @tsrt/sequelize module.
+// Example: declare module '@tsrt/sequelize' { export interface IBaseOrderingItem { pk: number; order?: number; } }
+
 ```
 
 ##### Hooks
@@ -377,11 +406,6 @@ import { CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttr
 
 type GenericObject<T = any> = Record<string, T>;
 
-export interface IOrderingItemDefault {
-  id: number;
-  order?: number;
-}
-
 export interface IPagedData<T> {
   total?: number;
   nextSkip?: number;
@@ -439,18 +463,18 @@ export interface IBaseRepositoryOptions {
   skip?: number;
 
   /**
-   *  Applies only in case of reading by id (`readOne or read` methods) and gives an alias for reading by value if some field.
-   *  @default: 'id'.
+   *  Applies only in case of reading by pk (`readOne or read` methods) and gives an alias for reading by value if some field.
+   *  @default: model primaryKey.
    */
   getBy?: string;
 
-  /** Select attributes from main entity to query for. @example: 'id, title' or ['id', 'title'] */
+  /** Select attributes from main entity to query for. @example: 'pk, title' or ['pk', 'title'] */
   select?: string | string[];
 
   /**
    * Sorting conditions. Key:value paires.
-   * @example: 'id:asc,title:desc' or ['id:asc', 'title:desc'].
-   * @default: 'id:asc'.
+   * @example: 'pk:asc,title:desc' or ['pk:asc', 'title:desc'].
+   * @default: 'pk:asc'.
    */
   sort?: string | string[];
 
@@ -509,27 +533,30 @@ export interface IBaseRepositoryOptions {
   where?: WhereAttributeHash;
 }
 
+type IBaseRepositoryCroppedOptions = Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort' | 'limit' | 'include'>;
+
 /**
  *  Interface for CRUD controller method options, which influence on adding association data and
  *  response object (whether to create association between tables, or return JOINed result).
  */
-export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
-  /** Whether it is necessary to associate (create reference) if reference id list provided */
+export interface IBaseRepositoryExtendedOptions
+  extends Transactionable, Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort'> {
+  /** Whether it is necessary to associate (create reference) if reference primaryKeys list provided. Default: true */
   associate?: boolean;
 
   /**
    *  Whether it should replace associatins w/ new reference list (delete and add).
    *
-   *  Example for replaceOnJoin: true(default):
+   *  Example for replaceAssociations: true(default):
    *  Model.update({ id: 1, files: [1, 2, 3] }) -> after this query Model will
    *  be associated only w/ files w/ ids [1, 2, 3] even if previously it was associted w/ some others.
    *
-   *  Example for replaceOnJoin: false:
+   *  Example for replaceAssociations: false:
    *  Model.update({ id: 1, files: [1, 2, 3] }) -> after this query Model will be associted w/ those files
    *  it was associated before + new unique ids (if they were unique in provided list).
    *  So if previously Model was associated with [1, 2, 4] Files, after query it will be: [1, 2, 3, 4].
    */
-  replaceOnJoin?: boolean;
+  replaceAssociations?: boolean;
 
   /** Whether to return response data, after adding all associations. If false -> return empty response */
   returnData?: boolean;
@@ -538,22 +565,33 @@ export interface IBaseRepositoryExtendedOptions extends IBaseRepositoryOptions {
 /** Interface for possible options of create method */
 export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
 
+/** Interface for possible options of bulk create method */
+export type IBulkCreateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+
 /** Interface for possible options of read method */
 export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
 export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
 
+/** Interface for possible options of bulk update method */
+export type IBulkUpdateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+
 /** Interface for possible options of delete method */
-export interface IDeleteOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<DestroyOptions>, 'where'> {}
+export interface IDeleteOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<DestroyOptions>, 'where'> {}
 
 /** Interface for possible options of restore method */
-export interface IRestoreOptions extends Omit<IBaseRepositoryOptions, 'limit'>, Omit<Partial<RestoreOptions>, 'where'> {}
+export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<RestoreOptions>, 'where'> {}
 
 /** Type for transaction callback function */
 export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
 
-
+/**
+ *  Empty interface for TS augumentation in importing module.
+ *
+ *  Example: declare module '@tsrt/sequelize' { export interface IBaseOrderingItem { pk: number; order?: number; } }
+ */
+export interface IBaseOrderingItem { }
 ```
 
 ## License

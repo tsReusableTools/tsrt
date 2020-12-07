@@ -1,4 +1,4 @@
 export * from './BaseEntity';
 export * from './City';
 export * from './Provider';
-export * from './ProviderCity';
+export * from './IOrderingItem';

@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import {
   CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
-  IncludeOptions, FindAndCountOptions, Transaction, Sequelize,
+  IncludeOptions, FindAndCountOptions, Transaction, Sequelize, Transactionable,
 } from 'sequelize';
 import { IOrderingServiceConfig } from '@tsrt/utils';
 
@@ -37,6 +38,17 @@ export interface IBaseRepositoryDefaults {
 
   /** Whether to log BaseRepository errors. */
   logError?: boolean;
+
+  /**
+   *  Suffix for relation primaryKeys.
+   *  Default: 'Pks'.
+   *  Example for `relation` called 'providers' and `relationPksSuffix` = 'Pks':
+   *  SomeRepository.create({ title: 'SomeTitle', providersPks: [1, 2, 3] }).
+   *
+   *  @note relations will be also parsed in { providers: [1, 2, 3] } case.
+   *  @note temporary not imlepented - need discussion.
+   */
+  // relationPksSuffix?: string;
 }
 
 export interface IBaseRepositoryConfig {
@@ -55,18 +67,18 @@ export interface IBaseRepositoryOptions {
   skip?: number;
 
   /**
-   *  Applies only in case of reading by id (`readOne or read` methods) and gives an alias for reading by value if some field.
-   *  @default: 'id'.
+   *  Applies only in case of reading by pk (`readOne or read` methods) and gives an alias for reading by value if some field.
+   *  @default: model primaryKey.
    */
   getBy?: string;
 
-  /** Select attributes from main entity to query for. @example: 'id, title' or ['id', 'title'] */
+  /** Select attributes from main entity to query for. @example: 'pk, title' or ['pk', 'title'] */
   select?: string | string[];
 
   /**
    * Sorting conditions. Key:value paires.
-   * @example: 'id:asc,title:desc' or ['id:asc', 'title:desc'].
-   * @default: 'id:asc'.
+   * @example: 'pk:asc,title:desc' or ['pk:asc', 'title:desc'].
+   * @default: 'primaryKey:asc'.
    */
   sort?: string | string[];
 
@@ -131,29 +143,27 @@ type IBaseRepositoryCroppedOptions = Omit<IBaseRepositoryOptions, 'skip' | 'getB
  *  Interface for CRUD controller method options, which influence on adding association data and
  *  response object (whether to create association between tables, or return JOINed result).
  */
-export interface IBaseRepositoryExtendedOptions extends Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort'> {
-  /** Whether it is necessary to associate (create reference) if reference id list provided */
+export interface IBaseRepositoryExtendedOptions
+  extends Transactionable, Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort'> {
+  /** Whether it is necessary to associate (create reference) if reference primaryKeys list provided. Default: true */
   associate?: boolean;
 
   /**
-   *  Whether it should replace associatins w/ new reference list (delete and add).
+   *  Whether it should replace associatins w/ new reference list (remove previos and add new).
    *
-   *  Example for replaceOnJoin: true(default):
+   *  Example for replaceAssociations: true(default):
    *  Model.update({ id: 1, files: [1, 2, 3] }) -> after this query Model will
    *  be associated only w/ files w/ ids [1, 2, 3] even if previously it was associted w/ some others.
    *
-   *  Example for replaceOnJoin: false:
+   *  Example for replaceAssociations: false:
    *  Model.update({ id: 1, files: [1, 2, 3] }) -> after this query Model will be associted w/ those files
    *  it was associated before + new unique ids (if they were unique in provided list).
    *  So if previously Model was associated with [1, 2, 4] Files, after query it will be: [1, 2, 3, 4].
    */
-  replaceOnJoin?: boolean;
+  replaceAssociations?: boolean;
 
   /** Whether to return response data, after adding all associations. If false -> return empty response */
   returnData?: boolean;
-
-  /** Whether it is bulk query. It is necessary for insertAssociations optimizations. */
-  isBulk?: boolean;
 }
 
 /** Interface for possible options of create method */
@@ -180,5 +190,9 @@ export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Par
 /** Type for transaction callback function */
 export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
 
-/** Options for associations insertion */
-export interface IInsertAssociationsOptions extends IBaseRepositoryExtendedOptions { isBulk?: boolean; }
+/**
+ *  Empty interface for TS augumentation in importing module.
+ *
+ *  Example: declare module '@tsrt/sequelize' { export interface IBaseOrderingItem { pk: number; order?: number; } }
+ */
+export interface IBaseOrderingItem { }
