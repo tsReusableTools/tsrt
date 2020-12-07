@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty-express",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Typescript Reusable Tools: Mparty Express Middleware",
   "keywords": [
     "multipart/form-data",
@@ -31,7 +31,7 @@
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "@tsrt/mparty": "^0.3.0",
+    "@tsrt/mparty": "^0.3.2",
     "@types/express": "4.17.9",
     "@types/node": "14.11.8",
     "express": "^4.17.1",

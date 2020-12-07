@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/api-utils",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Typescript Reusable Tools: api-utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -18,7 +18,7 @@
   "dependencies": {
     "@tsrt/logger": "^0.3.0",
     "@tsrt/types": "^0.3.0",
-    "@tsrt/utils": "^0.3.0",
+    "@tsrt/utils": "^0.3.2",
     "http-status": "1.4.2"
   },
   "peerDependencies": {

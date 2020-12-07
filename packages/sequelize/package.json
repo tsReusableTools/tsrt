@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/sequelize",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Typescript Reusable Tools: sequelize",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -19,7 +19,7 @@
   "dependencies": {
     "@tsrt/logger": "^0.3.0",
     "@tsrt/types": "^0.3.0",
-    "@tsrt/utils": "^0.3.0",
+    "@tsrt/utils": "^0.3.2",
     "lodash.clonedeep": "4.5.0",
     "pluralize": "8.0.0"
   },
