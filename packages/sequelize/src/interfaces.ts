@@ -167,10 +167,10 @@ export interface IBaseRepositoryExtendedOptions
 }
 
 /** Interface for possible options of create method */
-export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of bulk create method */
-export type IBulkCreateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+export type IBulkCreateOptions = Omit<ICreateOptions, 'where' | 'limit' | 'filter'>;
 
 /** Interface for possible options of read method */
 export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
