@@ -23,7 +23,7 @@ export class BaseRepository<
   // R extends Partial<I> = Partial<I>,
   R = Partial<I>,
   O extends GenericObject = IBaseOrderingItem,
-  M extends Model & I = Model<I, I> & I,
+  M extends Model & Partial<I> = Model & Partial<I>,
 > {
   protected readonly orderingService: OrderingService<O>;
 
