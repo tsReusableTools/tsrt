@@ -28,7 +28,7 @@ export interface IBaseRepositoryDefaults {
    *  Properties, which would ne stripped while update/create operations.
    *  Default: ['createdAt', 'updatedAt', 'deletedAt'].
    */
-  restrictedProperties: string[],
+  restrictedProperties: string[];
 
   /** Defalt limit param for read operations. Default: 10. */
   limit: number;
