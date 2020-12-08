@@ -24,7 +24,7 @@ export const formUrlEncoded = (query: GenericObject): string => Object
 export const addZero = (data: number): string => (+data < 10 && +data >= 0 ? `0${data}` : `${data}`);
 
 /** Capitalizes provided string */
-export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1).toLowerCase();
+export const capitalize = (str: string): string => str[0].toUpperCase() + str.slice(1);
 
 /** Removes params from provided url */
 export const removeParams = (url: string): string => url.replace(/\?.*/gi, '');
