@@ -9,17 +9,3 @@ export interface IPagedData<T extends GenericObject = GenericObject> {
   nextSkip?: number;
   total?: number;
 }
-
-export interface IOrderingItemDefault {
-  id: number;
-  order?: number;
-}
-
-export interface IOrderingConfig {
-  allowOrdersOutOfRange?: boolean;
-}
-
-export interface IOrderingServiceConfig extends IOrderingConfig {
-  primaryKey?: string;
-  orderKey?: string;
-}

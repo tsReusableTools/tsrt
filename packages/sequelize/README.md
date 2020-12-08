@@ -5,11 +5,18 @@
 Basic Sequlize Connection Factory and BaseRepository build on top of [sequelize](https://www.npmjs.com/package/sequelize) (v5*).
 
 Could be used (and i'm personally recommend) with [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript).
+
+## Important
+
+Until version 1.0.0 Api should be considered as unstable and may be changed.
+
+So prefer using exact version instead of version with `~` or `^`.
+
 ## Usage
 
 More examples could be found in [tests](https://github.com/tsReusableTools/tsrt/tree/master/packages/sequelize/tests).
 
-#### Init connection
+#### Databse connection factory
 
 For example using [sequelize-typescript](https://www.npmjs.com/package/sequelize-typescript) and [PostgreSql](https://www.postgresql.org/):
 
@@ -94,7 +101,7 @@ router.get('/entities', async (req, res) => {
 });
 ```
 
-## Available methods
+## API reference
 
 All methods will create its own transaction, execute all queries inside it and commits/rollback at the end.
 
@@ -266,48 +273,50 @@ For example here we can provide some __tenant__ specific context in a multi-tena
 ##### Example: 
 
 ```ts
-export class CustomRepository<I extends GenericObject, R = Partial<I>, IOrderingItem, M extends Model = Model> extends BaseRepository<I, R, O, M> {
-  protected async provideContext(): Promise<IContext> {
-    // ...retrieve some context, for example using `express-http-context` package. Or `async_hooks`.
-  }
-
+export class CustomRepository<I extends GenericObject, R = Partial<I>, IOrderingItem, M extends Model = Model> extends BaseRepository<I, R, IOrderingItem, M> {
   protected async onAfterQueryBuilt(query?: FindAndCountOptions): Promise<FindAndCountOptions> {
     const context = await this.provideContext();
     // ... altering original `query`;
     return queryWithContext;
   }
 
-  protected async onBeforeCreate(body: R, createOptions?: IBaseRepositoryMethodOptions, through?: GenericObject): Promise<void> {
-    const context = await this.provideContext();
-    if (!context) return;
+  protected async onBeforeCreate(body: R, createOptions?: ICreateOptions, through?: GenericObject): Promise<void> {
+    await this.insertContext(body, createOptions);
+  }
 
-    createOptions.context = context;
-    Object.keys(context).forEach((key) => { body[key] = context[key]; });
+  protected async onBeforeBulkCreate(body: R[], createOptions: ICreateOptions): Promise<void> {
+    await this.insertContext(body, createOptions);
   }
 
   protected async onBeforeUpdate(
     body: Partial<R>, pk?: number | string, updateOptions?: IUpdateOptions, through?: GenericObject,
   ): Promise<void> {
-    const context = await this.provideContext();
-    if (!context) return;
-
-    updateOptions.context = context;
-    Object.keys(context).forEach((key) => { body[key] = context[key]; });
+    await this.insertContext(body, updateoptions);
   }
 
-  protected async onBeforeInsertAssociatedWithEntityDataFromBody(
-    _entity: M, _body: I, _options?: IBaseRepositoryExtendedOptions, through?: GenericObject,
+  protected async onBeforeInsertAssociations(
+    _entity: M, _body: Partial<R>, _inserToptions?: IBaseRepositoryExtendedOptions, through?: GenericObject,
   ): Promise<void> {
-    const context = await this.provideContext();
-    if (!context) return;
-
-    customOptions.context = context;
-    Object.keys(context).forEach((key) => { body[key] = context[key]; });
+    await this.insertContext(through, through);
   }
 
   protected async onBeforeDelete(deleteOptions: IDeleteOptions, pk?: number | string): Promise<void> {
     const context = await this.provideContext();
     if (someCondition) throw new Error('Cannot delete');
+    // ...other logic ...
+  }
+
+  protected async insertContext(target: GenericObject | GenericObject[], options?: GenericObject): Promise<void> {
+    const context = await this.provideContext();
+    if (!context) return;
+
+    if (options) options.context = context;
+    if (!Array.isArray(target)) Object.keys(context).forEach((key) => { target[key] = (context as GenericObject)[key]; });
+    else target.forEach((item) => Object.keys(context).forEach((key) => { item[key] = (context as GenericObject)[key]; }));
+  }
+
+  protected async provideContext(): Promise<IContext> {
+    // ...retrieve some context, for example using `express-http-context` package. Or `async_hooks`.
   }
 }
 
@@ -327,79 +336,112 @@ export const SomeModelRepository = new CustomRepository<ISomeModelInterface, ICr
 ##### Hooks
 
 ```ts
+interface IHooks {
+  /**
+ *  Hook called after query was built.
+ *
+ *  @param [parsedQuery] - Previously parsed query params into Sequelize appropriate find and count options.
+ *
+ *  @note Unlike other hooks should return updated query.
+ */
+onAfterQueryBuilt(parsedQuery?: FindAndCountOptions): Promise<FindAndCountOptions>;
+
 /**
-   *  Hook called after query was built.
-   *
-   *  @param [parsedQuery] - Previously parsed query params into Sequelize appropriate find and count options.
-   *
-   *  @note Unlike other hooks should return updated query.
-   */
-  onAfterQueryBuilt(parsedQuery?: FindAndCountOptions): Promise<FindAndCountOptions> {
-    return { ...parsedQuery };
-  }
+ *  Hook which invokes directly before create operation.
+ *
+ *  @param _body - Body for entity creation.
+ *  @param [_createOptions] - Custom options for record creation.
+ *  @param [_through] - Data to add into association for Many to Many relations.
+ */
+onBeforeCreate(_body: GenericObject, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void>;
 
-  /**
-   *  Hook which invokes directly before create operation.
-   *
-   *  @param _body - Body for entity creation.
-   *  @param [_createOptions] - Custom options for record creation.
-   *  @param [_through] - Data to add into association for Many to Many relations.
-   */
-  onBeforeCreate(_body: GenericObject, _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+/**
+ *  Hook which invokes directly before bulk create operation.
+ *
+ *  @param _body - Body for record creation.
+ *  @param [_createOptions] - Custom options for record creation.
+ *  @param [_through] - Data to add into association for Many to Many relations.
+ */
+onBeforeBulkCreate(_body: GenericObject[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void>;
 
-  /**
-   *  Hook which invokes directly before bulk create operation.
-   *
-   *  @param _body - Body for record creation.
-   *  @param [_createOptions] - Custom options for record creation.
-   *  @param [_through] - Data to add into association for Many to Many relations.
-   */
-  onBeforeBulkCreate(_body: GenericObject[], _createOptions?: ICreateOptions, _through?: GenericObject): Promise<void> { }
+/**
+ *  Hook which invokes directly before read operations.
+ *
+ *  @param [_options] - Read options.
+ *  @param [_pk] - PrimaryKey.
+ */
+onBeforeRead(_options?: IReadOptions, _pk?: string | number | boolean): Promise<void>;
 
-  /**
-   *  Hook which invokes directly before read operations.
-   *
-   *  @param [_options] - Read options.
-   *  @param [_pk] - PrimaryKey.
-   */
-  onBeforeRead(_options?: IReadOptions, _pk?: string | number | boolean): Promise<void> { }
+/**
+ *  Hook which invokes directly before update operation.
+ *
+ *  @param _body - Body for record creation.
+ *  @param _pk - Entity primaryKey or query.
+ *  @param [_updateOptions] - Custom options for record update.
+ *  @param [_through] - Data to add into association for Many to Many relations.
+ *
+ *  @note `_pk` arg could be null.
+ */
+onBeforeUpdate(
+  _body: GenericObject, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
+): Promise<void>;
 
-  /**
-   *  Hook which invokes directly before update operation.
-   *
-   *  @param _body - Body for record creation.
-   *  @param _pk - Entity primaryKey or query.
-   *  @param [_updateOptions] - Custom options for record update.
-   *  @param [_through] - Data to add into association for Many to Many relations.
-   *
-   *  @note `_pk` arg could be null.
-   */
-  onBeforeUpdate(
-    _body: GenericObject, _pk: number | string, _updateOptions?: IUpdateOptions, _through?: GenericObject,
-  ): Promise<void> { }
+/**
+ *  Hook which is called before updating items order.
+ *
+ *  @param _body - Orders changes.
+ *  @param _options - Optional readOptions for getiing range of all items which need to be reordered.
+ */
+onBeforeUpdateItemsOrder<C extends Required<O>>(_body: C[], _readOptions?: IReadOptions): Promise<void>;
 
-  /**
-   *  Hook which invokes directly before delete operation.
-   *
-   *  @param [_deleteOptions] - Custom options for record (s) destroy.
-   *  @param [_pk] - primaryKey.
-   */
-  onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
+/**
+ *  Hook which invokes directly before delete operation.
+ *
+ *  @param [_deleteOptions] - Custom options for record (s) destroy.
+ *  @param [_pk] - primaryKey.
+ */
+onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void>;
 
-  /**
-   *  Hook which fires right before adding associated data.
-   *
-   *  @param _entity - Previously created / updated entity.
-   *  @param _body - Data / body to find associated data in.
-   *  @param [_insertOptions] - Optional params.
-   *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
-   */
-  onBeforeInsertAssociatedWithEntityDataFromBody(
-    _entity: M, _body: GenericObject, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
-  ): Promise<void> { }
+/**
+ *  Hook which fires right before adding associated data.
+ *
+ *  @param _entity - Previously created / updated entity.
+ *  @param _body - Data / body to find associated data in.
+ *  @param [_insertOptions] - Optional params.
+ *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
+ */
+onBeforeInsertAssociations(_entity: M, _body: Partial<R>, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject): Promise<void>;
+
+/**
+ *  Hook which is called before restoring.
+ *
+ *  @param _restoreOptions - Restore options.
+ */
+onBeforeRestore(_restoreOptions: IRestoreOptions): Promise<void>;
+}
 ```
 
 ## Options
+
+
+##### Default BaseRepository options
+
+```ts
+export const defaultBaseRepositoryConfig: IBaseRepositoryConfig = {
+  defaults: {
+    restrictedProperties: ['createdAt', 'updatedAt', 'deletedAt'],
+    limit: 10,
+    logError: process.env.NODE_ENV !== 'production',
+  },
+  orderingServiceOptions: {
+    orderKey: 'order',
+    clampRange: true,
+    insertAfterOnly: true,
+  },
+};
+```
+
+##### All available options
 
 ```ts
 import { CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash, IncludeOptions } from 'sequelize';
@@ -451,7 +493,7 @@ export interface IBaseRepositoryConfig {
   /** Default repository options. */
   defaults: Partial<IBaseRepositoryDefaults>;
 
-  /** Config for OrderingService. */
+  /** Config for OrderingService. @see @tsrt/ordering package for details */
   orderingServiceConfig: IOrderingServiceConfig;
 }
 
@@ -558,8 +600,8 @@ export interface IBaseRepositoryExtendedOptions
    */
   replaceAssociations?: boolean;
 
-  /** Whether to return response data, after adding all associations. If false -> return empty response */
-  returnData?: boolean;
+  /** Whether to return values with associations, after adding them. If false -> returns value without associations. */
+  returnAssociations?: boolean;
 }
 
 /** Interface for possible options of create method */

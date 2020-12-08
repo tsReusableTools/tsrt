@@ -4,6 +4,7 @@ import { SequelizeOptions } from 'sequelize-typescript';
 
 import { Database } from '../src';
 import * as Models from './models';
+import { IContext } from './interfaces';
 
 dotenv.config();
 
@@ -16,4 +17,17 @@ export const databaseConfig: SequelizeOptions = {
   dialect: 'postgres',
   models: Database.getModelsList(Models),
   logging: false,
+};
+
+export const defaultContext: IContext = {
+  contextMockText: 'Hello from context',
+  onAfterQueryBuiltData: 'onAfterQueryBuiltData',
+  onBeforeCreateData: 'onBeforeCreateData',
+  onBeforeBulkCreateData: 'onBeforeBulkCreateData',
+  onBeforeReadData: 'onBeforeReadData',
+  onBeforeUpdateData: 'onBeforeUpdateData',
+  onBeforeUpdateItemsOrderData: 'onBeforeUpdateItemsOrderData',
+  onBeforeInsertAssociationsData: 'onBeforeInsertAssociationsData',
+  onBeforeDeleteData: 'onBeforeDeleteData',
+  onBeforeRestoreData: 'onBeforeRestoreData',
 };

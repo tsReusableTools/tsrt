@@ -1,5 +1,4 @@
 import { Sequelize, SequelizeOptions, ModelCtor } from 'sequelize-typescript';
-import { log } from '@tsrt/logger';
 import { getObjectValuesList } from '@tsrt/utils';
 
 import { IDatabaseConfig } from './interfaces';
@@ -60,7 +59,7 @@ export class Database {
 
       await this._connection.authenticate({ logging: false });
       if (logConnectionInfo) {
-        log.info(
+        console.log(
           'Database connection established: \n'
           + `host: ${host} \n`
           + `port: ${port} \n`
@@ -75,7 +74,7 @@ export class Database {
 
       return this.connection;
     } catch (err) {
-      log.error(err, 'Error occured while connecting / syncing to the database');
+      console.error('Error occured while connecting / syncing to the database: \n', err);
     }
   }
 

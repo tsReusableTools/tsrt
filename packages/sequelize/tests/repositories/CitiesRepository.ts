@@ -1,4 +1,4 @@
-import { BaseRepository } from '../../src';
-import { City, ICityEntity, ICityWithAssociations, IOrderingItem } from '../models';
+import { City, ICityEntity, ICityWithAssociations } from '../models';
+import { CustomBaseRepository } from './CustomBaseRepository';
 
-export const CitiesRepository = new BaseRepository<ICityEntity, ICityWithAssociations, IOrderingItem>(City);
+export const CitiesRepository = new CustomBaseRepository<ICityEntity, ICityWithAssociations>(City);

@@ -1,19 +1,16 @@
 import cloneDeep from 'lodash.clonedeep';
+import { parseTypes, range, clamp, throwHttpError, isNil } from '@tsrt/utils';
 
-import { parseTypes, range, clamp } from './utils';
-import { throwHttpError } from './HttpError';
-import { isNil } from './objectUtils';
-import { IOrderingConfig, IOrderingServiceConfig, IOrderingItemDefault } from './types';
+import { IOrderingOptions, IOrderingServiceOptions, IOrderingItemDefault } from './types';
+import { defaultOptions } from './utils';
 
-const defaultConfig: IOrderingServiceConfig = { primaryKey: 'id', orderKey: 'order', allowOrdersOutOfRange: false };
+export class OrderingService<T extends GenericObject = IOrderingItemDefault> {
+  protected readonly _options: IOrderingServiceOptions;
 
-export class OrderingService<T extends GenericObject> {
-  private readonly _config: IOrderingServiceConfig;
-
-  constructor(config?: IOrderingServiceConfig) {
-    this._config = { ...defaultConfig, ...config };
-    if (!this._config.primaryKey) this._config.primaryKey = defaultConfig.primaryKey;
-    if (!this._config.orderKey) this._config.orderKey = defaultConfig.orderKey;
+  constructor(options?: IOrderingServiceOptions) {
+    this._options = { ...defaultOptions, ...options };
+    if (!this._options.primaryKey) this._options.primaryKey = defaultOptions.primaryKey;
+    if (!this._options.orderKey) this._options.orderKey = defaultOptions.orderKey;
   }
 
   /**
@@ -25,12 +22,16 @@ export class OrderingService<T extends GenericObject> {
    *  @returns list, reordered according to provided order changes.
    */
   public reorder<I extends T = T>(
-    target: I[], listOfOrdersChanges: Array<Required<T>> = [], config: IOrderingConfig = { },
+    target: I[], listOfOrdersChanges: Array<Required<T>> = [], config: IOrderingOptions = { },
   ): Array<I & Required<T>> {
-    const { allowOrdersOutOfRange = this._config?.allowOrdersOutOfRange } = config;
+    const {
+      allowOrdersOutOfRange = this._options.allowOrdersOutOfRange,
+      refreshSequence = this._options.refreshSequence,
+      clampRange = this._options.clampRange,
+    } = config;
 
     let result = this.reorderIfHasDuplicateOrEmptyOrders(target);
-    if (!listOfOrdersChanges?.length) return result;
+    if (!listOfOrdersChanges?.length) return refreshSequence ? this.refreshSequence(result) : result;
 
     this.hasInvalidOrderingItems(listOfOrdersChanges, true);
 
@@ -40,8 +41,10 @@ export class OrderingService<T extends GenericObject> {
       const prevItem = result.find((item) => item[this.pk] === newItem[this.pk]);
       if (!prevItem) throwHttpError.badRequest(`Invalid item with '${this.pk}' = ${newItem[this.pk]}`);
 
-      const { [this.order]: newOrder } = newItem;
+      let { [this.order]: newOrder } = newItem;
       const { [this.order]: prevOrder } = prevItem;
+
+      if (clampRange) newOrder = clamp(newOrder, max, min) as T[string];
 
       if ((newOrder > max || newOrder < min) && !allowOrdersOutOfRange) {
         throwHttpError.badRequest(`'${this.order}' = ${newItem[this.order]} is out of range: [${min}, ${max}]`);
@@ -58,16 +61,18 @@ export class OrderingService<T extends GenericObject> {
         .sort((a, b) => a[this.order] - b[this.order]);
     });
 
-    return this.reorderIfHasDuplicateOrEmptyOrders(result);
+    const withoutDuplicates = this.reorderIfHasDuplicateOrEmptyOrders(result);
+    return refreshSequence ? this.refreshSequence(withoutDuplicates) : withoutDuplicates;
   }
 
   /**
    *  Reorders target, depending on position of reordered item.
+   *  Returns new array and does not mutate original array unless `updateTarget` falg is provided.
    *
-   *  @param target - Reordered array of items.
-   *  @param id - Reordered item primaryKey.
-   *  @param prevIndex - Reordered item prev index.
-   *  @param newIndex - Reordered item new index.
+   *  @param target - Original array.
+   *  @param prevIndex - Item to reorder prev (from) index.
+   *  @param newIndex - Item to reorder new (to) index.
+   *  @param [updateTarget] - Whether to mutate original array.
    */
   public reorderByIndex<I extends Required<T> = Required<T>>(
     target: I[], prevIndex: number, newIndex: number, updateTarget = false,
@@ -100,10 +105,12 @@ export class OrderingService<T extends GenericObject> {
 
   /**
    *  Moves item form prevIndex to newIndex inside array.
+   *  Returns new array and does not mutate original array unless `updateTarget` falg is provided.
    *
-   *  @param target Array in which to move the item.
-   *  @param prevIndex Starting index of the item.
-   *  @param newIndex Index to which the item should be moved.
+   *  @param target - Original array.
+   *  @param prevIndex - Item to move prev (from) index.
+   *  @param newIndex - Item to move new (to) index.
+   *  @param [updateTarget] - Whether to mutate original array.
    */
   public moveItemInArray<I extends T = T>(target: I[], prevIndex: number, newIndex: number, updateTarget = false): I[] {
     const result = this.moveItemInArrayExtended(target, prevIndex, newIndex, updateTarget);
@@ -111,33 +118,9 @@ export class OrderingService<T extends GenericObject> {
   }
 
   /**
-   *  Returns new array w/ valid orders for those items without orders or w/ duplicates.
-   *
-   *  @param target - Target array.
-   */
-  public reorderIfHasDuplicateOrEmptyOrders<I extends T = T>(target: I[]): Array<I & Required<T>> {
-    if (!this.hasDuplicateOrEmptyOrders(target)) return target as Array<I & Required<T>>;
-
-    const parsed = parseTypes(target);
-    let orders = this.getUniqueValues(parsed.map((item) => item[this.order]));
-    let order: number;
-
-    return parsed
-      .map((item, i) => {
-        const isDuplicate = parsed.find((unit, j) => j < i && unit[this.order] === item[this.order]);
-        const isEmpty = !Object.hasOwnProperty.call(item, this.order) || isNil(item[this.order]);
-        if (!isDuplicate && !isEmpty) return item;
-        [order, orders] = this.getUniqueValue(orders);
-        return { ...item, [this.order]: order };
-      })
-      .sort((a, b) => a[this.order] - b[this.order]) as Array<I & Required<T>>;
-  }
-
-  /**
    *  Checks whether provided array has items without order / empty orders. If has - returns first such item.
    *
    *  @param target - Target array.
-   *  @param [throwError=true] - Whether to throw an Error instead of returing invalid item.
    */
   public hasDuplicateOrEmptyOrders<I extends T = T>(target: I[]): I {
     const invalidItem = this.hasInvalidOrderingItems(target);
@@ -157,8 +140,15 @@ export class OrderingService<T extends GenericObject> {
   /**
    *  Checks whether provided array has invalid items. If has - returns first such item.
    *
+   *  Invalid if at least for 1 item inside array one of next conditions is true:
+   *  - item is null/undefined/not object;
+   *  - item has no `primarKey` property;
+   *  - item has no `orderKey` property (only is `strict` mode);
+   *  - item `orderKey` property is not null/undefined and not number;
+   *  - item `orderKey` property is not null/undefined and less than 0;
+   *
    *  @param target - Target array.
-   *  @param [throwError=true] - Whether to throw an Error instead of returing invalid item.
+   *  @param [strict=false] - Whether to throw an Error if there is no `order` property for at least 1 item.
    */
   public hasInvalidOrderingItems<I extends T = T>(target: I[], strict = false): I {
     this.throwErrorIfNotArray(target);
@@ -180,7 +170,37 @@ export class OrderingService<T extends GenericObject> {
     return found;
   }
 
-  private moveItemInArrayExtended<I extends T = T>(
+  protected refreshSequence<I extends T = T>(target: I[]): I[] {
+    return target
+      .sort((a, b) => a[this.order] - b[this.order])
+      .map((item, i) => ({ ...item, [this.order]: i }));
+  }
+
+  /**
+   *  Returns new array w/ valid orders for those items without orders or w/ duplicates.
+   *
+   *  @param target - Target array.
+   */
+  protected reorderIfHasDuplicateOrEmptyOrders<I extends T = T>(target: I[], config: IOrderingOptions = { }): Array<I & Required<T>> {
+    if (!this.hasDuplicateOrEmptyOrders(target)) return target as Array<I & Required<T>>;
+    const { insertAfterOnly = this._options.insertAfterOnly } = config;
+
+    const parsed = parseTypes(target);
+    let orders = this.getUniqueValues(parsed.map((item) => item[this.order]));
+    let order: number;
+
+    return parsed
+      .map((item, i) => {
+        const isDuplicate = parsed.find((unit, j) => j < i && unit[this.order] === item[this.order]);
+        const isEmpty = !Object.hasOwnProperty.call(item, this.order) || isNil(item[this.order]);
+        if (!isDuplicate && !isEmpty) return item;
+        [order, orders] = this.getUniqueValue(orders, insertAfterOnly);
+        return { ...item, [this.order]: order };
+      })
+      .sort((a, b) => a[this.order] - b[this.order]) as Array<I & Required<T>>;
+  }
+
+  protected moveItemInArrayExtended<I extends T = T>(
     target: I[], prevIndex: number, newIndex: number, updateTarget = false,
   ): { from: number; to: number; item: I; array: I[] } {
     this.throwErrorIfNotArray(target);
@@ -198,22 +218,23 @@ export class OrderingService<T extends GenericObject> {
     return { from, to, item, array };
   }
 
-  private get pk(): string { return this._config?.primaryKey; }
+  protected get pk(): string { return this._options?.primaryKey; }
 
-  private get order(): string { return this._config?.orderKey; }
+  protected get order(): string { return this._options?.orderKey; }
 
-  private get confgiIsMsg(): string { return `Config is: ${JSON.stringify(this._config)}`; }
+  protected get confgiIsMsg(): string { return `Config is: ${JSON.stringify(this._options)}`; }
 
-  private getUniqueValues(target: number[]): number[] { return Array.from(new Set(target)).filter((item) => !isNil(item)); }
+  protected getUniqueValues(target: number[]): number[] { return Array.from(new Set(target)).filter((item) => !isNil(item)); }
 
-  private getUniqueValue(values: number[]): [number, number[]] {
+  protected getUniqueValue(values: number[], insertAfterOnly = false): [number, number[]] {
     const { min, max } = this.getOrderRange(values);
+    if (insertAfterOnly) return [max + 1, values.concat(max + 1)];
     let unique = range(min, max).find((item) => !values.includes(item));
     if (isNil(unique)) unique = min > 0 ? min - 1 : max + 1;
     return [unique, values.concat(unique)];
   }
 
-  private getOrderRange(target: number[] = []): { min: number; max: number } {
+  protected getOrderRange(target: number[] = []): { min: number; max: number } {
     let min = target[0] ?? 0;
     let max = target[0] ?? 0;
 
@@ -226,19 +247,16 @@ export class OrderingService<T extends GenericObject> {
     return { min, max };
   }
 
-  private throwErrorIfNotArray<I>(target: I[]): void {
+  protected throwErrorIfNotArray<I>(target: I[]): void {
     const message = 'Invalid argument provided. It should be a valid Array';
     if (!Array.isArray(target)) throwHttpError({ status: 400, data: message, message });
   }
 }
 
-export const orderingService = new OrderingService<IOrderingItemDefault>();
-
 export const {
   moveItemInArray,
   reorder,
   reorderByIndex,
-  reorderIfHasDuplicateOrEmptyOrders,
   hasDuplicateOrEmptyOrders,
   hasInvalidOrderingItems,
-} = orderingService;
+} = new OrderingService();

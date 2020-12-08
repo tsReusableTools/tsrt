@@ -1,3 +1,29 @@
+## 0.4.0
+
+### New features
+
+- __[@tsrt/ordering]__ Moved `OrderingService` to separate package.
+- __[@tsrt/ordering]__ Added `clampRange`, `insertAfterOnly` and `refreshSequence` [options](https://www.npmjs.com/package/@tsrt/ordering#options).
+
+<br />
+
+- __[@tsrt/sequelize]__ Added `onBeforeRestore` and `onBeforeUpdateItemsOrder` hooks.
+- __[@tsrt/sequelize]__ Improved working w/ nested transaction.
+- __[@tsrt/sequelize]__ Added tests for `CustomRepository` which extends `BaseRepository` and `Hooks`.
+- __[@tsrt/sequelize]__ Improved docs.
+
+
+### Bugfixes
+
+- __[@tsrt/utils]__ Fixed `parseTypes` method: parsing numbers.
+
+### Breaking changes
+
+- __[@tsrt/sequelize]__ Renamed `returnData` flag into `returnAssociations`.
+- __[@tsrt/sequelize]__ Renamed `onBeforeInsertAssociatedWithEntityDataFromBody` hook into `onBeforeInsertAssociations`.
+
+---
+
 ## 0.3.0
 
 ### New features
@@ -5,6 +31,8 @@
 - __[@tsrt/utils]__ Totally refactored reordering utils. Old utils are now marked as deprecated and will be removed in future.
 - __[@tsrt/utils]__ New customizable OrderingService w/ optimized and improved abilities (_maybe will be moved to separate package in future_).
 - __[@tsrt/utils]__ OrderingService accepts `GenericOrderingItemType` and options for `primaryKey`, `orderKey`, `allowOrdersOutOfRange`.
+
+<br />
 
 - __[@tsrt/sequelize]__ Updated signatures update/onBeforeUpdate/onBeforeCreate/onBeforeBulkCreate methods.
 - __[@tsrt/sequelize]__ Added ability for update method to proceed not only w/ primaryKey, but also updateOptions insead. For example for multiple rows updates.

@@ -6,8 +6,10 @@ export const defaultBaseRepositoryConfig: IBaseRepositoryConfig = {
     limit: 10,
     logError: process.env.NODE_ENV !== 'production',
   },
-  orderingServiceConfig: {
+  orderingServiceOptions: {
     orderKey: 'order',
+    clampRange: true,
+    insertAfterOnly: true,
   },
 };
 

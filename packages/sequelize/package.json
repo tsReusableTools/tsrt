@@ -17,21 +17,21 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/logger": "^0.3.0",
     "@tsrt/types": "^0.3.0",
     "@tsrt/utils": "^0.3.2",
+    "@tsrt/ordering": "^0.3.2",
     "lodash.clonedeep": "4.5.0",
     "pluralize": "8.0.0"
   },
   "peerDependencies": {
     "reflect-metadata": "*",
-    "sequelize": "^5.22.2",
-    "sequelize-typescript": "^1.1.0"
+    "sequelize": "^5.22.2"
   },
   "optionalDependencies": {
     "@types/pg": "^7.14.3",
     "pg": "^8.2.1",
-    "pg-hstore": "^2.3.3"
+    "pg-hstore": "^2.3.3",
+    "sequelize-typescript": "^1.1.0"
   },
   "devDependencies": {
     "@types/bluebird": "^3.5.32",

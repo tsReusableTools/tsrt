@@ -12,14 +12,17 @@ export class Provider extends BaseEntity<IProviderEntity> implements IProviderEn
   @AllowNull(false) @Column(DataType.STRING(128))
   public phone: string;
 
+  @Column(DataType.STRING(128))
+  public contextMockText: string;
+
   @BelongsToMany(() => City, 'ProviderCities', 'providerId', 'cityId')
-  // @BelongsToMany(() => Provider, { through: 'ProviderCities', foreignKey: 'providerId', otherKey: 'cityId', uniqueKey: 'id' })
   public cities?: ICityEntity[];
 }
 
 export interface IProvider {
   title: string;
   phone: string;
+  contextMockText?: string;
 }
 
 export interface IProviderEntity extends IProvider, IBaseEntity {

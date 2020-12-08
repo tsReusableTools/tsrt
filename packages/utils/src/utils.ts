@@ -189,7 +189,10 @@ export function regExpExcludedStrings(str: string | string[]): RegExp {
  *  @param timeout - Timeout for delay.
  *  @param [cbOrData] - Optional data or callback, to be executed after delay.
  */
-export async function delay<T>(timeout: number, cbOrData?: T | (() => Promise<T | void>)): Promise<T | void> {
+export async function delay(timeout: number): Promise<void>;
+export async function delay<T>(timeout: number, cb?: () => Promise<T> | T): Promise<T>;
+export async function delay<T>(timeout: number, data?: T): Promise<T>;
+export async function delay<T>(timeout: number, cbOrData?: T | (() => Promise<T> | T)): Promise<T> {
   return new Promise((resolve, reject) => setTimeout(async () => {
     if (typeof cbOrData !== 'function') return resolve(cbOrData);
     try {

@@ -1,15 +1,15 @@
 import {
   ModelCtor, Model, Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
-  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions, Transaction, TransactionOptions,
+  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions, Transaction,
+  TransactionOptions, Transactionable,
 } from 'sequelize';
-// import { ModelCtor, Model } from 'sequelize-typescript';
 import { singular } from 'pluralize';
 import cloneDeep from 'lodash.clonedeep';
 
 import {
-  IPagedData, isEmpty, capitalize, parseTypes, throwHttpError, createPagedData, OrderingService, HttpError, isNil,
+  IPagedData, isEmpty, capitalize, parseTypes, throwHttpError, createPagedData, HttpError, isNil,
 } from '@tsrt/utils';
-import { log } from '@tsrt/logger';
+import { OrderingService } from '@tsrt/ordering';
 
 import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
@@ -33,7 +33,7 @@ export class BaseRepository<
   ) {
     const {
       defaults: { limit, order, restrictedProperties, logError },
-      orderingServiceConfig: { orderKey },
+      orderingServiceOptions: { orderKey },
     } = defaultBaseRepositoryConfig;
 
     if (!this.config) this.config = defaultBaseRepositoryConfig;
@@ -43,9 +43,9 @@ export class BaseRepository<
     if (!this.config.defaults.logError) this.config.defaults.logError = logError;
     if (!this.config.defaults.restrictedProperties) this.config.defaults.restrictedProperties = restrictedProperties;
 
-    if (!this.config.orderingServiceConfig) this.config.orderingServiceConfig = defaultBaseRepositoryConfig.orderingServiceConfig;
-    if (!this.config.orderingServiceConfig.orderKey) this.config.orderingServiceConfig.orderKey = orderKey;
-    this.orderingService = new OrderingService<O>({ ...this.config.orderingServiceConfig, primaryKey: this.pk });
+    if (!this.config.orderingServiceOptions) this.config.orderingServiceOptions = defaultBaseRepositoryConfig.orderingServiceOptions;
+    if (!this.config.orderingServiceOptions.orderKey) this.config.orderingServiceOptions.orderKey = orderKey;
+    this.orderingService = new OrderingService<O>({ ...this.config.orderingServiceOptions, primaryKey: this.pk });
   }
 
   public get pk(): string { return this.model.primaryKeyAttribute; }
@@ -78,9 +78,8 @@ export class BaseRepository<
    */
   public async create(body: R, createOptions: ICreateOptions = { }, through: GenericObject = { }): Promise<I> {
     if (isNil(body)) throwHttpError.badRequest('Body should not be null or undefined');
-    const transaction = createOptions?.transaction ?? await this.createTransaction();
 
-    try {
+    return this.handleQueryExecution(createOptions, async (transaction) => {
       const customOptions: ICreateOptions = cloneDeep(createOptions);
       await this.onBeforeCreate(body, customOptions, through);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
@@ -89,12 +88,8 @@ export class BaseRepository<
 
       const created = await this.model.create<M>(dataToSave, { ...options, where, transaction } as CreateOptions);
       const result = await this.insertAssociations(created, dataToSave, { ...customOptions, transaction }, through);
-      if (!createOptions?.transaction) await transaction.commit();
       return result;
-    } catch (err) {
-      if (!createOptions?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -108,9 +103,8 @@ export class BaseRepository<
     body: R[], createOptions?: IBulkCreateOptions, through?: GenericObject,
   ): Promise<I[]> {
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to create.');
-    const transaction = createOptions?.transaction ?? await this.createTransaction();
 
-    try {
+    return this.handleQueryExecution(createOptions, async (transaction) => {
       if (body.find((item) => isNil(item))) throwHttpError.badRequest('Body should not be null or undefined');
 
       const customOptions: ICreateOptions = cloneDeep(createOptions);
@@ -122,13 +116,8 @@ export class BaseRepository<
       const insertOptions = { ...options, transaction };
       const result = await Promise.all(results.map((item, i) => this.insertAssociations(item, dataToSave[i], insertOptions, through)));
 
-      if (!createOptions?.transaction) await transaction.commit();
-      if (createOptions && !createOptions.returnData) return;
       return result;
-    } catch (err) {
-      if (!createOptions?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -143,7 +132,6 @@ export class BaseRepository<
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
   public async read(pk?: number | string, readOptions?: IReadOptions): Promise<I>;
   public async read(readOptionsOrPk: number | string | IReadOptions = { }, readOptions?: IReadOptions): Promise<I | IPagedData<I>> {
-    // Make type checking due to method overloading
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
     return genericPk ? this.readOne(genericPk, genericOptions) : this.readMany(genericOptions);
   }
@@ -160,11 +148,9 @@ export class BaseRepository<
   public async readOne(readOptions: IReadOptions): Promise<I>;
   public async readOne(pk: number | string, readOptions?: IReadOptions): Promise<I>;
   public async readOne(readOptionsOrPk: number | string | IReadOptions, readOptions?: IReadOptions): Promise<I> {
-    // Make type checking due to method overloading
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
-    const transaction = genericOptions?.transaction ?? await this.createTransaction();
 
-    try {
+    return this.handleQueryExecution(genericOptions, async (transaction) => {
       await this.onBeforeRead(genericOptions, genericPk);
 
       const parsedQuery = await this.buildQuery(genericOptions, genericPk);
@@ -181,12 +167,8 @@ export class BaseRepository<
         if (reordered) return this.readOne(genericPk, { ...genericOptions, transaction });
       }
 
-      if (!genericOptions?.transaction) await transaction.commit();
       return value;
-    } catch (err) {
-      if (!genericOptions?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -198,9 +180,7 @@ export class BaseRepository<
    *  have valid `orderKey` (no NULL(s) and duplicates).
    */
   public async readMany(readOptions: IReadOptions = { }): Promise<IPagedData<I>> {
-    const transaction = readOptions?.transaction ?? await this.createTransaction();
-
-    try {
+    return this.handleQueryExecution(readOptions, async (transaction) => {
       const options = { ...readOptions };
 
       await this.onBeforeRead(options);
@@ -222,12 +202,8 @@ export class BaseRepository<
         if (reordered) return this.readMany({ ...options, transaction });
       }
 
-      if (!readOptions?.transaction) await transaction.commit();
       return createPagedData(value, total || result.count, findQuery);
-    } catch (err) {
-      if (!readOptions?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -243,14 +219,12 @@ export class BaseRepository<
   public async update(
     body: Partial<R>, updateOptionsOrPk: number | string | IUpdateOptions, updateOptions?: IUpdateOptions, through: GenericObject = { },
   ): Promise<I | I[]> {
-    // Make type checking due to method overloading
+    if (!updateOptionsOrPk) throwHttpError.badRequest('Please, provide valid primaryKey or updateOptions');
+
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(updateOptionsOrPk, updateOptions);
     const genericThrough: GenericObject = (typeof updateOptionsOrPk === 'object' ? updateOptions : through) ?? { };
-    const transaction = genericOptions?.transaction ?? await this.createTransaction();
 
-    try {
-      if (!updateOptionsOrPk) throwHttpError.badRequest('Please, provide valid primaryKey or updateOptions');
-
+    return this.handleQueryExecution(genericOptions, async (transaction) => {
       await this.onBeforeUpdate(body, genericPk, genericOptions, genericThrough);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
       const { where } = await this.buildQuery(genericOptions, genericPk);
@@ -265,15 +239,10 @@ export class BaseRepository<
       if (!updated || (Array.isArray(updated) && !updated?.length)) throwHttpError.notFound();
 
       const insertOptions = { ...genericOptions, transaction };
-      const result = !Array.isArray(updated)
-        ? await this.insertAssociations(updated, dataToSave, insertOptions, genericThrough)
-        : await Promise.all(updated.map((i) => this.insertAssociations(i, dataToSave, insertOptions, genericThrough)));
-      if (!genericOptions?.transaction) await transaction.commit();
-      return result;
-    } catch (err) {
-      if (!genericOptions?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+      return !Array.isArray(updated)
+        ? this.insertAssociations(updated, dataToSave, insertOptions, genericThrough)
+        : Promise.all(updated.map((i) => this.insertAssociations(i, dataToSave, insertOptions, genericThrough)));
+    });
   }
 
   /**
@@ -285,9 +254,8 @@ export class BaseRepository<
    */
   public async bulkUpdate(body: Array<Partial<R>>, updateOptions?: IBulkUpdateOptions, through?: GenericObject): Promise<I[]> {
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
-    const transaction = updateOptions?.transaction ?? await this.createTransaction();
 
-    try {
+    return this.handleQueryExecution(updateOptions, async (transaction) => {
       const results: I[] = [];
 
       for (const item of body) {
@@ -298,14 +266,8 @@ export class BaseRepository<
         results.push(result);
       }
 
-      if (!updateOptions?.transaction) await transaction.commit();
-      if (updateOptions && !updateOptions.returnData) return;
       return results;
-    } catch (err) {
-      if (!updateOptions?.transaction) await transaction.rollback();
-      if (err instanceof HttpError) throw err;
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -322,9 +284,9 @@ export class BaseRepository<
       );
     }
     if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
-    const transaction = options?.transaction ?? await this.createTransaction();
 
-    try {
+    return this.handleQueryExecution(options, async (transaction) => {
+      await this.onBeforeUpdateItemsOrder(body, options);
       const parsedQuery = await this.buildQuery({ ...options, limit: 'none' });
       const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
       const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
@@ -339,12 +301,8 @@ export class BaseRepository<
         await this.model.update({ [this.orderKey]: item[this.orderKey] }, { where: { [this.pk]: item[this.pk] }, transaction });
       }
 
-      if (!options?.transaction) await transaction.commit();
       return reordered as unknown as I[];
-    } catch (err) {
-      if (!options?.transaction) await transaction.rollback();
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -357,23 +315,19 @@ export class BaseRepository<
   public async delete(deleteOptions: IDeleteOptions): Promise<string>;
   public async delete(pk: string | number, deleteOptions?: IDeleteOptions): Promise<string>;
   public async delete(deleteOptionsOrPk: string | number | IDeleteOptions, deleteOptions?: IDeleteOptions): Promise<string> {
-    try {
-      if (!deleteOptionsOrPk) throwHttpError.badRequest('Please, provide at least valid primaryKey or deleteOptions');
+    if (!deleteOptionsOrPk) throwHttpError.badRequest('Please, provide at least valid primaryKey or deleteOptions');
+    const { genericPk, genericOptions } = this.getGenericOptionsAndPk(deleteOptionsOrPk, deleteOptions, { cascade: true });
 
-      // Make type checking due to method overloading
-      const { genericPk, genericOptions } = this.getGenericOptionsAndPk(deleteOptionsOrPk, deleteOptions, { cascade: true });
-
+    return this.handleQueryExecution(genericOptions, async (transaction) => {
       await this.onBeforeDelete(genericOptions, genericPk);
       const { where } = await this.buildQuery(genericOptions, genericPk) as UpdateOptions;
       const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
 
-      const result = await this.model.destroy({ ...options, where });
+      const result = await this.model.destroy({ ...options, where, transaction });
       if (!result) throwHttpError.badRequest(`Incorrect condition(s): ${JSON.stringify(where)}`);
 
       return genericPk ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by multiple conditions.';
-    } catch (err) {
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /**
@@ -410,15 +364,13 @@ export class BaseRepository<
    *  @param [restoreOptions] - Custom options for restore operation.
    */
   public async restore(restoreOptions?: IRestoreOptions): Promise<string> {
-    try {
+    return this.handleQueryExecution(restoreOptions, async (transaction) => {
+      await this.onBeforeRestore(restoreOptions);
       const { where } = await this.buildQuery(restoreOptions);
       const options = this.retrieveSequelizeStaticMethodOptions(restoreOptions);
-
-      await this.model.restore({ ...options, where });
+      await this.model.restore({ ...options, where, transaction });
       return `Successfully restores by conditions(s): ${JSON.stringify(where)}`;
-    } catch (err) {
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   // Hooks section //
@@ -477,12 +429,12 @@ export class BaseRepository<
   ): Promise<void> { }
 
   /**
-   *  Hook which invokes directly before delete operation.
+   *  Hook which is called before updating items order.
    *
-   *  @param [_deleteOptions] - Custom options for record (s) destroy.
-   *  @param [_pk] - primaryKey.
+   *  @param _body - Orders changes.
+   *  @param _options - Optional readOptions for getiing range of all items which need to be reordered.
    */
-  protected async onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
+  protected async onBeforeUpdateItemsOrder<C extends Required<O>>(_body: C[], _readOptions: IReadOptions = { }): Promise<void> { }
 
   /**
    *  Hook which fires right before adding associated data.
@@ -492,9 +444,24 @@ export class BaseRepository<
    *  @param [_insertOptions] - Optional params.
    *  @param [_through] - Data which should be added into associated entities (for Many to Many relations).
    */
-  protected async onBeforeInsertAssociatedWithEntityDataFromBody(
-    _entity: M, _body: GenericObject, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
+  protected async onBeforeInsertAssociations(
+    _entity: M, _body: Partial<R>, _insertOptions?: IBaseRepositoryExtendedOptions, _through?: GenericObject,
   ): Promise<void> { }
+
+  /**
+   *  Hook which invokes directly before delete operation.
+   *
+   *  @param [_deleteOptions] - Custom options for record (s) destroy.
+   *  @param [_pk] - primaryKey.
+   */
+  protected async onBeforeDelete(_deleteOptions: IDeleteOptions, _pk?: number | string): Promise<void> { }
+
+  /**
+   *  Hook which is called before restoring.
+   *
+   *  @param _restoreOptions - Restore options.
+   */
+  protected async onBeforeRestore(_restoreOptions: IRestoreOptions): Promise<void> { }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */
 
@@ -503,7 +470,21 @@ export class BaseRepository<
   }
 
   protected get orderKey(): string {
-    return this.config.orderingServiceConfig?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceConfig.orderKey;
+    return this.config.orderingServiceOptions?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceOptions.orderKey;
+  }
+
+  protected async handleQueryExecution<T extends Transactionable, C>(options: T, cb: (t?: Transaction) => Promise<C>): Promise<C> {
+    const transaction = options?.transaction ?? await this.createTransaction();
+
+    try {
+      const result = await cb(transaction);
+      if (!options?.transaction) await transaction.commit();
+      return result;
+    } catch (err) {
+      if (!options?.transaction) await transaction.rollback();
+      if (err instanceof HttpError) throw err;
+      this.throwCustomSequelizeError(err);
+    }
   }
 
   protected removeRestrictedPropertiesFromBody(body: Partial<R> = { }): Partial<R> {
@@ -752,28 +733,29 @@ export class BaseRepository<
    *  @param [through] - Data which should be added into associated entities (for Many to Many relations).
    */
   private async insertAssociations(
-    entity: M, body: GenericObject, options?: IBaseRepositoryExtendedOptions, through: GenericObject = { },
+    entity: M, body: Partial<R>, options?: IBaseRepositoryExtendedOptions, through: GenericObject = { },
   ): Promise<I> {
     try {
       if (!entity || !(entity as GenericObject)[this.pk]) return entity as unknown as I;
 
-      await this.onBeforeInsertAssociatedWithEntityDataFromBody(entity, body, options, through);
+      await this.onBeforeInsertAssociations(entity, body, options, through);
 
-      const insertionOptions: IBaseRepositoryExtendedOptions = { associate: true, replaceAssociations: true, returnData: true, ...options };
-      const data = isEmpty(through) ? { } : { through: { ...through } };
+      const insertionOptions: IBaseRepositoryExtendedOptions = {
+        associate: true, replaceAssociations: true, returnAssociations: true, ...options,
+      };
       let include: Array<string | IncludeOptions> = [];
       const promises: Array<Promise<void>> = [];
 
       Object.keys(this.model.associations).forEach((key) => {
-        if (!body || !Object.keys(body).includes(key) || !body[key]) return;
+        if (!body || !Object.keys(body).includes(key) || !(body as GenericObject)[key]) return;
         // if (!body && !Array.isArray(body[key]) && !Array.isArray(body[`${key}${this.defaults.relationPksSuffix}`])) return;
         include.push(key);
-        promises.push(this.addOrRemoveAssociation(entity, key, data, body[key], insertionOptions));
+        promises.push(this.addOrRemoveAssociation(entity, key, { ...through } ?? { }, (body as GenericObject)[key], insertionOptions));
       });
 
       if (promises.length) await Promise.all(promises);
       if (insertionOptions.include) include = include.concat(insertionOptions.include).filter(Boolean);
-      if (!insertionOptions.returnData) { return; }
+      if (!insertionOptions.returnAssociations) { return; }
 
       return this.readOne(this.mapSequelizeModelToPlainObject(entity)[this.pk], { ...options, include });
     } catch (err) {
@@ -918,7 +900,7 @@ export class BaseRepository<
 
   /* eslint-disable-next-line */
   protected createCustomSequelizeError(err: any): any {
-    if (this.defaults.logError) log.debug(err, 'Error occured in BaseRepository');
+    if (this.defaults.logError) console.warn('Error occured in BaseRepository: \n', err);
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
     return customError;

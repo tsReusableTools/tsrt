@@ -9,6 +9,8 @@ Basic configurable Application built on top of awesome `express` framework.
 
 Until version 1.0.0 Api should be considered as unstable and may be changed.
 
+So prefer using exact version instead of version with `~` or `^`.
+
 ## Usage
 
 ```ts

@@ -3,7 +3,7 @@ import {
   CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
   IncludeOptions, FindAndCountOptions, Transaction, Sequelize, Transactionable,
 } from 'sequelize';
-import { IOrderingServiceConfig } from '@tsrt/utils';
+import { IOrderingServiceOptions } from '@tsrt/ordering';
 
 /** Database factory config */
 export interface IDatabaseConfig {
@@ -56,7 +56,7 @@ export interface IBaseRepositoryConfig {
   defaults: Partial<IBaseRepositoryDefaults>;
 
   /** Config for OrderingService. */
-  orderingServiceConfig: IOrderingServiceConfig;
+  orderingServiceOptions: IOrderingServiceOptions;
 }
 
 export interface IBaseRepositoryOptions {
@@ -162,8 +162,8 @@ export interface IBaseRepositoryExtendedOptions
    */
   replaceAssociations?: boolean;
 
-  /** Whether to return response data, after adding all associations. If false -> return empty response */
-  returnData?: boolean;
+  /** Whether to return values with associations, after adding them. If false -> returns value without associations. */
+  returnAssociations?: boolean;
 }
 
 /** Interface for possible options of create method */
