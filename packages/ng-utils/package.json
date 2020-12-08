@@ -28,7 +28,8 @@
   "dependencies": {
     "@tsrt/http": "^0.4.0",
     "@tsrt/types": "^0.4.0",
-    "@tsrt/utils": "^0.4.0"
+    "@tsrt/utils": "^0.4.0",
+    "@tsrt/ordering": "^0.4.0"
   },
   "peerDependencies": {
     "@angular/animations": "^10.1.5",

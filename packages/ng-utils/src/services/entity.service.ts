@@ -1,13 +1,19 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormGroup } from '@angular/forms';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Subscription } from 'rxjs';
 import { isEqual, cloneDeep } from 'lodash';
 
-import { delay, updateItemsOrderInArray, parseTypes, IOrderingItemDefault } from '@tsrt/utils';
+import { delay, parseTypes } from '@tsrt/utils';
+import { reorderByIndex, IOrderingItemDefault } from '@tsrt/ordering';
 import { ICrudApiClient } from '@tsrt/http';
 import { RouterService } from './router.service';
+
+interface IOrderedItem {
+  id: number;
+  order?: number;
+}
 
 /** Service which provides small useful reusable functions (methods) */
 @Injectable({ providedIn: 'root' })
@@ -136,7 +142,7 @@ export class EntityService {
    *  @param [reorderedItems] - Var for storing reordered lists (necessary for client-server optimizations)
    *  @param [emitWholeItemValue=false] - Whether to emit whole item value instead of just [id, order] list
    */
-  public handleDragAndDrop<T extends IOrderingItemDefault = IOrderingItemDefault>(
+  public handleDragAndDrop<T extends IOrderedItem = IOrderedItem>(
     e: CdkDragDrop<IOrderingItemDefault[]>, array: T[], onDragAndDrop: EventEmitter<IOrderingItemDefault[]>,
     reorderTimeouts?: GenericObject, reorderedItems?: GenericObject<IOrderingItemDefault[]>,
     emitWholeItemValue = false,
@@ -152,16 +158,16 @@ export class EntityService {
         delete reorderTimeouts[title];
       }
 
-      moveItemInArray(copy, previousIndex, currentIndex);
+      // moveItemInArray(copy, previousIndex, currentIndex);
 
-      const newOrder = updateItemsOrderInArray(data.id, previousIndex, currentIndex, copy);
+      const newOrder = reorderByIndex(copy, previousIndex, currentIndex, true);
       if (!newOrder) return;
 
       // If there is title for dragAndDrop container provided -> it is possible
       // to store reordered items in array and accumulate it on clientside for each table separately
       // in order to optimize client-server communication
       if (title && reorderTimeouts && reorderedItems) {
-        let reorderedItem: IOrderingItemDefault = newOrder.find((item) => item.id === data.id);
+        let reorderedItem: IOrderedItem = newOrder.find((item) => item.id === data.id);
         reorderedItem = emitWholeItemValue ? { ...reorderedItem } : { id: reorderedItem.id, order: reorderedItem.order };
 
         if (!reorderedItems[title]) reorderedItems[title] = [];
