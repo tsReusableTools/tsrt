@@ -1,5 +1,8 @@
 # Typescript Reusable Tools: Ordering
 
+
+[![npm version](https://img.shields.io/npm/v/@tsrt/ordering.svg)](https://www.npmjs.com/package/@tsrt/ordering) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/ordering.svg)](https://www.npmjs.com/package/@tsrt/ordering) [![Downloads](https://img.shields.io/npm/dm/@tsrt/ordering.svg)](https://www.npmjs.com/package/@tsrt/ordering)
+
 Lib for common ordering operations with arrays.
 
 ## Important
