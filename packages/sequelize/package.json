@@ -1,8 +1,14 @@
 {
   "name": "@tsrt/sequelize",
   "version": "0.4.2",
-  "description": "Typescript Reusable Tools: sequelize",
-  "keywords": [],
+  "description": "Sequelize ORM BaseRepository and connection factory",
+  "keywords": [
+    "sequelize",
+    "orm",
+    "repository",
+    "sequelize-repository",
+    "node-orm"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",
@@ -48,6 +54,7 @@
     "reflect-metadata": "^0.1.13",
     "sequelize": "^5.22.2",
     "sequelize-typescript": "^1.1.0",
+    "sqlite3": "^4.0.0",
     "ts-node": "^9.1.0",
     "tslib": "^2.0.3",
     "typescript": "^4.0.2"

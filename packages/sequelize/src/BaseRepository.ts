@@ -640,14 +640,7 @@ export class BaseRepository<
           if (query) {
             if (!query.include) query.include = [];
             const included = query.include.find((item: IncludeOptions) => item.association === association);
-
-            if (!included) {
-              query.include.push({
-                association,
-                duplicating: false,
-                attributes: [],
-              });
-            }
+            if (!included) query.include.push({ association, duplicating: false, attributes: [] });
           }
 
           parsedFilters[`$${key}$`] = parsedFilters[key];
@@ -717,7 +710,7 @@ export class BaseRepository<
     if (!result || !result.length) return;
 
     result.forEach((_item, i) => {
-      result[i] = { ...result[i], duplicating: false, ...options };
+      result[i] = { duplicating: false, ...result[i], ...options };
       if (result[i].include) result[i].include = this.insertNecessaryIncludeOptions(result[i].include as IncludeOptions[]);
     });
 

@@ -14,7 +14,7 @@ So prefer using exact version instead of version with `~` or `^`.
 
 ## Usage
 
-More examples could be found in [tests](https://github.com/tsReusableTools/tsrt/tree/master/packages/sequelize/tests).
+More examples (w/ models and all methods) could be found in [tests](https://github.com/tsReusableTools/tsrt/tree/master/packages/sequelize/tests).
 
 #### Databse connection factory
 
@@ -100,6 +100,53 @@ router.get('/entities', async (req, res) => {
   }
 });
 ```
+
+##### Enhanced usage of some query params
+
+```ts
+SomeRepository.read({
+  limit: 1, // -> basic limit
+  limit: 'none' // -> will remove limit at all, as by default it is used limit = 10. Default limit could be changed when instantiating BaseRepository by providing options.
+
+  sort: 'id:asc,title:desc', // -> [['id', 'ASC'], ['title', 'DESC']]
+  sort: ['id:asc', 'title:desc'], // -> same as example above
+  sort: ['nested.id:asc'], // -> [['nested', 'id', 'ASC']] - so it is possible to sort by nested includes.
+
+  /**
+   *  In `filter` and `where` options we can provide any of Sequelize compatible query operators
+   *  prefixed with `$`.
+   *  So we can compose complex queries here.
+   *  @example: { id: { $eq: 1 } }
+   *
+   *  @see https://sequelize.org/master/manual/model-querying-basics.html#operators
+   */
+  filter: {
+    $and: {
+      id: { $eq: 1 },
+      $or: {
+        title: { $iLike: '%hello%' },
+        age: { $gt: 18 }
+      }
+    }
+  },
+  // or where { ... },
+
+  include: 'nested1, nested2', // -> [{ duplicating: false, association: 'nested1' }, { duplicating: false, association: 'nested2' }]
+  include: ['nested1', 'nested2'], // -> same as example above
+  include: [{ association: 'nested1', duplicating: true, ... }] // -> here we can use all Sequelize appropriate options.
+})
+```
+
+##### Left join + limit and count problem solved
+
+This problem is described [here](https://stackoverflow.com/a/60286846/10521225).
+
+Problem - we cannot achieve expected result using `include` and `limit` for `FindAndCountAll`.
+In different cases we can play w/ `duplicating: false`, `subQuery: false` sequelize params, but:
+ - here we need universal solution.
+ - still there is a problem w/ incorrect count (total amount of carthesian product).
+
+This problem is solved under the hood of `BaseRepository`.
 
 ## API reference
 

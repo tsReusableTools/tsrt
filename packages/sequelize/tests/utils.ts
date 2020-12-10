@@ -9,12 +9,13 @@ import { IContext } from './interfaces';
 dotenv.config();
 
 export const databaseConfig: SequelizeOptions = {
-  username: process.env.PGUSER,
-  host: process.env.PGHOST,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
-  port: +process.env.PGPORT,
-  dialect: 'postgres',
+  // username: process.env.PGUSER,
+  // host: process.env.PGHOST,
+  // password: process.env.PGPASSWORD,
+  // database: process.env.PGDATABASE,
+  // port: +process.env.PGPORT,
+  // dialect: 'postgres',
+  dialect: 'sqlite',
   models: Database.getModelsList(Models),
   logging: false,
 };

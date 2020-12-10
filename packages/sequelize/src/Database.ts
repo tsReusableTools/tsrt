@@ -47,12 +47,8 @@ export class Database {
   protected async connect(): Promise<Sequelize> {
     if (this._connection) return;
 
-    const { host, port, database, username, password, dialect } = this.sequelizeOptions;
+    const { host, port, database, username } = this.sequelizeOptions;
     const { sync, logConnectionInfo, cbAfterConnected } = this.databaseConfig;
-
-    if (!host || !port || !database || !username || !password || !dialect) {
-      throw new Error('Please, provide at least `host`, `port`, `database`, `username`, `password` and `dialect` options');
-    }
 
     try {
       this._connection = new this.SequelizeInstance({ ...this.sequelizeOptions });
@@ -75,6 +71,7 @@ export class Database {
       return this.connection;
     } catch (err) {
       console.error('Error occured while connecting / syncing to the database: \n', err);
+      throw err;
     }
   }
 
