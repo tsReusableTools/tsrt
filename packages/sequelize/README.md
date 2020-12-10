@@ -106,7 +106,7 @@ router.get('/entities', async (req, res) => {
 ```ts
 SomeRepository.read({
   limit: 1, // -> basic limit
-  limit: 'none' // -> will remove limit at all, as by default it is used limit = 10. Default limit could be changed when instantiating BaseRepository by providing options.
+  limit: 'none', // -> will remove limit at all, as by default it is used limit = 10. Default limit could be changed when instantiating BaseRepository by providing options.
 
   sort: 'id:asc,title:desc', // -> [['id', 'ASC'], ['title', 'DESC']]
   sort: ['id:asc', 'title:desc'], // -> same as example above
@@ -125,7 +125,8 @@ SomeRepository.read({
       id: { $eq: 1 },
       $or: {
         title: { $iLike: '%hello%' },
-        age: { $gt: 18 }
+        age: { $gt: 18 },
+        'nested.id': { $gt: { 18 } }, // Yes, we can filter by nested columns
       }
     }
   },
@@ -133,6 +134,7 @@ SomeRepository.read({
 
   include: 'nested1, nested2', // -> [{ duplicating: false, association: 'nested1' }, { duplicating: false, association: 'nested2' }]
   include: ['nested1', 'nested2'], // -> same as example above
+  include: ['nested1.deepNested1', 'nested2'], // -> [{ duplicating: false, association: 'nested1', include: [{ duplicating: false, association: 'deepNested1' }] }, { duplicating: false, association: 'nested2' }]
   include: [{ association: 'nested1', duplicating: true, ... }] // -> here we can use all Sequelize appropriate options.
 })
 ```
