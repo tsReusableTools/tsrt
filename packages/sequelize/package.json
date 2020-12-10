@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/sequelize",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Sequelize ORM BaseRepository and connection factory",
   "keywords": [
     "sequelize",
@@ -23,7 +23,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/ordering": "^0.4.2",
+    "@tsrt/ordering": "^0.4.3",
     "@tsrt/types": "^0.4.0",
     "@tsrt/utils": "^0.4.1",
     "lodash.clonedeep": "4.5.0",

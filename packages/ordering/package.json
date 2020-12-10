@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/ordering",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Tools for common ordering operations with arrays",
   "keywords": [
     "ordering",
