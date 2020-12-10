@@ -1,7 +1,7 @@
 {
   "name": "@tsrt/mparty-aws",
   "version": "0.4.1",
-  "description": "Typescript Reusable Tools: Mparty AWS S3 Adapter",
+  "description": "Mparty AWS S3 Adapter - upload (stream) multipart/form-data directly to AWS S3",
   "keywords": [
     "multipart/form-data",
     "file-upload",

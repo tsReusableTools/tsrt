@@ -30,7 +30,7 @@ export class OrderingService<T extends GenericObject = IOrderingItemDefault> {
       clampRange = this._options.clampRange,
     } = config;
 
-    let result = this.reorderIfHasDuplicateOrEmptyOrders(target);
+    let result = this.reorderIfHasDuplicateOrEmptyOrders(target, config);
     if (!listOfOrdersChanges?.length) return refreshSequence ? this.refreshSequence(result) : result;
 
     this.hasInvalidOrderingItems(listOfOrdersChanges, true);
@@ -61,7 +61,7 @@ export class OrderingService<T extends GenericObject = IOrderingItemDefault> {
         .sort((a, b) => a[this.order] - b[this.order]);
     });
 
-    const withoutDuplicates = this.reorderIfHasDuplicateOrEmptyOrders(result);
+    const withoutDuplicates = this.reorderIfHasDuplicateOrEmptyOrders(result, config);
     return refreshSequence ? this.refreshSequence(withoutDuplicates) : withoutDuplicates;
   }
 
