@@ -1,3 +1,21 @@
+## 0.4.1 - 0.4.4
+
+### Bugfixes
+
+- __[@tsrt/sequelize]__ Updated docs - added keywords, description, examples for `sort`, `limit`, `filter/where` and `include` repository options.
+- __[@tsrt/sequelize]__ Minor updates.
+
+<br />
+
+- __[@tsrt/ordering]__ Updated package.json - keywords and description.
+- __[@tsrt/ordering]__ Added tests.
+
+<br />
+
+- __[@tsrt/maprty]__ Updated package.json description for `@tsrt/mparty`, `@tsrt/mparty-aws` and `@tsrt/mparty-express`.
+
+---
+
 ## 0.4.0
 
 ### New features
