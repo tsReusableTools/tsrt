@@ -131,7 +131,7 @@ export class BaseRepository<
    */
   public async read(readOptions?: IReadOptions): Promise<IPagedData<I>>;
   public async read(pk?: number | string, readOptions?: IReadOptions): Promise<I>;
-  public async read(readOptionsOrPk: number | string | IReadOptions = { }, readOptions?: IReadOptions): Promise<I | IPagedData<I>> {
+  public async read(readOptionsOrPk?: number | string | IReadOptions, readOptions?: IReadOptions): Promise<I | IPagedData<I>> {
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
     return genericPk ? this.readOne(genericPk, genericOptions) : this.readMany(genericOptions);
   }
