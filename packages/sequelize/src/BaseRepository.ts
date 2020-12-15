@@ -498,8 +498,8 @@ export class BaseRepository<
   protected getGenericOptionsAndPk<T extends GenericObject>(
     optionsOrPk: string | number | T, options?: T, additionalOpts: Partial<T> = { },
   ): { genericOptions: T; genericPk?: string | number | null } {
-    const genericPk = typeof optionsOrPk !== 'object' ? optionsOrPk : null;
-    const genericOptions = (typeof optionsOrPk === 'object' ? optionsOrPk : options) ?? { } as T;
+    const genericPk = typeof optionsOrPk !== 'object' && optionsOrPk ? optionsOrPk : null;
+    const genericOptions = (typeof optionsOrPk === 'object' && optionsOrPk ? optionsOrPk : options) ?? { } as T;
     if (additionalOpts) Object.entries(additionalOpts).forEach(([key, value]) => { (genericOptions as GenericObject)[key] = value; });
     return { genericPk, genericOptions };
   }
