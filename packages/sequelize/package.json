@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/sequelize",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "description": "Sequelize ORM BaseRepository and connection factory",
   "keywords": [
     "sequelize",
