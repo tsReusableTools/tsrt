@@ -26,8 +26,7 @@
     "@tsrt/ordering": "^0.4.3",
     "@tsrt/types": "^0.4.0",
     "@tsrt/utils": "^0.4.1",
-    "lodash.clonedeep": "4.5.0",
-    "pluralize": "8.0.0"
+    "lodash.clonedeep": "4.5.0"
   },
   "peerDependencies": {
     "reflect-metadata": "*",

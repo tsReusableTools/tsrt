@@ -3,7 +3,6 @@ import {
   WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions, Transaction,
   TransactionOptions, Transactionable,
 } from 'sequelize';
-import { singular } from 'pluralize';
 import cloneDeep from 'lodash.clonedeep';
 
 import {
@@ -841,9 +840,7 @@ export class BaseRepository<
 
       const fixedQuery: FindAndCountOptions = { ...query };
 
-      // Here we need to put it to singular form,
-      // because Sequelize gets singular form for models AS aliases in SQL query
-      const modelAlias = singular(this.model.tableName);
+      const modelAlias = this.model.name;
 
       const firstQuery = {
         ...fixedQuery,
