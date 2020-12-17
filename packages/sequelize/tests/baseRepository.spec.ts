@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Sequelize } from 'sequelize-typescript';
+import { isNil } from '@tsrt/utils';
 
 import { Database } from '../src';
 
@@ -63,10 +64,18 @@ describe('Testing BaseRepository', () => {
 
     it('read', async () => {
       const limit = 1;
-      const readMany = await CitiesRepository.read({ limit });
-      const readManyByOptions = await CitiesRepository.read({ where: { id: cityId } });
-      const readOneByPk = await CitiesRepository.read(cityId);
-      const readOneByOptionsAndPk = await CitiesRepository.read(cityId, { include: ['providers'] });
+
+      const transaction = await CitiesRepository.createTransaction();
+      const readMany = await CitiesRepository.read({ limit, transaction });
+      const readManyByOptions = await CitiesRepository.read({ where: { id: cityId }, transaction });
+      const readOneByPk = await CitiesRepository.read(cityId, { transaction });
+      const readOneByOptionsAndPk = await CitiesRepository.read(cityId, { include: ['providers'], transaction });
+      await transaction.commit();
+
+      const transaction2 = await CitiesRepository.createTransaction();
+      await CitiesRepository.read(cityId, { transaction: transaction2 });
+      await CitiesRepository.read(cityId, { include: ['providers'], transaction: transaction2 });
+      await transaction2.commit();
 
       assert.equal(readMany.total, total);
       assert.equal(readMany.value.length, Math.min(limit, total));
@@ -158,11 +167,18 @@ describe('Testing BaseRepository', () => {
     });
 
     it('restore (if model is `paranoid`)', async () => {
+      const limit = 1;
+
       const softDeletedEntities = await CitiesRepository.read({ paranoid: false });
       const ids = softDeletedEntities.value.map(({ id }) => id);
-      await CitiesRepository.restore({ where: { id: ids } });
+      const restoreLimited = await CitiesRepository.restore({ where: { id: ids }, include: ['providers'], select: ['id'], limit });
+      total += limit;
+
+      assert.equal(restoreLimited.length, total);
+
+      const restoreAll = await CitiesRepository.restore({ where: { id: ids } });
       const restoredEntites = await CitiesRepository.read();
-      total += 3;
+      total = restoreAll.length;
 
       assert.equal(restoredEntites.value.length, total);
     });
@@ -178,6 +194,37 @@ describe('Testing BaseRepository', () => {
       total -= 3;
 
       assert.equal(entitiesAfterDeletion.value.length, total);
+    });
+
+    it('`silent` option', async () => {
+      const id = Math.random();
+
+      const transaction = await CitiesRepository.createTransaction();
+      const query = { silent: true, transaction };
+      /* eslint-disable-next-line */
+      const invalidMockData = { title: [1] } as any;
+      const validMockData: ICityWithAssociations[] = [
+        { title: 'Verhnedneprovsk', code: 'Verhnedneprovsk1', providers: providerPks },
+        { title: 'Lviv', code: 'Lviv1', providers: providerPks },
+      ];
+
+      const create = await CitiesRepository.create(invalidMockData, query);
+      const bulkCreate = await CitiesRepository.bulkCreate([invalidMockData, ...validMockData], query);
+      const update = await CitiesRepository.update(invalidMockData, query);
+      const bulkUpdate = await CitiesRepository.bulkUpdate([{ ...invalidMockData, id }], query);
+      const read = await CitiesRepository.read(id, query);
+      const del = await CitiesRepository.delete(id, query);
+      const restore = await CitiesRepository.restore({ ...query, where: { id } });
+
+      await transaction.commit();
+
+      assert.ok(isNil(create));
+      assert.ok(isNil(bulkCreate));
+      assert.ok(isNil(update));
+      assert.ok(isNil(bulkUpdate));
+      assert.ok(isNil(read));
+      assert.ok(isNil(del));
+      assert.ok(isNil(restore));
     });
   });
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IPagedData } from './types';
+import { IPagedData, FlattenIfArray, KeyOf } from './types';
 import { isEmpty } from './objectUtils';
 
 /** Clone deep from `lodash.clonedeep`. */
@@ -276,10 +276,13 @@ export function removeItemFromArray<T extends GenericObject = GenericObject>(
  *  @param keys - List of keys to exclude.
  *  @param values - List of values to compare against for exclude.
  */
-export function exlcude<T extends GenericObject, K extends keyof T>(target: T, keys: K[], values?: Array<T[K]>): T;
-export function exlcude<T extends GenericObject, K extends keyof T>(target: T[], keys: K[], values?: Array<T[K]>): T[];
-export function exlcude<T extends GenericObject, K extends keyof T>(target: T | T[], keys: K[], values?: Array<T[K]>): T | T[] {
-  if (Array.isArray(target) && values) return target.filter((item) => !keys.find((key) => values.includes(item[key])));
+export function exlcude<T extends GenericObject, K extends KeyOf<FlattenIfArray<T>>>(
+  target: T, keys: K[], values?: Array<T[K]>,
+): Partial<T> {
+  if (Array.isArray(target)) {
+    if (values) return target.filter((item) => !keys.find((key) => values.includes(item[key]))) as unknown as T;
+    return target.filter((item) => !keys.includes(item)) as unknown as T;
+  }
 
   if (!Array.isArray(target)) {
     const result = { ...target };

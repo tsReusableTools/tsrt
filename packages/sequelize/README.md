@@ -225,7 +225,7 @@ interface IBaseRepository<
    *  If entity has `orderKey` column, will ensure for each request that all entities for similar conditions
    *  have valid `orderKey` (no NULL(s) and duplicates).
    */
-  read(readOptionsOrPk: number | string | IReadOptions = { }, readOptions?: IReadOptions): Promise<I | IPagedData<I>>
+  read(readOptionsOrPk?: number | string | IReadOptions, readOptions?: IReadOptions): Promise<I | IPagedData<I>>
 
   /**
    *  Reads one record (by pk or options).
@@ -308,9 +308,12 @@ interface IBaseRepository<
   /**
    *  Restores soft deleted entity(-ies).
    *
-   *  @param [restoreOptions] - Custom options for restore operation.
+   *  @param restoreOptionsOrPk - Entity primaryKey or restoreOptions.
+   *  @param [restoreOptions] - Custom options for restore operation if first argument is primaryKey.
+   *
+   *  @returns restored entity / list of restored entities.
    */
-  restore(restoreOptions?: IRestoreOptions): Promise<string>;
+  restore(restoreOptionsOrPk: string | number | IRestoreOptions, restoreOptions?: IRestoreOptions): Promise<I | I[]>;
 }
 ```
 
@@ -466,7 +469,7 @@ onBeforeInsertAssociations(_entity: M, _body: Partial<R>, _insertOptions?: IBase
  *
  *  @param _restoreOptions - Restore options.
  */
-onBeforeRestore(_restoreOptions: IRestoreOptions): Promise<void>;
+onBeforeRestore(_restoreOptions: IRestoreOptions, _pk?: number | string): Promise<void>;
 }
 ```
 
@@ -546,7 +549,18 @@ export interface IBaseRepositoryConfig {
   orderingServiceConfig: IOrderingServiceConfig;
 }
 
-export interface IBaseRepositoryOptions {
+export interface IBaseRepositorySilentQuery {
+  /**
+   *  Whether to throw an Error if query fails.
+   *  For example while reading/creating/updating data.
+   *
+   *  @note that error will be throw even if `silent: true` and it is some validation error, for example incorrect body for update method.
+   *  @default false;
+   */
+  silent?: boolean;
+}
+
+export interface IBaseRepositoryOptions extends IBaseRepositorySilentQuery {
   /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
   limit?: number | 'none';
 
@@ -654,28 +668,28 @@ export interface IBaseRepositoryExtendedOptions
 }
 
 /** Interface for possible options of create method */
-export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include'> {}
+export interface ICreateOptions extends Omit<IBaseRepositoryExtendedOptions, 'where' | 'filter'>, Omit<Partial<CreateOptions>, 'include'> {}
 
 /** Interface for possible options of bulk create method */
-export type IBulkCreateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+export type IBulkCreateOptions = ICreateOptions;
 
 /** Interface for possible options of read method */
 export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
-export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
+export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where'> {}
 
 /** Interface for possible options of bulk update method */
-export type IBulkUpdateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+export type IBulkUpdateOptions = Omit<IUpdateOptions, 'limit' | 'where' | 'filter'>;
 
 /** Interface for possible options of delete method */
-export interface IDeleteOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<DestroyOptions>, 'where'> {}
+export interface IDeleteOptions extends Pick<IBaseRepositoryOptions, 'where' | 'filter' | 'silent'>, Omit<Partial<DestroyOptions>, 'where'> {}
 
 /** Interface for possible options of restore method */
-export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<RestoreOptions>, 'where'> {}
+export interface IRestoreOptions extends Pick<IBaseRepositoryOptions, 'where' | 'filter' | 'silent' | 'select' | 'include'>, Omit<Partial<RestoreOptions>, 'where'> {}
 
 /** Type for transaction callback function */
-export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
+export type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
 
 /**
  *  Empty interface for TS augumentation in importing module.

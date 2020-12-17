@@ -1,7 +1,6 @@
 import {
   ModelCtor, Model, Op, FindAndCountOptions, ProjectionAlias, FindAttributeOptions, OrderItem,
-  WhereAttributeHash, IncludeOptions, WhereOptions, CreateOptions, UpdateOptions, Transaction,
-  TransactionOptions, Transactionable,
+  WhereAttributeHash, IncludeOptions, WhereOptions, Transaction, TransactionOptions,
 } from 'sequelize';
 import cloneDeep from 'lodash.clonedeep';
 
@@ -13,13 +12,13 @@ import { OrderingService } from '@tsrt/ordering';
 import {
   IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
   ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions, TransactionCallBack,
-  IBulkCreateOptions, IBulkUpdateOptions, IBaseOrderingItem,
+  IBulkCreateOptions, IBulkUpdateOptions, IBaseOrderingItem, IBaseRepositoryQueryExecutionOptions,
+  IBaseRepositorySilentQuery, IBaseRepositoryOptionsKeys,
 } from './interfaces';
 import { defaultBaseRepositoryConfig } from './utils';
 
 export class BaseRepository<
   I extends GenericObject & O,
-  // R extends Partial<I> = Partial<I>,
   R = Partial<I>,
   O extends GenericObject = IBaseOrderingItem,
   M extends Model = Model & Partial<I>,
@@ -79,13 +78,14 @@ export class BaseRepository<
     if (isNil(body)) throwHttpError.badRequest('Body should not be null or undefined');
 
     return this.handleQueryExecution(createOptions, async (transaction) => {
-      const customOptions: ICreateOptions = cloneDeep(createOptions);
+      const customOptions = cloneDeep(createOptions);
       await this.onBeforeCreate(body, customOptions, through);
       const dataToSave = this.removeRestrictedPropertiesFromBody(body);
-      const { where } = await this.buildQuery(customOptions);
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
-      const created = await this.model.create<M>(dataToSave, { ...options, where, transaction } as CreateOptions);
+      const created = await this.model.create<M>(dataToSave, { ...options, transaction });
+      if (!created && createOptions.silent) return null;
+
       const result = await this.insertAssociations(created, dataToSave, { ...customOptions, transaction }, through);
       return result;
     });
@@ -101,18 +101,20 @@ export class BaseRepository<
   public async bulkCreate(
     body: R[], createOptions?: IBulkCreateOptions, through?: GenericObject,
   ): Promise<I[]> {
-    if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to create.');
+    if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to create - `body` should be an Array.');
 
     return this.handleQueryExecution(createOptions, async (transaction) => {
-      if (body.find((item) => isNil(item))) throwHttpError.badRequest('Body should not be null or undefined');
+      if (body.find((item) => isNil(item))) throwHttpError.badRequest('Any item should not be null or undefined');
 
-      const customOptions: ICreateOptions = cloneDeep(createOptions);
+      const customOptions = cloneDeep(createOptions);
       await this.onBeforeBulkCreate(body, customOptions, through);
       const dataToSave = body.map((item) => this.removeRestrictedPropertiesFromBody(item));
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
-      const results = await this.model.bulkCreate<M>(dataToSave, { ...options, transaction } as CreateOptions);
 
-      const insertOptions = { ...options, transaction };
+      const results = await this.model.bulkCreate<M>(dataToSave, { ...options, transaction });
+      if (!results && createOptions.silent) return null;
+
+      const insertOptions = { ...customOptions, transaction };
       const result = await Promise.all(results.map((item, i) => this.insertAssociations(item, dataToSave[i], insertOptions, through)));
 
       return result;
@@ -153,10 +155,14 @@ export class BaseRepository<
       await this.onBeforeRead(genericOptions, genericPk);
 
       const parsedQuery = await this.buildQuery(genericOptions, genericPk);
-      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(genericOptions) as FindAndCountOptions;
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(genericOptions);
       const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
+      this.insertOrderAttributeIfNecessary(findQuery);
+
       const result = await this.model.findOne(findQuery);
+
+      if (!result && genericOptions.silent) return null;
       if (!result) throwHttpError.notFound('Item not found');
 
       const value = this.mapSequelizeModelToPlainObject(result);
@@ -185,13 +191,17 @@ export class BaseRepository<
       await this.onBeforeRead(options);
 
       const parsedQuery = await this.buildQuery(options);
-      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options);
       const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const fixedQuery = await this.fixSequeliseQueryWithLeftJoins(findQuery);
       const { query, total } = fixedQuery;
 
+      this.insertOrderAttributeIfNecessary(query);
+
       const result = await this.model.findAndCountAll({ ...query, transaction });
+
+      if (!result && options.silent) return null;
       if (!result) throwHttpError.notFound('Items not found');
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
@@ -221,7 +231,7 @@ export class BaseRepository<
     if (!updateOptionsOrPk) throwHttpError.badRequest('Please, provide valid primaryKey or updateOptions');
 
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(updateOptionsOrPk, updateOptions);
-    const genericThrough: GenericObject = (typeof updateOptionsOrPk === 'object' ? updateOptions : through) ?? { };
+    const genericThrough = (typeof updateOptionsOrPk === 'object' ? updateOptions : through) ?? { };
 
     return this.handleQueryExecution(genericOptions, async (transaction) => {
       await this.onBeforeUpdate(body, genericPk, genericOptions, genericThrough);
@@ -230,11 +240,13 @@ export class BaseRepository<
       const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
 
       // Do not use here `returning: true` because need solution not only for postgres.
-      await this.model.update(dataToSave, { ...options, where, transaction } as UpdateOptions);
+      await this.model.update(dataToSave, { ...options, where, transaction });
 
       const updated = genericPk
         ? await this.model.findOne({ where, transaction }) as M
         : await this.model.findAll({ where, transaction }) as M[];
+
+      if ((!updated || (Array.isArray(updated) && !updated?.length)) && genericOptions.silent) return null;
       if (!updated || (Array.isArray(updated) && !updated?.length)) throwHttpError.notFound();
 
       const insertOptions = { ...genericOptions, transaction };
@@ -252,7 +264,7 @@ export class BaseRepository<
    *  @param [through] - Data to add into association for Many to Many relations.
    */
   public async bulkUpdate(body: Array<Partial<R>>, updateOptions?: IBulkUpdateOptions, through?: GenericObject): Promise<I[]> {
-    if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update.');
+    if (!Array.isArray(body)) throwHttpError.badRequest('Please, provide a valid list of entities to update - `body` should be an Array.');
 
     return this.handleQueryExecution(updateOptions, async (transaction) => {
       const results: I[] = [];
@@ -265,7 +277,8 @@ export class BaseRepository<
         results.push(result);
       }
 
-      return results;
+      const filtered = results.filter(Boolean);
+      return updateOptions?.silent && !filtered?.length ? null : filtered;
     });
   }
 
@@ -287,10 +300,12 @@ export class BaseRepository<
     return this.handleQueryExecution(options, async (transaction) => {
       await this.onBeforeUpdateItemsOrder(body, options);
       const parsedQuery = await this.buildQuery({ ...options, limit: 'none' });
-      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options) as FindAndCountOptions;
+      const staticMethodOptions = this.retrieveSequelizeStaticMethodOptions(options);
       const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const available = await this.model.findAll({ ...findQuery });
+      if (!available && options.silent) return null;
+
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
       const reordered = this.orderingService.reorder(availableValue as unknown as C[], body);
@@ -319,13 +334,15 @@ export class BaseRepository<
 
     return this.handleQueryExecution(genericOptions, async (transaction) => {
       await this.onBeforeDelete(genericOptions, genericPk);
-      const { where } = await this.buildQuery(genericOptions, genericPk) as UpdateOptions;
-      const options = this.retrieveSequelizeStaticMethodOptions(genericOptions);
+      const { where } = await this.buildQuery(genericOptions, genericPk);
+      const options = this.retrieveSequelizeStaticMethodOptions(genericOptions, ['limit']);
 
       const result = await this.model.destroy({ ...options, where, transaction });
-      if (!result) throwHttpError.badRequest(`Incorrect condition(s): ${JSON.stringify(where)}`);
 
-      return genericPk ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by multiple conditions.';
+      if (!result && genericOptions.silent) return null;
+      if (!result) throwHttpError.badRequest(`Cannot delete. Incorrect condition(s): ${JSON.stringify(where)}`);
+
+      return genericPk ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by condition(s).';
     });
   }
 
@@ -362,13 +379,28 @@ export class BaseRepository<
    *
    *  @param [restoreOptions] - Custom options for restore operation.
    */
-  public async restore(restoreOptions?: IRestoreOptions): Promise<string> {
-    return this.handleQueryExecution(restoreOptions, async (transaction) => {
-      await this.onBeforeRestore(restoreOptions);
-      const { where } = await this.buildQuery(restoreOptions);
-      const options = this.retrieveSequelizeStaticMethodOptions(restoreOptions);
-      await this.model.restore({ ...options, where, transaction });
-      return `Successfully restores by conditions(s): ${JSON.stringify(where)}`;
+  public async restore(restoreOptions: IRestoreOptions): Promise<I[]>;
+  public async restore(pk: string | number, restoreOptions?: IRestoreOptions): Promise<I>;
+  public async restore(restoreOptionsOrPk: string | number | IRestoreOptions, restoreOptions?: IRestoreOptions): Promise<I | I[]> {
+    if (!restoreOptionsOrPk) throwHttpError.badRequest('Please, provide at least valid primaryKey or restoreOptions');
+    const { genericPk, genericOptions } = this.getGenericOptionsAndPk(restoreOptionsOrPk, restoreOptions);
+
+    return this.handleQueryExecution(genericOptions, async (transaction) => {
+      await this.onBeforeRestore(genericOptions, genericPk);
+      const { where } = await this.buildQuery(genericOptions, genericPk);
+      const options = this.retrieveSequelizeStaticMethodOptions(genericOptions, ['limit']);
+
+      // For some reason this method returns not `void`, but number of affected values.
+      const result = await this.model.restore({ ...options, where, transaction }) as unknown as number;
+
+      if (!result && genericOptions.silent) return null;
+      if (!result) throwHttpError.badRequest(`Cannot restore. Incorrect condition(s): ${JSON.stringify(where)}`);
+
+      const query = { ...genericOptions, transaction, limit: 'none' as const };
+      const restored = genericPk ? await this.read(genericPk, query) : await this.read(query);
+      return 'value' in restored ? restored.value : restored;
+
+      // return genericPk ? `Successfully restored by primaryKey: ${genericPk}` : 'Successfully restored by condition(s).';
     });
   }
 
@@ -458,9 +490,10 @@ export class BaseRepository<
   /**
    *  Hook which is called before restoring.
    *
-   *  @param _restoreOptions - Restore options.
+   *  @param [_restoreOptions] - Restore options.
+   *  @param [_pk] - primaryKey.
    */
-  protected async onBeforeRestore(_restoreOptions: IRestoreOptions): Promise<void> { }
+  protected async onBeforeRestore(_restoreOptions: IRestoreOptions, _pk?: number | string): Promise<void> { }
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */
 
@@ -472,7 +505,9 @@ export class BaseRepository<
     return this.config.orderingServiceOptions?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceOptions.orderKey;
   }
 
-  protected async handleQueryExecution<T extends Transactionable, C>(options: T, cb: (t?: Transaction) => Promise<C>): Promise<C> {
+  protected async handleQueryExecution<T extends IBaseRepositoryQueryExecutionOptions, C>(
+    options: T, cb: (t?: Transaction) => Promise<C>,
+  ): Promise<C> {
     const transaction = options?.transaction ?? await this.createTransaction();
 
     try {
@@ -481,8 +516,7 @@ export class BaseRepository<
       return result;
     } catch (err) {
       if (!options?.transaction) await transaction.rollback();
-      if (err instanceof HttpError) throw err;
-      this.throwCustomSequelizeError(err);
+      return this.throwCustomSequelizeError(err, options) as null;
     }
   }
 
@@ -535,6 +569,13 @@ export class BaseRepository<
     if (attributes) attributes = attributes.map((item) => String(item).trim());
     if (query && attributes && attributes.length) query.attributes = attributes;
     return attributes;
+  }
+
+  private insertOrderAttributeIfNecessary(query: FindAndCountOptions): void {
+    if (this.model.rawAttributes[this.orderKey] && query.attributes) {
+      if (Array.isArray(query.attributes)) query.attributes.push(this.orderKey);
+      else query.attributes.include.push(this.orderKey);
+    }
   }
 
   private includeParser(include: string | Array<string | IncludeOptions>, query?: FindAndCountOptions): IncludeOptions[] {
@@ -727,7 +768,7 @@ export class BaseRepository<
   private async insertAssociations(
     entity: M, body: Partial<R>, options?: IBaseRepositoryExtendedOptions, through: GenericObject = { },
   ): Promise<I> {
-    try {
+    return this.handleQueryExecution(options, async () => {
       if (!entity || !(entity as GenericObject)[this.pk]) return entity as unknown as I;
 
       await this.onBeforeInsertAssociations(entity, body, options, through);
@@ -750,9 +791,7 @@ export class BaseRepository<
       if (!insertionOptions.returnAssociations) { return; }
 
       return this.readOne(this.mapSequelizeModelToPlainObject(entity)[this.pk], { ...options, include });
-    } catch (err) {
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   private async addOrRemoveAssociation(
@@ -773,11 +812,14 @@ export class BaseRepository<
     await (entity as GenericObject)[`add${capitalize(key)}`](toAddArray, { ...opts, through });
   }
 
-  private retrieveSequelizeStaticMethodOptions<T extends IBaseRepositoryExtendedOptions>(options: T): T {
-    const result: T = { ...options };
-    ['limit', 'skip', 'select', 'getBy', 'sort', 'include', 'filter', 'where'].forEach((item) => {
-      if (Object.hasOwnProperty.call(result, item)) delete (result as GenericObject)[item];
-    });
+  private retrieveSequelizeStaticMethodOptions<T extends IBaseRepositoryOptions>(
+    options: T, allowedProperties: IBaseRepositoryOptionsKeys[] = [],
+  ): Omit<T, IBaseRepositoryOptionsKeys> {
+    const result: Omit<T, IBaseRepositoryOptionsKeys> = { ...options };
+    const restricted: IBaseRepositoryOptionsKeys[] = ['limit', 'skip', 'select', 'getBy', 'sort', 'include', 'filter', 'where', 'silent'];
+    restricted
+      .filter((item) => !allowedProperties.includes(item))
+      .forEach((item) => { if (Object.hasOwnProperty.call(result, item)) delete (result as GenericObject)[item]; });
     return result;
   }
 
@@ -835,9 +877,9 @@ export class BaseRepository<
    *  @param query - Parsed and ready to use query object
    */
   private async fixSequeliseQueryWithLeftJoins(query: FindAndCountOptions): Promise<{ query: FindAndCountOptions; total?: number }> {
-    try {
-      if (!query.include || !query.include.length) return { query };
+    if (!query.include || !query.include.length) return { query };
 
+    return this.handleQueryExecution(query, async () => {
       const fixedQuery: FindAndCountOptions = { ...query };
 
       const modelAlias = this.model.name;
@@ -876,21 +918,22 @@ export class BaseRepository<
       }
 
       return { query: fixedQuery, total: Array.isArray(ids.count) ? ids.count.length : ids.count };
-    } catch (err) {
-      this.throwCustomSequelizeError(err);
-    }
+    });
   }
 
   /* eslint-disable-next-line */
-  protected throwCustomSequelizeError(err: any): void {
-    const message = this.createCustomSequelizeError(err);
-    if (err.status) throwHttpError(err.status, message);
+  protected throwCustomSequelizeError(err: any, options?: IBaseRepositorySilentQuery): void | null {
+    const message = this.createCustomSequelizeError(err, options);
+    const isHttpError = err instanceof HttpError;
+    if (options?.silent && !isHttpError) return null;
+    if (isHttpError) throw err;
+    else if (err.status) throwHttpError(err.status, message);
     else throwHttpError.badRequest(message);
   }
 
   /* eslint-disable-next-line */
-  protected createCustomSequelizeError(err: any): any {
-    if (this.defaults.logError) console.warn('Error occured in BaseRepository: \n', err);
+  protected createCustomSequelizeError(err: any, options?: IBaseRepositorySilentQuery): any {
+    if (this.defaults.logError && !options?.silent) console.warn('Error occured in BaseRepository: \n', err);
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
     return customError;

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import {
   CreateOptions, UpdateOptions, DestroyOptions, RestoreOptions, WhereAttributeHash,
@@ -59,7 +60,20 @@ export interface IBaseRepositoryConfig {
   orderingServiceOptions: IOrderingServiceOptions;
 }
 
-export interface IBaseRepositoryOptions {
+export type IBaseRepositoryOptionsKeys = 'limit' | 'skip' | 'getBy' | 'select' | 'sort' | 'include' | 'filter' | 'where' | 'silent';
+
+export interface IBaseRepositorySilentQuery {
+  /**
+   *  Whether to throw an Error if query fails.
+   *  For example while reading/creating/updating data.
+   *
+   *  @note that error will be throw even if `silent: true` and it is some validation error, for example incorrect body for update method.
+   *  @default false;
+   */
+  silent?: boolean;
+}
+
+export interface IBaseRepositoryOptions extends IBaseRepositorySilentQuery {
   /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
   limit?: number | 'none';
 
@@ -137,14 +151,12 @@ export interface IBaseRepositoryOptions {
   where?: WhereAttributeHash;
 }
 
-type IBaseRepositoryCroppedOptions = Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort' | 'limit' | 'include'>;
-
 /**
  *  Interface for CRUD controller method options, which influence on adding association data and
  *  response object (whether to create association between tables, or return JOINed result).
  */
 export interface IBaseRepositoryExtendedOptions
-  extends Transactionable, Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'select' | 'sort'> {
+  extends Transactionable, Omit<IBaseRepositoryOptions, 'skip' | 'getBy' | 'sort' | 'limit'> {
   /** Whether it is necessary to associate (create reference) if reference primaryKeys list provided. Default: true */
   associate?: boolean;
 
@@ -167,28 +179,31 @@ export interface IBaseRepositoryExtendedOptions
 }
 
 /** Interface for possible options of create method */
-export interface ICreateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<CreateOptions>, 'where' | 'include' | 'limit'> {}
+export interface ICreateOptions extends Omit<IBaseRepositoryExtendedOptions, 'where' | 'filter'>, Omit<Partial<CreateOptions>, 'include'> {}
 
 /** Interface for possible options of bulk create method */
-export type IBulkCreateOptions = Omit<ICreateOptions, 'where' | 'limit' | 'filter'>;
+export type IBulkCreateOptions = ICreateOptions;
 
 /** Interface for possible options of read method */
 export interface IReadOptions extends IBaseRepositoryOptions, Omit<Partial<FindAndCountOptions>, 'where' | 'include' | 'limit'> {}
 
 /** Interface for possible options of update method */
-export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where' | 'limit'> {}
+export interface IUpdateOptions extends IBaseRepositoryExtendedOptions, Omit<Partial<UpdateOptions>, 'where'> {}
 
 /** Interface for possible options of bulk update method */
-export type IBulkUpdateOptions = Omit<IUpdateOptions, 'where' | 'limit' | 'filter'>;
+export type IBulkUpdateOptions = Omit<IUpdateOptions, 'limit' | 'where' | 'filter'>;
 
 /** Interface for possible options of delete method */
-export interface IDeleteOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<DestroyOptions>, 'where'> {}
+export interface IDeleteOptions extends Pick<IBaseRepositoryOptions, 'where' | 'filter' | 'silent'>, Omit<Partial<DestroyOptions>, 'where'> {}
 
 /** Interface for possible options of restore method */
-export interface IRestoreOptions extends IBaseRepositoryCroppedOptions, Omit<Partial<RestoreOptions>, 'where'> {}
+export interface IRestoreOptions extends Pick<IBaseRepositoryOptions, 'where' | 'filter' | 'silent' | 'select' | 'include'>, Omit<Partial<RestoreOptions>, 'where'> {}
 
 /** Type for transaction callback function */
-export declare type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
+export type TransactionCallBack<T> = (t: Transaction) => PromiseLike<T>;
+
+/** Type for internal queryExecutor options */
+export type IBaseRepositoryQueryExecutionOptions = Transactionable & IBaseRepositorySilentQuery;
 
 /**
  *  Empty interface for TS augumentation in importing module.

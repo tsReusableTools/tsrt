@@ -9,3 +9,9 @@ export interface IPagedData<T extends GenericObject = GenericObject> {
   nextSkip?: number;
   total?: number;
 }
+
+/** Gets flatten type if Array of items of this type is provided. */
+export type FlattenIfArray<T> = T extends Array<infer R> ? R : T
+
+/** Gets keys of Object or elements of Array. */
+export type KeyOf<T> = T extends GenericObject ? keyof T : T;
