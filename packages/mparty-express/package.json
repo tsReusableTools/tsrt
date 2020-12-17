@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty-express",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Mparty Express Middleware for usage handling file uploads to FileSystem, AWS S3 and whatever",
   "keywords": [
     "multipart/form-data",
@@ -24,14 +24,14 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.4.0"
+    "@tsrt/types": "^0.5.0"
   },
   "peerDependencies": {
     "@tsrt/mparty": "^0.2.0",
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "@tsrt/mparty": "^0.4.3",
+    "@tsrt/mparty": "^0.5.0",
     "@types/express": "4.17.9",
     "@types/node": "14.11.8",
     "express": "^4.17.1",

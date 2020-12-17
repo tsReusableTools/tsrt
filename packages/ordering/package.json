@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/ordering",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Tools for common ordering operations with arrays",
   "keywords": [
     "ordering",
@@ -22,8 +22,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.4.0",
-    "@tsrt/utils": "^0.4.1",
+    "@tsrt/types": "^0.5.0",
+    "@tsrt/utils": "^0.5.0",
     "lodash.clonedeep": "4.5.0"
   },
   "devDependencies": {

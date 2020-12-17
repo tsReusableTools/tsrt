@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/session",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Typescript Reusable Tools: session",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,8 +16,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/cache": "^0.4.1",
-    "@tsrt/types": "^0.4.0",
+    "@tsrt/cache": "^0.5.0",
+    "@tsrt/types": "^0.5.0",
     "connect-redis": "5.0.0",
     "express-session": "1.17.1"
   },

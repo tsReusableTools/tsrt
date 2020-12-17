@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/tsed",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Typescript Reusable Tools: TsED base server implementation",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,11 +16,11 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/api-utils": "^0.4.1",
-    "@tsrt/application": "^0.4.1",
-    "@tsrt/logger": "^0.4.0",
-    "@tsrt/types": "^0.4.0",
-    "@tsrt/utils": "^0.4.1"
+    "@tsrt/api-utils": "^0.5.0",
+    "@tsrt/application": "^0.5.0",
+    "@tsrt/logger": "^0.5.0",
+    "@tsrt/types": "^0.5.0",
+    "@tsrt/utils": "^0.5.0"
   },
   "peerDependencies": {
     "@tsed/ajv": "^5.65.1",
