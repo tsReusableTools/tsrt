@@ -704,10 +704,10 @@ export class BaseRepository<
 
     if (Array.isArray(parsedQueryObject)) return parsedQueryObject;
 
-    const parsed = parseTypes(parsedQueryObject);
-    if (!parsed || isEmpty(parsed)) return parsed;
+    const copy = cloneDeep(parsedQueryObject);
+    if (!copy || isEmpty(copy)) return copy;
 
-    Object.entries(parsed).forEach(([key, value]) => {
+    Object.entries(copy).forEach(([key, value]) => {
       const parsedValue = typeof value === 'object' ? this.parseSequelizeQueryOperators(value) : value;
       if (key.indexOf('$') === 0 && key.indexOf('.') === -1) parsedOperators[(Op as GenericObject)[key.slice(1)]] = parsedValue;
       else parsedOperators[key] = parsedValue;
