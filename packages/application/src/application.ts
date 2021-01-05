@@ -1,21 +1,24 @@
-import express, { Request, Response, json, urlencoded, Router } from 'express';
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationRequestHandler } from 'express-serve-static-core';
+import express, { Request, Response, json, urlencoded, Router, RequestHandler, ErrorRequestHandler } from 'express';
 import cors from 'cors';
 import { parse } from 'qs';
 import helmet from 'helmet';
 import merge from 'deepmerge';
 import glob from 'glob';
+import isPlainObject from 'is-plain-obj';
 
 import { isEmpty, getObjectValuesList } from '@tsrt/utils';
-import { log } from '@tsrt/logger';
 import { session } from '@tsrt/session';
 
 import {
-  IApplication, IApplicationConfig, IApplicationSettings, ApplicationStatics,
+  IApplication, IApplicationManualSetup, IApplicationSettings, ApplicationStatics,
   ApplicationWebApps, TypeOrArrayOfTypes, ApplicationMountList, ApplicationMount,
-  ApplicationMiddlewareList, IApplicationSession,
+  ApplicationMiddlewareList, IApplicationSession, Callback,
 } from './interfaces';
 import {
-  sendResponseHandler, globalErrorHandler, notFoundHandler, requestIdHandler, parseRequestHandler,
+  createSendResponseHandler, createGlobalErrorHandler, notFoundHandler, requestIdHandler,
+  parseRequestHandler, parseCookiesHandler,
 } from './middlewares';
 import { InfoController, HealthController } from './controllers';
 
@@ -25,37 +28,23 @@ export class Application<T extends IApplication = IApplication> {
     apiBase: '/api/v1',
     cors: { credentials: true, origin: true },
     qs: { strictNullHandling: true, comma: true },
+    notFoundHandler,
     useDefaultControllers: true,
     mount: {},
     middlewares: {},
   };
   private _isManualMiddlewaresOrder = false;
+  private _manuallyCalledMethods: GenericObject<boolean> = { };
 
   constructor(settings: IApplicationSettings<T> = { }, app?: T) {
-    this._settings = merge({ ...this._settings }, { ...settings });
-    this._app = app || settings.app || express() as unknown as T;
+    this._settings = merge({ ...this._settings }, settings, { isMergeableObject: isPlainObject });
+    this._app = app ?? settings.app ?? express() as unknown as T;
+    this.initializeLoggerDependentSettings();
   }
 
   public get app(): T { return this._app; }
 
   public get settings(): IApplicationSettings<T> { return { ...this._settings }; }
-
-  public get config(): IApplicationConfig {
-    return {
-      setAllMiddlewares: this.setAllMiddlewares.bind(this),
-      setQueryParser: this.setQueryParser.bind(this),
-      setDefaultMiddlewares: this.setDefaultMiddlewares.bind(this),
-      setRequestIdMiddleware: this.setRequestIdMiddleware.bind(this),
-      setSession: this.setSession.bind(this),
-      setSendResponseMiddleware: this.setSendResponseMiddleware.bind(this),
-      setStatics: this.setStatics.bind(this),
-      setMiddlewares: this.setMiddlewares.bind(this),
-      setRouter: this.setRouter.bind(this),
-      setNotFoundHandler: this.setNotFoundHandler.bind(this),
-      setWebApps: this.setWebApps.bind(this),
-      setGlobalErrorHandler: this.setGlobalErrorHandler.bind(this),
-    };
-  }
 
   public addRoutes(mount: ApplicationMountList): Application {
     if (!mount) return;
@@ -76,52 +65,97 @@ export class Application<T extends IApplication = IApplication> {
     return this;
   }
 
-  public start(): void {
+  public setSendResponseHandler(handler: RequestHandler): Application { this._settings.sendResponseHandler = handler; return this; }
+  public setNotFoundHandler(handler: RequestHandler): Application { this._settings.notFoundHandler = handler; return this; }
+  public setGlobalErrorHandler(handler: ErrorRequestHandler): Application { this._settings.globalErrorHandler = handler; return this; }
+
+  public start(cb?: Callback): void {
     if (!this._settings.port) throw Error('It is necessary to provide at least `port` settings option');
-    if (!this._isManualMiddlewaresOrder) this.setAllMiddlewares();
-    this._app.listen(this._settings.port, () => log.info(`Listen to port: ${this._settings.port}. Pid: ${process.pid}`));
+    if (!this._isManualMiddlewaresOrder) this.setupAll();
+    this._app.listen(this._settings.port, cb);
   }
 
-  protected setAllMiddlewares(): IApplicationConfig {
-    this.setQueryParser();
-    this.setDefaultMiddlewares();
-    this.setRequestIdMiddleware();
-    this.setSession();
-    this.setSendResponseMiddleware();
-    this.setStatics();
-    this.setMiddlewares();
-    this.setRouter();
-    this.setNotFoundHandler();
-    this.setWebApps();
-    this.setGlobalErrorHandler();
-    return this.config;
+  public manualSetup(): IApplicationManualSetup {
+    return {
+      set: this.set.bind(this),
+      use: this.use.bind(this),
+
+      setupAll: this.setupAll.bind(this),
+      setupQueryParser: this.setupQueryParser.bind(this),
+      setupDefaultExpressMiddlewares: this.setupDefaultExpressMiddlewares.bind(this),
+      setupRequestIdMiddleware: this.setupRequestIdMiddleware.bind(this),
+      setupSession: this.setupSession.bind(this),
+      setupSendResponseMiddleware: this.setupSendResponseMiddleware.bind(this),
+      setupStatics: this.setupStatics.bind(this),
+      setupMiddlewares: this.setupMiddlewares.bind(this),
+      setupRouter: this.setupRouter.bind(this),
+      setupNotFoundHandler: this.setupNotFoundHandler.bind(this),
+      setupWebApps: this.setupWebApps.bind(this),
+      setupGlobalErrorHandler: this.setupGlobalErrorHandler.bind(this),
+
+      start: this.start.bind(this),
+    };
   }
 
-  protected setQueryParser(): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    this._app.set('query parser', (str: string) => parse(str, this._settings.qs));
-    return this.config;
+  protected setupAll(): IApplicationManualSetup {
+    [
+      this.setupQueryParser,
+      this.setupDefaultExpressMiddlewares,
+      this.setupRequestIdMiddleware,
+      this.setupSession,
+      this.setupSendResponseMiddleware,
+      this.setupStatics,
+      this.setupMiddlewares,
+      this.setupRouter,
+      this.setupNotFoundHandler,
+      this.setupWebApps,
+      this.setupGlobalErrorHandler,
+    ].forEach((item) => {
+      const called = Object.keys(this._manuallyCalledMethods).find((key) => key === item.name);
+      if (!called) item.call(this);
+    });
+    return this.manualSetup();
   }
 
-  protected setDefaultMiddlewares(): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
+  /* eslint-disable-next-line */
+  protected set(setting: string, value: any): IApplicationManualSetup {
+    this._app.set(setting, value);
+    return this.manualSetup();
+  }
+
+  /* eslint-disable-next-line */
+  protected use: ApplicationRequestHandler<IApplicationManualSetup> = (...args: any[]): IApplicationManualSetup => {
+    this._app.use(args);
+    return this.manualSetup();
+  };
+
+  /* eslint-disable-next-line */
+  protected setupQueryParser(cb?: (str: string) => any): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupQueryParser.name);
+    this._app.set('query parser', cb ?? ((str: string) => parse(str, this._settings.qs)));
+    return this.manualSetup();
+  }
+
+  protected setupDefaultExpressMiddlewares(): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupDefaultExpressMiddlewares.name);
     this._app
       .use(json())
       .use(urlencoded({ extended: true }))
       .use(cors(this._settings.cors))
       .use(helmet(this._settings.helmet))
-      .use(parseRequestHandler);
-    return this.config;
+      .use(parseRequestHandler)
+      .use(parseCookiesHandler);
+    return this.manualSetup();
   }
 
-  protected setRequestIdMiddleware(): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
+  protected setupRequestIdMiddleware(): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupRequestIdMiddleware.name);
     this._app.use(requestIdHandler);
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
+  protected setupSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupSession.name);
     if (!sessionConfig) return;
     this._app.set('trust proxy', 1);
     if (!sessionConfig.paths) this._app.use(session(sessionConfig));
@@ -130,91 +164,100 @@ export class Application<T extends IApplication = IApplication> {
         this._app.use(item, session(sessionConfig));
       });
     }
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    if (!paths) this._app.use(sendResponseHandler);
-    else if (typeof paths === 'string' || paths instanceof RegExp) this._app.use(paths, sendResponseHandler);
-    else paths.forEach((item) => this._app.use(item, sendResponseHandler));
-    return this.config;
+  protected setupSendResponseMiddleware(
+    handler: RequestHandler = this._settings.sendResponseHandler, paths?: TypeOrArrayOfTypes<string | RegExp>,
+  ): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupSendResponseMiddleware.name);
+    if (!paths) this._app.use(handler);
+    else if (typeof paths === 'string' || paths instanceof RegExp) this._app.use(paths, handler);
+    else paths.forEach((item) => this._app.use(item, handler));
+    return this.manualSetup();
   }
 
-  protected setStatics(statics: ApplicationStatics = this._settings.statics): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    if (!statics) return this.config;
+  protected setupStatics(statics: ApplicationStatics = this._settings.statics): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupStatics.name);
+    if (!statics) return this.manualSetup();
     if (Array.isArray(statics)) {
       statics.forEach((item) => this._app.use(express.static(item)));
     } else if (typeof statics === 'object') {
       Object.entries(statics).forEach(([key, value]) => this._app.use(key, express.static(value)));
     }
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    if (!middlewares) return this.config;
+  protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupMiddlewares.name);
+    if (!middlewares) return this.manualSetup();
 
     Object.entries(middlewares).forEach(([key, value]) => (Array.isArray(value)
       ? value.forEach((item) => this._app.use(key, item))
       : this._app.use(key, value)));
 
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setRouter(mount: ApplicationMountList = this._settings.mount): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
+  protected setupRouter(mount: ApplicationMountList = this._settings.mount): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupRouter.name);
+
+    let mountObject = { ...mount };
 
     if (this._settings.useDefaultControllers && this._settings.apiBase) {
-      if (typeof this._settings.apiBase === 'string') this.addRoutes({ [this._settings.apiBase]: [InfoController, HealthController] });
-      else this._settings.apiBase.forEach((path) => { this.addRoutes({ [path]: [InfoController, HealthController] }); });
+      if (typeof this._settings.apiBase === 'string') {
+        mountObject = this.setRequestHandlers(mountObject, { [this._settings.apiBase]: [InfoController, HealthController] });
+      } else {
+        this._settings.apiBase.forEach((path) => {
+          mountObject = this.setRequestHandlers(mountObject, { [path]: [InfoController, HealthController] });
+        });
+      }
     }
 
-    if (!mount) return this.config;
+    if (!mountObject) return this.manualSetup();
 
     try {
-      Object.entries(mount).forEach(([key, value]) => (Array.isArray(value)
+      Object.entries(mountObject).forEach(([key, value]) => (Array.isArray(value)
         ? value.forEach((item) => this._app.use(key, this.getRouters(item)))
         : this._app.use(key, this.getRouters(value))));
     } catch (err) {
       this.throwError(err, 'Invalid router provided');
     }
 
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setNotFoundHandler(): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
+  protected setupNotFoundHandler(handler: RequestHandler = this._settings.notFoundHandler): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupNotFoundHandler.name);
     if (!this._settings.webApps) {
-      this._app.use(notFoundHandler);
+      this._app.use(handler);
       return;
     }
     if (!this._settings.apiBase) return;
-    if (typeof this._settings.apiBase === 'string') this._app.use(this._settings.apiBase, notFoundHandler);
-    else this._settings.apiBase.forEach((item) => this._app.use(item, notFoundHandler));
+    if (typeof this._settings.apiBase === 'string') this._app.use(this._settings.apiBase, handler);
+    else this._settings.apiBase.forEach((item) => this._app.use(item, handler));
 
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setWebApps(webApps: ApplicationWebApps = this._settings.webApps): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    if (!webApps) return this.config;
+  protected setupWebApps(webApps: ApplicationWebApps = this._settings.webApps): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupWebApps.name);
+    if (!webApps) return this.manualSetup();
 
     if (typeof webApps === 'string') this.serveWebApp(webApps);
     else Object.entries(webApps).forEach(([key, value]) => this.serveWebApp(value, key));
 
-    return this.config;
+    return this.manualSetup();
   }
 
-  protected setGlobalErrorHandler(): IApplicationConfig {
-    this.setManualMiddlewaresOrder();
-    this._app.use(globalErrorHandler);
-    return this.config;
+  protected setupGlobalErrorHandler(handler: ErrorRequestHandler = this._settings.globalErrorHandler): IApplicationManualSetup {
+    this.setManualyCalledMethods(this.setupGlobalErrorHandler.name);
+    this._app.use(handler);
+    return this.manualSetup();
   }
 
-  protected setManualMiddlewaresOrder(): void {
-    this._isManualMiddlewaresOrder = true;
+  protected setManualyCalledMethods(methodName: string): void {
+    this._manuallyCalledMethods[methodName] = true;
   }
 
   protected serveWebApp(webAppPath: string, endPoint = '*'): void {
@@ -241,7 +284,7 @@ export class Application<T extends IApplication = IApplication> {
       .map((item) => {
         /* eslint-disable-next-line */
         const importedRouter = require(item);
-        const routerInstance = importedRouter && importedRouter.default
+        const routerInstance = importedRouter?.default
           ? importedRouter.default
           : getObjectValuesList(importedRouter)
             .find((rtr) => typeof rtr === 'function' && rtr && rtr.stack && rtr.stack[0] && rtr.stack[0].route);
@@ -263,6 +306,11 @@ export class Application<T extends IApplication = IApplication> {
 
   protected getMountArrays(mount: TypeOrArrayOfTypes<ApplicationMount>): ApplicationMount[] {
     return Array.isArray(mount) ? mount : [mount];
+  }
+
+  protected initializeLoggerDependentSettings(): void {
+    if (!this._settings.globalErrorHandler) this._settings.globalErrorHandler = createGlobalErrorHandler(this._settings.logger);
+    if (!this._settings.sendResponseHandler) this._settings.sendResponseHandler = createSendResponseHandler(this._settings.logger);
   }
 
   /* eslint-disable-next-line */

@@ -1,4 +1,7 @@
-import { Router, Application as ExpressApplication, RequestHandler } from 'express';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// eslint-disable-next-line import/no-unresolved
+import { ApplicationRequestHandler } from 'express-serve-static-core';
+import { Router, Application as ExpressApplication, RequestHandler, ErrorRequestHandler } from 'express';
 import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
 import { IHelmetConfiguration } from 'helmet';
@@ -10,6 +13,9 @@ export type IApplication = ExpressApplication;
 export interface IApplicationSettings<T extends IApplication = IApplication> {
   /** Existing Express App. It will be used instead of creating new App by default. */
   app?: T;
+
+  /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
+  logger?: IApplicationLogger;
 
   /** Port to listen. */
   port?: number | string;
@@ -32,75 +38,98 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
   /** Helmep options @see https://www.npmjs.com/package/helmet */
   helmet?: IHelmetConfiguration;
 
-  /** Default routers mount options. As from example above. */
+  /**
+   *  Default routers mount options. Key - value (Express Router instance) pairs.
+   *  Key (path) - String value for router path.
+   *  Value - Router instance or glob pattern from where to import.
+   */
   mount?: ApplicationMountList;
-
-  /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
-  useDefaultControllers?: boolean;
 
   /** Register default middlewares here. */
   middlewares?: ApplicationMiddlewareList;
 
   /** Session options. @see https://www.npmjs.com/package/express-session */
   session?: IApplicationSession;
+
+  /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
+  useDefaultControllers?: boolean;
+
+  /** Middleware to be used instead of default `notFoundHandler` */
+  notFoundHandler?: RequestHandler;
+
+  /** Middleware to be used instead of default `sendResponseHandler` */
+  sendResponseHandler?: RequestHandler;
+
+  /** Middleware to be used instead of default `globalErrorHandler` */
+  globalErrorHandler?: ErrorRequestHandler;
 }
 
-export interface IApplicationConfig {
-  /** Sets all middlewares (which are used under this method) at once. */
-  setAllMiddlewares(): IApplicationConfig;
+export interface IApplicationManualSetup {
+  /** Proxy to native Express App `use` method */
+  use: ApplicationRequestHandler<IApplicationManualSetup>;
+
+  /** Proxy to native Express App `set` method */
+  set(setting: string, value: any): this;
+
+  /** Setups all middlewares and settings (which are used under this method) at once. */
+  setupAll(): IApplicationManualSetup;
 
   /** Sets query parser for App. */
-  setQueryParser(): IApplicationConfig;
+  setupQueryParser(cb?: (str: string) => any): IApplicationManualSetup;
 
   /** Sets default middlewares: cors, helmet, bodyparser, ... etc */
-  setDefaultMiddlewares(): IApplicationConfig;
+  setupDefaultExpressMiddlewares(): IApplicationManualSetup;
 
   /** Sets handler for attaching request id for each request. */
-  setRequestIdMiddleware(): IApplicationConfig;
+  setupRequestIdMiddleware(): IApplicationManualSetup;
 
   /** Sets session middleware. */
-  setSession(sessionConfig?: IApplicationSession): IApplicationConfig;
+  setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationConfig;
+  setupSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
 
   /** Sets statics. */
-  setStatics(statics?: ApplicationStatics): IApplicationConfig;
+  setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
 
   /** Sets custom middlewares provide via `options` or via `addMiddlewares` method. */
-  setMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationConfig;
+  setupMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationManualSetup;
 
   /** Sets custom controllers (routes) provide via `options` or via `addRoutes` method. */
-  setRouter(mount: ApplicationMountList): IApplicationConfig;
+  setupRouter(mount: ApplicationMountList): IApplicationManualSetup;
 
   /** Sets notFoundHandler. */
-  setNotFoundHandler(): IApplicationConfig;
+  setupNotFoundHandler(): IApplicationManualSetup;
 
   /** Sets webApps statics and serving. */
-  setWebApps(webApps?: ApplicationWebApps): IApplicationConfig;
+  setupWebApps(webApps?: ApplicationWebApps): IApplicationManualSetup;
 
   /** Sets global request handler. */
-  setGlobalErrorHandler(): IApplicationConfig;
+  setupGlobalErrorHandler(): IApplicationManualSetup;
+
+  /** Proxy to public Application `start` method */
+  start(cb?: Callback): void;
 }
 
 export interface IApplicationInfo {
   dateTime: string;
   commit: string;
   version: string;
-  instance: string;
+  env: string;
 }
 
 export interface IApplicationSession extends ISessionSettings {
   paths?: string | string[];
 }
 
-export type ApplicationRouter = Router | string | { path: string | RegExp; router: Router | string };
+export interface IApplicationLogger {
+  info(data: any, ...args: any[]): any;
+  error(data: any, ...args: any[]): any;
+}
 
 export type ApplicationMount = string | Router;
 
 export type ApplicationMountList = Record<string, TypeOrArrayOfTypes<ApplicationMount>>;
-
-export type ApplicationMiddleware = RequestHandler | { path: string | RegExp; middleware: RequestHandler };
 
 export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<RequestHandler>>;
 
@@ -111,3 +140,6 @@ export type ApplicationWebApps = string | Record<string, string>;
 export type ApplicationPaths = TypeOrArrayOfTypes<string>;
 
 export type TypeOrArrayOfTypes<T> = T | T[];
+
+/* eslint-disable-next-line */
+export type Callback = (...args: any[]) => void;

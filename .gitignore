@@ -13,3 +13,8 @@ dist
 
 ### Env
 .env
+
+
+
+### Logs
+**/*.log

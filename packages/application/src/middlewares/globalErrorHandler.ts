@@ -1,12 +1,15 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
-import { log } from '@tsrt/logger';
 import { send } from '@tsrt/api-utils';
 
-/* eslint-disable-next-line */
-export function globalErrorHandler(err: any, _req: Request, res: Response, next: NextFunction): void {
-  if (res.headersSent) return next(err);
-  log.error(err);
-  const error = { status: err.status || 500, data: err.data || err.message || 'Internal Server Error' };
-  send(res, error.status, error.data);
+import { IApplicationLogger } from '../interfaces';
+
+export function createGlobalErrorHandler(logger?: IApplicationLogger): ErrorRequestHandler {
+  /* eslint-disable-next-line */
+  return (err: any, _req: Request, res: Response, next: NextFunction): void => {
+    if (res.headersSent) return next(err);
+    if (logger) logger.error(err);
+    const error = { status: err.status || 500, data: err.data || err.message || 'Internal Server Error' };
+    send(res, error.status, error.data);
+  };
 }

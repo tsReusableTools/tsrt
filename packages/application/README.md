@@ -34,6 +34,7 @@ const API = '/api/v1';
 
 new Application({
   port: 3001,
+  logger: new Logger(), // or just logger: console,
   apiBase: API,
   webApps: path.join(__dirname, '../client'),
   session: {
@@ -45,8 +46,8 @@ new Application({
     },
     store: { url: 'redis_url', password: 'redis_password' },
   },
-  middlewares: { [API]: [`${__dirname}/api/middlewares/**/*.ts`] },
-  mount: { [API]: [`${__dirname}/api/controllers/**/*.ts`] },
+  middlewares: { [API]: [someMiddleware, someMiddleware2], '/test': someMiddleware3 }, // Or .addMiddlewares(...)
+  mount: { [API]: [`${__dirname}/api/controllers/**/*.ts`], [API_v2]: someRouter }, // Or .addRouters(...)
 }).start();
 ```
 
@@ -87,21 +88,53 @@ new Application({ port: 3001 })
   .start();
 ```
 
+### API reference
+
+```ts
+export declare class Application<T extends IApplication = IApplication> {
+  constructor(settings?: IApplicationSettings<T>, app?: T);
+
+  /** Current Express Application. */
+  app: T;
+
+  /** Application settings. */
+  settings: IApplicationSettings<T>;
+
+  /** Add aditional routers (mount) imperatively (also could be done declaratively via settings). */
+  addRoutes(mount: ApplicationMountList): Application;
+
+  /** Add aditional middlewares imperatively (also could be done declaratively via settings). */
+  addMiddlewares(middlewares: ApplicationMiddlewareList): Application;
+
+  /** Set session middleware imperatively (also could be done declaratively via settings) or just as regular middleware. */
+  addSession(sessionConfig: IApplicationSession): Application;
+
+  /** Reassign default sendResponseHandler (also could be done declaratively via settings). */
+  setSendResponseHandler(handler: RequestHandler): Application;
+
+  /** Reassign default notFoundHandler (also could be done declaratively via settings). */
+  setNotFoundHandler(handler: RequestHandler): Application;
+
+  /** Reassign default globalErrorHandler (also could be done declaratively via settings). */
+  setGlobalErrorHandler(handler: ErrorRequestHandler): Application;
+  start(cb?: Callback): void;
+
+  /** Here it is possible to call every setup methods in necessary order. */
+  manualSetup(): IApplicationManualSetup;
+}
+```
+
 ### Options
 
 ```ts
-import { Router, Application as ExpressApplication, RequestHandler } from 'express';
-import { CorsOptions } from 'cors';
-import { IParseOptions } from 'qs';
-import { IHelmetConfiguration } from 'helmet';
-
-import { ISessionSettings } from '@tsrt/session';
-
 export type IApplication = ExpressApplication;
 
 export interface IApplicationSettings<T extends IApplication = IApplication> {
   /** Existing Express App. It will be used instead of creating new App by default. */
   app?: T;
+
+  /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
+  logger?: IApplicationLogger;
 
   /** Port to listen. */
   port?: number | string;
@@ -124,75 +157,86 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
   /** Helmep options @see https://www.npmjs.com/package/helmet */
   helmet?: IHelmetConfiguration;
 
-  /** Default routers mount options. As from example above. */
+  /**
+   *  Default routers mount options. Key - value (Express Router instance) pairs.
+   *  Key (path) - String value for router path.
+   *  Value - Router instance or glob pattern from where to import.
+   */
   mount?: ApplicationMountList;
-
-  /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
-  useDefaultControllers?: boolean;
 
   /** Register default middlewares here. */
   middlewares?: ApplicationMiddlewareList;
 
   /** Session options. @see https://www.npmjs.com/package/express-session */
   session?: IApplicationSession;
+
+  /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
+  useDefaultControllers?: boolean;
+
+  /** Middleware to be used instead of default `notFoundHandler` */
+  notFoundHandler?: RequestHandler;
+
+  /** Middleware to be used instead of default `sendResponseHandler` */
+  sendResponseHandler?: RequestHandler;
+
+  /** Middleware to be used instead of default `globalErrorHandler` */
+  globalErrorHandler?: ErrorRequestHandler;
 }
 
-export interface IApplicationConfig {
-  /** Sets all middlewares (which are used under this method) at once. */
-  setAllMiddlewares(): IApplicationConfig;
+export interface IApplicationManualSetup {
+  /** Proxy to native Express App `use` method */
+  use: ApplicationRequestHandler<IApplicationManualSetup>;
+
+  /** Proxy to native Express App `set` method */
+  set(setting: string, value: any): this;
+
+  /** Setups all middlewares and settings (which are used under this method) at once. */
+  setupAll(): IApplicationManualSetup;
 
   /** Sets query parser for App. */
-  setQueryParser(): IApplicationConfig;
+  setupQueryParser(cb?: (str: string) => any): IApplicationManualSetup;
 
   /** Sets default middlewares: cors, helmet, bodyparser, ... etc */
-  setDefaultMiddlewares(): IApplicationConfig;
+  setupDefaultExpressMiddlewares(): IApplicationManualSetup;
 
   /** Sets handler for attaching request id for each request. */
-  setRequestIdMiddleware(): IApplicationConfig;
+  setupRequestIdMiddleware(): IApplicationManualSetup;
 
   /** Sets session middleware. */
-  setSession(sessionConfig?: IApplicationSession): IApplicationConfig;
+  setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationConfig;
+  setupSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
 
   /** Sets statics. */
-  setStatics(statics?: ApplicationStatics): IApplicationConfig;
+  setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
 
   /** Sets custom middlewares provide via `options` or via `addMiddlewares` method. */
-  setMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationConfig;
+  setupMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationManualSetup;
 
   /** Sets custom controllers (routes) provide via `options` or via `addRoutes` method. */
-  setRouter(mount: ApplicationMountList): IApplicationConfig;
+  setupRouter(mount: ApplicationMountList): IApplicationManualSetup;
 
   /** Sets notFoundHandler. */
-  setNotFoundHandler(): IApplicationConfig;
+  setupNotFoundHandler(): IApplicationManualSetup;
 
   /** Sets webApps statics and serving. */
-  setWebApps(webApps?: ApplicationWebApps): IApplicationConfig;
+  setupWebApps(webApps?: ApplicationWebApps): IApplicationManualSetup;
 
   /** Sets global request handler. */
-  setGlobalErrorHandler(): IApplicationConfig;
-}
+  setupGlobalErrorHandler(): IApplicationManualSetup;
 
-export interface IApplicationInfo {
-  dateTime: string;
-  commit: string;
-  version: string;
-  instance: string;
+  /** Proxy to public Application `start` method */
+  start(cb?: Callback): void;
 }
 
 export interface IApplicationSession extends ISessionSettings {
   paths?: string | string[];
 }
 
-export type ApplicationRouter = Router | string | { path: string | RegExp; router: Router | string };
-
 export type ApplicationMount = string | Router;
 
 export type ApplicationMountList = Record<string, TypeOrArrayOfTypes<ApplicationMount>>;
-
-export type ApplicationMiddleware = RequestHandler | { path: string | RegExp; middleware: RequestHandler };
 
 export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<RequestHandler>>;
 
@@ -204,6 +248,7 @@ export type ApplicationPaths = TypeOrArrayOfTypes<string>;
 
 export type TypeOrArrayOfTypes<T> = T | T[];
 
+export type Callback = (...args: any[]) => void;
 
 ```
 

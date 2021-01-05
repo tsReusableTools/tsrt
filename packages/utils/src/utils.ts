@@ -372,3 +372,21 @@ export function range(from: number, to: number, step = 1): number[] {
  *  @param [min=0] - The lower boundary of the output range.
  */
 export function clamp(value: number, max: number, min = 0): number { return Math.min(Math.max(min, value), max); }
+
+/**
+ *  Shortcut for try { } catch (err) { } block w/ sync/async interface. Main reason - to use when need only try block.
+ *  @param cb - Callback to be called in `try` block.
+ *  @param errCb  - Callback to be called in `catch` block.
+ *
+ *  @note still under construction and thinking about  (thus, not ready for prod usage yet).
+ */
+export async function tryCatch(cb: () => Promise<any>, errCb?: (err: any) => Promise<any>): Promise<any>
+export function tryCatch(cb: () => any, errCb?: (err: any) => any): any;
+export async function tryCatch(cb: () => Promise<any> | any, errCb?: (err: any) => Promise<any> | any): Promise<any> {
+  try {
+    const result = await cb();
+    return result;
+  } catch (err) {
+    if (errCb) return errCb(err);
+  }
+}
