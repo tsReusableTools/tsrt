@@ -88,6 +88,49 @@ new Application({ port: 3001 })
   .start();
 ```
 
+### Advice
+
+As known when throwing exeption in Express route, if handler is an `async` function that exeption would not be correctly passed to next route, so it is necessary to make it expicitly:
+
+```ts
+import { Router } from 'express';
+
+// Incorrect
+Router().get('/incorrect', async (req, res) => {
+  throw new Error('Error'); // This will cause an unhandled exception.
+  // Note, that it will work correctly, if handler is not an `async`.
+  res.send('Error');
+});
+
+// Note, same example will work correctly, if handler is not an `async`.
+Router().get('/incorrect', (req, res) => {
+  throw new Error('Error');
+  res.send('Error');
+});
+
+// Correct
+Router().get('/correct', async (req, res) => {
+  next(throw new Error('Error'));
+  res.send('Error');
+});
+```
+
+In order to have ability to throw exceptions without calling next, or if some another method threw an exception, we can patch Express w/ help of [express-async-errors](https://www.npmjs.com/package/express-async-errors).
+
+```ts
+import express from 'express';
+require('express-async-errors'); // Should be used before any express usage.
+
+// ... later in router
+import { Router } from 'express';
+
+// Incorrect
+Router().get('/incorrect', async (req, res) => {
+  throw new Error('Error'); // Now this will correctly path error to ErrorRequestHandler.
+  res.send('Error');
+});
+```
+
 ### API reference
 
 ```ts
