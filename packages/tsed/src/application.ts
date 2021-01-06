@@ -2,8 +2,6 @@ import { PlatformExpress } from '@tsed/platform-express';
 import { Configuration } from '@tsed/common';
 import { deepMerge } from '@tsed/core';
 
-import { log } from '@tsrt/logger';
-
 import { IApplicationSettings } from './interfaces';
 import { Server } from './server';
 
@@ -16,10 +14,11 @@ export class Application {
 
   public get settings(): IApplicationSettings { return { ...this._settings }; }
 
-  public async start(): Promise<void> {
+  public async start(cb?: (...args: any[]) => void): Promise<void> {
     if (!this._settings.port) throw Error('It is necessary to provide at least `port` settings option');
-    const server = await PlatformExpress.bootstrap(Server, this._settings as Configuration);
+    console.log('this._settings >>>', this._settings);
+    const server = await PlatformExpress.bootstrap(Server, this._settings as unknown as Configuration);
     await server.listen();
-    log.info(`Listen to port: ${this._settings.port}. Pid: ${process.pid}`);
+    if (cb) cb();
   }
 }

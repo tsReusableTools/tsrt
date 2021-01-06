@@ -1,5 +1,5 @@
 import { Controller, Get } from '@tsed/common';
-import { Summary } from '@tsed/swagger';
+import { Summary } from '@tsed/schema';
 
 @Controller('/health.html')
 export class HealthController {
