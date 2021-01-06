@@ -17,8 +17,7 @@ import {
   ApplicationMiddlewareList, IApplicationSession, Callback,
 } from './interfaces';
 import {
-  createSendResponseHandler, createGlobalErrorHandler, notFoundHandler, requestIdHandler,
-  parseRequestHandler, parseCookiesHandler,
+  createSendResponseHandler, createGlobalErrorHandler, notFoundHandler, requestIdHandler, parseCookiesHandler,
 } from './middlewares';
 import { InfoController, HealthController } from './controllers';
 
@@ -143,7 +142,6 @@ export class Application<T extends IApplication = IApplication> {
       .use(urlencoded({ extended: true }))
       .use(cors(this._settings.cors))
       .use(helmet(this._settings.helmet))
-      .use(parseRequestHandler)
       .use(parseCookiesHandler);
     return this.manualSetup();
   }
