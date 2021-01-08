@@ -10,7 +10,7 @@ import {
 import { OrderingService } from '@tsrt/ordering';
 
 import {
-  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig, IBaseRepositoryDefaults,
+  IBaseRepositoryOptions, IBaseRepositoryExtendedOptions, IBaseRepositoryConfig,
   ICreateOptions, IReadOptions, IUpdateOptions, IDeleteOptions, IRestoreOptions, TransactionCallBack,
   IBulkCreateOptions, IBulkUpdateOptions, IBaseOrderingItem, IBaseRepositoryQueryExecutionOptions,
   IBaseRepositorySilentQuery, IBaseRepositoryOptionsKeys,
@@ -30,16 +30,15 @@ export class BaseRepository<
     protected readonly config?: Partial<IBaseRepositoryConfig>,
   ) {
     const {
-      defaults: { limit, order, restrictedProperties, logError },
-      orderingServiceOptions: { orderKey },
+      limit, order, restrictedProperties, logError, silent, orderingServiceOptions: { orderKey },
     } = defaultBaseRepositoryConfig;
 
     if (!this.config) this.config = defaultBaseRepositoryConfig;
-    if (!this.config.defaults) this.config.defaults = defaultBaseRepositoryConfig.defaults;
-    if (!this.config.defaults.limit) this.config.defaults.limit = limit;
-    if (!this.config.defaults.order) this.config.defaults.order = order;
-    if (!this.config.defaults.logError) this.config.defaults.logError = logError;
-    if (!this.config.defaults.restrictedProperties) this.config.defaults.restrictedProperties = restrictedProperties;
+    if (!this.config.limit) this.config.limit = limit;
+    if (!this.config.order) this.config.order = order;
+    if (!this.config.logError) this.config.logError = logError;
+    if (!this.config.restrictedProperties) this.config.restrictedProperties = restrictedProperties;
+    if (!this.config.silent) this.config.silent = silent;
 
     if (!this.config.orderingServiceOptions) this.config.orderingServiceOptions = defaultBaseRepositoryConfig.orderingServiceOptions;
     if (!this.config.orderingServiceOptions.orderKey) this.config.orderingServiceOptions.orderKey = orderKey;
@@ -84,7 +83,7 @@ export class BaseRepository<
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
       const created = await this.model.create<M>(dataToSave, { ...options, transaction });
-      if (!created && createOptions.silent) return null;
+      if (!created && (createOptions.silent ?? this.config.silent)) return null;
 
       const result = await this.insertAssociations(created, dataToSave, { ...customOptions, transaction }, through);
       return result;
@@ -112,7 +111,7 @@ export class BaseRepository<
       const options = this.retrieveSequelizeStaticMethodOptions(customOptions);
 
       const results = await this.model.bulkCreate<M>(dataToSave, { ...options, transaction });
-      if (!results && createOptions.silent) return null;
+      if (!results && (createOptions.silent ?? this.config.silent)) return null;
 
       const insertOptions = { ...customOptions, transaction };
       const result = await Promise.all(results.map((item, i) => this.insertAssociations(item, dataToSave[i], insertOptions, through)));
@@ -162,7 +161,7 @@ export class BaseRepository<
 
       const result = await this.model.findOne(findQuery);
 
-      if (!result && genericOptions.silent) return null;
+      if (!result && (genericOptions.silent ?? this.config.silent)) return null;
       if (!result) throwHttpError.notFound('Item not found');
 
       const value = this.mapSequelizeModelToPlainObject(result);
@@ -201,7 +200,7 @@ export class BaseRepository<
 
       const result = await this.model.findAndCountAll({ ...query, transaction });
 
-      if (!result && options.silent) return null;
+      if (!result && (options.silent ?? this.config.silent)) return null;
       if (!result) throwHttpError.notFound('Items not found');
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
@@ -246,7 +245,7 @@ export class BaseRepository<
         ? await this.model.findOne({ where, transaction }) as M
         : await this.model.findAll({ where, transaction }) as M[];
 
-      if ((!updated || (Array.isArray(updated) && !updated?.length)) && genericOptions.silent) return null;
+      if ((!updated || (Array.isArray(updated) && !updated?.length)) && (genericOptions.silent ?? this.config.silent)) return null;
       if (!updated || (Array.isArray(updated) && !updated?.length)) throwHttpError.notFound();
 
       const insertOptions = { ...genericOptions, transaction };
@@ -278,7 +277,7 @@ export class BaseRepository<
       }
 
       const filtered = results.filter(Boolean);
-      return updateOptions?.silent && !filtered?.length ? null : filtered;
+      return (updateOptions?.silent ?? this.config.silent) && !filtered?.length ? null : filtered;
     });
   }
 
@@ -304,7 +303,7 @@ export class BaseRepository<
       const findQuery = { ...staticMethodOptions, ...parsedQuery, transaction };
 
       const available = await this.model.findAll({ ...findQuery });
-      if (!available && options.silent) return null;
+      if (!available && (options.silent ?? this.config.silent)) return null;
 
       const availableValue = this.mapSequelizeModelToPlainObject(available);
 
@@ -339,7 +338,7 @@ export class BaseRepository<
 
       const result = await this.model.destroy({ ...options, where, transaction });
 
-      if (!result && genericOptions.silent) return null;
+      if (!result && (genericOptions.silent ?? this.config.silent)) return null;
       if (!result) throwHttpError.badRequest(`Cannot delete. Incorrect condition(s): ${JSON.stringify(where)}`);
 
       return genericPk ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by condition(s).';
@@ -393,7 +392,7 @@ export class BaseRepository<
       // For some reason this method returns not `void`, but number of affected values.
       const result = await this.model.restore({ ...options, where, transaction }) as unknown as number;
 
-      if (!result && genericOptions.silent) return null;
+      if (!result && (genericOptions.silent ?? this.config.silent)) return null;
       if (!result) throwHttpError.badRequest(`Cannot restore. Incorrect condition(s): ${JSON.stringify(where)}`);
 
       const query = { ...genericOptions, transaction, limit: 'none' as const };
@@ -497,10 +496,6 @@ export class BaseRepository<
   /* eslint-enable @typescript-eslint/no-unused-vars */
   /* eslint-enable @typescript-eslint/no-empty-function */
 
-  protected get defaults(): IBaseRepositoryDefaults {
-    return { ...(this.config?.defaults ?? defaultBaseRepositoryConfig.defaults) } as IBaseRepositoryDefaults;
-  }
-
   protected get orderKey(): string {
     return this.config.orderingServiceOptions?.orderKey ?? defaultBaseRepositoryConfig.orderingServiceOptions.orderKey;
   }
@@ -522,7 +517,7 @@ export class BaseRepository<
 
   protected removeRestrictedPropertiesFromBody(body: Partial<R> = { }): Partial<R> {
     const result = { ...body };
-    [this.pk, ...this.defaults.restrictedProperties].forEach((key) => {
+    [this.pk, ...this.config.restrictedProperties].forEach((key) => {
       if (Object.hasOwnProperty.call(result, key)) delete (result as GenericObject)[key];
     });
     return result;
@@ -608,7 +603,7 @@ export class BaseRepository<
         const listOfNestedKeys = key.trim().split('.');
         order.push([...listOfNestedKeys, value.trim()]);
       });
-    } else order.push(this.defaults.order ?? [this.pk, 'asc']);
+    } else order.push(this.config.order ?? [this.pk, 'asc']);
 
     if (order.length && sort && (attributes || query.attributes)) {
       const attrs: FindAttributeOptions = attributes || query.attributes as ProjectionAlias[];
@@ -635,7 +630,7 @@ export class BaseRepository<
 
   private limitParser(limit: number | string, query?: FindAndCountOptions): number {
     if (limit !== 'none') {
-      const limitation = limit && !Number.isNaN(+limit) ? +limit : this.config.defaults.limit;
+      const limitation = limit && !Number.isNaN(+limit) ? +limit : this.config.limit;
       if (query) query.limit = limitation;
       return limitation;
     }
@@ -781,7 +776,7 @@ export class BaseRepository<
 
       Object.keys(this.model.associations).forEach((key) => {
         if (!body || !Object.keys(body).includes(key) || !(body as GenericObject)[key]) return;
-        // if (!body && !Array.isArray(body[key]) && !Array.isArray(body[`${key}${this.defaults.relationPksSuffix}`])) return;
+        // if (!body && !Array.isArray(body[key]) && !Array.isArray(body[`${key}${this.config.relationPksSuffix}`])) return;
         include.push(key);
         promises.push(this.addOrRemoveAssociation(entity, key, { ...through } ?? { }, (body as GenericObject)[key], insertionOptions));
       });
@@ -925,7 +920,7 @@ export class BaseRepository<
   protected throwCustomSequelizeError(err: any, options?: IBaseRepositorySilentQuery): void | null {
     const message = this.createCustomSequelizeError(err, options);
     const isHttpError = err instanceof HttpError;
-    if (options?.silent && !isHttpError) return null;
+    if ((options?.silent ?? this.config.silent) && !isHttpError) return null;
     if (isHttpError) throw err;
     else if (err.status) throwHttpError(err.status, message);
     else throwHttpError.badRequest(message);
@@ -933,7 +928,7 @@ export class BaseRepository<
 
   /* eslint-disable-next-line */
   protected createCustomSequelizeError(err: any, options?: IBaseRepositorySilentQuery): any {
-    if (this.defaults.logError && !options?.silent) console.warn('Error occured in BaseRepository: \n', err);
+    if (this.config.logError && !(options?.silent ?? this.config.silent)) console.warn('Error occured in BaseRepository: \n', err);
     const detailedError = err && err.parent ? `: ${err.parent.message}` : '';
     const customError = err.message + detailedError || { ...err.original, name: err.name };
     return customError;

@@ -24,21 +24,35 @@ export interface IDatabaseConfig {
 }
 
 /** Default repository options. */
-export interface IBaseRepositoryDefaults {
-  /**
+export interface IBaseRepositoryConfig {
+/**
    *  Properties, which would ne stripped while update/create operations.
    *  Default: ['createdAt', 'updatedAt', 'deletedAt'].
    */
-  restrictedProperties: string[];
+  restrictedProperties?: string[];
 
   /** Defalt limit param for read operations. Default: 10. */
-  limit: number;
+  limit?: number;
 
   /** Defalt order param for read operations. Default: [primaryKey, 'asc']. */
-  order: string[];
+  order?: string[];
 
-  /** Whether to log BaseRepository errors. */
+  /** Whether to log BaseRepository errors. @default `process.env.NODE_ENV !== 'production'` */
   logError?: boolean;
+
+  /**
+   *  By default, base repository will throw errors in some cases, where native Sequelize query was successfull.
+   *  For example, when `findOne` returns null, BaseRepository will throw a NotFound error. Same for delete/restore, for example.
+   *  To change this behaviour to native Sequelize (thus return `null`), provide `silent: true` value.
+   *
+   *  @note that BaseRepository still will emit validation errors, not concernde w/ Sequelize query.
+   *  (for example if trying to `updateItemsOrder` for Model without `orderKey`).
+   *
+   *  @note it can be replaced by `silent` value of specific method.
+   *
+   *  @default false.
+   */
+  silent?: boolean;
 
   /**
    *  Suffix for relation primaryKeys.
@@ -50,11 +64,6 @@ export interface IBaseRepositoryDefaults {
    *  @note temporary not imlepented - need discussion.
    */
   // relationPksSuffix?: string;
-}
-
-export interface IBaseRepositoryConfig {
-  /** Default repository options. */
-  defaults: Partial<IBaseRepositoryDefaults>;
 
   /** Config for OrderingService. */
   orderingServiceOptions: IOrderingServiceOptions;
@@ -64,25 +73,30 @@ export type IBaseRepositoryOptionsKeys = 'limit' | 'skip' | 'getBy' | 'select' |
 
 export interface IBaseRepositorySilentQuery {
   /**
-   *  Whether to throw an Error if query fails.
-   *  For example while reading/creating/updating data.
+   *  By default, base repository will throw errors in some cases, where native Sequelize query was successfull.
+   *  For example, when `findOne` returns null, BaseRepository will throw a NotFound error. Same for delete/restore, for example.
+   *  To change this behaviour to native Sequelize (thus return `null`), provide `silent: true` value.
    *
-   *  @note that error will be throw even if `silent: true` and it is some validation error, for example incorrect body for update method.
-   *  @default false;
+   *  @note that BaseRepository still will emit validation errors, not concernde w/ Sequelize query.
+   *  (for example if trying to `updateItemsOrder` for Model without `orderKey`).
+   *
+   *  @note it can be replaced by `silent` value of specific method.
+   *
+   *  @default false.
    */
   silent?: boolean;
 }
 
 export interface IBaseRepositoryOptions extends IBaseRepositorySilentQuery {
-  /** Limit for Sql query. Applies for limitation of main entity records. @default: 10. */
+  /** Limit for Sql query. Applies for limitation of main entity records. @default 10. */
   limit?: number | 'none';
 
-  /** Offset for Sql query. @default: 0. */
+  /** Offset for Sql query. @default 0. */
   skip?: number;
 
   /**
    *  Applies only in case of reading by pk (`readOne or read` methods) and gives an alias for reading by value if some field.
-   *  @default: model primaryKey.
+   *  @default model primaryKey.
    */
   getBy?: string;
 
@@ -92,7 +106,7 @@ export interface IBaseRepositoryOptions extends IBaseRepositorySilentQuery {
   /**
    * Sorting conditions. Key:value paires.
    * @example: 'pk:asc,title:desc' or ['pk:asc', 'title:desc'].
-   * @default: 'primaryKey:asc'.
+   * @default 'primaryKey:asc'.
    */
   sort?: string | string[];
 

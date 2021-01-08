@@ -46,14 +46,14 @@ export class Application<T extends IApplication = IApplication> {
   public get settings(): IApplicationSettings<T> { return { ...this._settings }; }
 
   public addRoutes(mount: ApplicationMountList): Application {
-    if (!mount) return;
+    if (!mount) return this;
     if (!this._settings.mount) this._settings.mount = {};
     this._settings.mount = this.setRequestHandlers(this._settings.mount, mount);
     return this;
   }
 
   public addMiddlewares(middlewares: ApplicationMiddlewareList): Application {
-    if (!middlewares) return;
+    if (!middlewares) return this;
     if (!this._settings.middlewares) this._settings.middlewares = {};
     this._settings.middlewares = this.setRequestHandlers(this._settings.middlewares, middlewares);
     return this;
@@ -154,7 +154,7 @@ export class Application<T extends IApplication = IApplication> {
 
   protected setupSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupSession.name);
-    if (!sessionConfig) return;
+    if (!sessionConfig) return this.manualSetup();
     this._app.set('trust proxy', 1);
     if (!sessionConfig.paths) this._app.use(session(sessionConfig));
     else {
@@ -229,9 +229,9 @@ export class Application<T extends IApplication = IApplication> {
     this.setManualyCalledMethods(this.setupNotFoundHandler.name);
     if (!this._settings.webApps) {
       this._app.use(handler);
-      return;
+      return this.manualSetup();
     }
-    if (!this._settings.apiBase) return;
+    if (!this._settings.apiBase) return this.manualSetup();
     if (typeof this._settings.apiBase === 'string') this._app.use(this._settings.apiBase, handler);
     else this._settings.apiBase.forEach((item) => this._app.use(item, handler));
 
