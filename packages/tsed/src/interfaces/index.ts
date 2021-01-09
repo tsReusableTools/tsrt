@@ -1,6 +1,9 @@
-import { Configuration } from '@tsed/common';
+import { IApplicationSettings as IBaseApplicationSettings, ApplicationStatics } from '@tsrt/application';
 
-import { IApplicationSettings as IBaseApplicationSettings } from '@tsrt/application';
-
-export interface IApplicationSettings extends Omit<Partial<Configuration>, 'statics' | 'mount'>, IBaseApplicationSettings {
+// This one is NECESSARY because of for some reasone it is impossible to use TsED.Configuration w/ Omit type to exclude some props.
+/* eslint-disable-next-line */
+// @ts-ignore
+export interface IApplicationSettings extends Partial<TsED.Configuration>, IBaseApplicationSettings {
+  statics?: ApplicationStatics;
+  setSwaggerForApiBaseByDefault?: boolean;
 }

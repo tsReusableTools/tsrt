@@ -320,8 +320,8 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected initializeLoggerDependentSettings(): void {
-    if (!this._settings.globalErrorHandler) this._settings.globalErrorHandler = createGlobalErrorHandler(this._settings.logger);
-    if (!this._settings.sendResponseHandler) this._settings.sendResponseHandler = createSendResponseHandler(this._settings.logger);
+    if (!this._settings.globalErrorHandler) this._settings.globalErrorHandler = createGlobalErrorHandler(this._settings.log);
+    if (!this._settings.sendResponseHandler) this._settings.sendResponseHandler = createSendResponseHandler(this._settings.log);
   }
 
   /* eslint-disable-next-line */

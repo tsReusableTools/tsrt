@@ -15,7 +15,7 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
   app?: T;
 
   /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
-  logger?: IApplicationLogger;
+  log?: IApplicationLogger;
 
   /** Whether to show debug info (logs). @default false */
   debug?: boolean;
@@ -90,7 +90,7 @@ export interface IApplicationManualSetup {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
+  setupSendResponseMiddleware(handler?: RequestHandler, paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
 
   /** Sets statics. */
   setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
@@ -102,13 +102,13 @@ export interface IApplicationManualSetup {
   setupRouter(mount: ApplicationMountList): IApplicationManualSetup;
 
   /** Sets notFoundHandler. */
-  setupNotFoundHandler(): IApplicationManualSetup;
+  setupNotFoundHandler(handler?: RequestHandler): IApplicationManualSetup;
 
   /** Sets webApps statics and serving. */
   setupWebApps(webApps?: ApplicationWebApps): IApplicationManualSetup;
 
   /** Sets global request handler. */
-  setupGlobalErrorHandler(): IApplicationManualSetup;
+  setupGlobalErrorHandler(handler?: ErrorRequestHandler): IApplicationManualSetup;
 
   /** Proxy to public Application `start` method */
   start(cb?: Callback): void;
@@ -126,7 +126,9 @@ export interface IApplicationSession extends ISessionSettings {
 }
 
 export interface IApplicationLogger {
+  debug(data: any, ...args: any[]): any;
   info(data: any, ...args: any[]): any;
+  warn(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }
 

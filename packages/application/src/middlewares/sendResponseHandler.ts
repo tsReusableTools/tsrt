@@ -25,8 +25,8 @@ export function createPatchedSend(logger?: IApplicationLogger): (res: Response, 
       : { status: res.statusCode, data };
 
     const logResponse = createApiResponse(res, response);
-    if (logger && logResponse.status >= 400) logger.error(logResponse);
-    else if (logger) logger.info(logResponse);
+    if (typeof logger?.error === 'function' && logResponse.status >= 400) logger.error(logResponse);
+    else if (typeof logger?.info === 'function') logger.info(logResponse);
 
     return send(res, response);
     // return res.send(data);

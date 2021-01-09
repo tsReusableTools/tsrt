@@ -1,6 +1,7 @@
 import { PlatformExpress } from '@tsed/platform-express';
 import { Configuration } from '@tsed/common';
-import { deepMerge } from '@tsed/core';
+import merge from 'deepmerge';
+import isPlainObject from 'is-plain-obj';
 
 import { Callback } from '@tsrt/application';
 
@@ -11,7 +12,7 @@ export class Application {
   private _settings: IApplicationSettings = { };
 
   constructor(settings: IApplicationSettings) {
-    this._settings = deepMerge({ ...settings }, { ...this._settings });
+    this._settings = merge({ ...settings }, { ...this._settings }, { isMergeableObject: isPlainObject });
   }
 
   public get settings(): IApplicationSettings { return { ...this._settings }; }

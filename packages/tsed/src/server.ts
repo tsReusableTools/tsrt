@@ -1,27 +1,24 @@
-import 'reflect-metadata';
-
 import { PlatformApplication, EndpointDirectoriesSettings } from '@tsed/common';
 import { Configuration, Inject } from '@tsed/di';
 import '@tsed/platform-express';
 import '@tsed/ajv';
-import '@tsed/swagger';
+import { SwaggerSettings } from '@tsed/swagger';
 
 import { Application } from '@tsrt/application';
 
 import { IApplicationSettings } from './interfaces';
 import { HealthController } from './controllers/HealthController';
 import { InfoController } from './controllers/InfoController';
-import { GlobalErrorHandlerMiddleware } from './middlewares';
+import { createNotFoundHandler, createGlobalErrorHandler } from './middlewares';
 import './pipes';
 
 @Configuration({
-  rootDir: __dirname,
-  commonServerDir: __dirname,
   // mount: { '/api/v1': [HealthController, InfoController] },
   logger: { level: 'error' },
   httpsPort: false,
   routers: { mergeParams: true },
   exclude: ['**/*.spec.ts', '**/*.d.ts'],
+  setSwaggerForApiBaseByDefault: true,
 })
 export class Server {
   @Inject() public app: PlatformApplication;
@@ -31,33 +28,43 @@ export class Server {
   public $beforeInit(): void {
     /* eslint-disable-next-line */
     this._app = new Application(this.convertMapToObject(this.settings as any), this.app.raw);
+    this._app.setGlobalErrorHandler(createGlobalErrorHandler(this._app.settings?.log));
+    this._app.setNotFoundHandler(createNotFoundHandler(this._app.settings?.log));
     this.setDefaultSwagger(this._app.settings);
     this.setDefaultMount(this._app.settings);
     this._app.manualSetup().setupQueryParser();
   }
 
   public $beforeRoutesInit(): void {
-    this._app.manualSetup().setupDefaultExpressMiddlewares();
-    // this._app.manualSetup().setupSendResponseMiddleware((regExpExcludedStrings('/api-docs')));
-    this._app.manualSetup().setupRequestIdMiddleware();
-    this._app.manualSetup().setupSession();
-    this._app.manualSetup().setupStatics();
-    this._app.manualSetup().setupMiddlewares();
+    this._app
+      .manualSetup()
+      .setupDefaultExpressMiddlewares()
+      .setupRequestIdMiddleware()
+      .setupSession()
+      .setupStatics()
+      .setupMiddlewares();
   }
 
   public $afterRoutesInit(): void {
-    this._app.manualSetup().setupNotFoundHandler();
-    this._app.manualSetup().setupWebApps();
-    this.app.use(GlobalErrorHandlerMiddleware);
+    this._app
+      .manualSetup()
+      .setupNotFoundHandler()
+      .setupWebApps()
+      .setupGlobalErrorHandler();
   }
 
+  /* eslint-disable-next-line */
+  // private get _settings(): Map<string, any> {
+  //   /* eslint-disable-next-line */
+  //   return this.settings as any;
+  // }
+
   private setDefaultSwagger(settings: IApplicationSettings): void {
-    if (!settings.apiBase) return;
-    const swagger = [];
-    if (typeof settings.apiBase === 'string') swagger.push({ path: `${settings.apiBase}/api-docs` });
-    else settings.apiBase.forEach((item) => swagger.push({ path: `${item}/api-docs` }));
+    if (!this.settings.setSwaggerForApiBaseByDefault || !settings.apiBase || typeof settings.apiBase !== 'string') return;
+    const swagger: SwaggerSettings[] = [];
+    swagger.push({ path: `${settings.apiBase}/api-docs` });
     if (!this.settings.swagger) this.settings.swagger = [];
-    this.settings.swagger = this.settings.swagger.concat(swagger);
+    this.settings.swagger = (this.settings.swagger as SwaggerSettings[]).concat(swagger);
   }
 
   private setDefaultMount(settings: IApplicationSettings): void {
