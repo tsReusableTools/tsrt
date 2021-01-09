@@ -28,8 +28,8 @@ export class Server {
   public $beforeInit(): void {
     /* eslint-disable-next-line */
     this._app = new Application(this.convertMapToObject(this.settings as any), this.app.raw);
-    this._app.setGlobalErrorHandler(createGlobalErrorHandler(this._app.settings?.log));
-    this._app.setNotFoundHandler(createNotFoundHandler(this._app.settings?.log));
+    if (!this.settings.notFoundHandler) this._app.setNotFoundHandler(createNotFoundHandler(this.settings?.log));
+    if (!this.settings.globalErrorHandler) this._app.setGlobalErrorHandler(createGlobalErrorHandler(this.settings?.log));
     this.setDefaultSwagger(this._app.settings);
     this.setDefaultMount(this._app.settings);
     this._app.manualSetup().setupQueryParser();
