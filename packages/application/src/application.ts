@@ -15,7 +15,7 @@ import { Logger } from '@tsrt/logger';
 import {
   IApplication, IApplicationManualSetup, IApplicationSettings, ApplicationStatics,
   ApplicationWebApps, TypeOrArrayOfTypes, ApplicationMountList, ApplicationMount,
-  ApplicationMiddlewareList, IApplicationSession, Callback,
+  ApplicationMiddlewareList, IApplicationSession, Callback, IApplicationManualSetupSettings,
 } from './interfaces';
 import {
   createSendResponseHandler, createGlobalErrorHandler, notFoundHandler, requestIdHandler, parseCookiesHandler,
@@ -37,6 +37,7 @@ export class Application<T extends IApplication = IApplication> {
   };
   private _isManualMiddlewaresOrder = false;
   private _manuallyCalledMethods: GenericObject<boolean> = { };
+  private _manualSetupSettings: IApplicationManualSetupSettings = { useMethodsByDefault: true };
 
   constructor(settings: IApplicationSettings<T> = { }, app?: T) {
     this._settings = merge({ ...this._settings }, settings, { isMergeableObject: isPlainObject });
@@ -77,7 +78,8 @@ export class Application<T extends IApplication = IApplication> {
     this._app.listen(this._settings.port, cb);
   }
 
-  public manualSetup(): IApplicationManualSetup {
+  public manualSetup(settings?: IApplicationManualSetupSettings): IApplicationManualSetup {
+    if (settings) this._manualSetupSettings = settings;
     return {
       set: this.set.bind(this),
       use: this.use.bind(this),
@@ -100,7 +102,8 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupAll(): IApplicationManualSetup {
-    [
+    if (this._manualSetupSettings?.useMethodsByDefault === false) return this.manualSetup();
+    const methods = [
       this.setupQueryParser,
       this.setupDefaultExpressMiddlewares,
       this.setupRequestIdMiddleware,
@@ -112,10 +115,12 @@ export class Application<T extends IApplication = IApplication> {
       this.setupNotFoundHandler,
       this.setupWebApps,
       this.setupGlobalErrorHandler,
-    ].forEach((item) => {
+    ];
+    methods.forEach((item) => {
       const called = Object.keys(this._manuallyCalledMethods).find((key) => key === item.name);
       if (!called) item.call(this);
     });
+
     return this.manualSetup();
   }
 

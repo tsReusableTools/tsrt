@@ -99,7 +99,7 @@ export interface IApplicationManualSetup {
   setupMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationManualSetup;
 
   /** Sets custom controllers (routes) provide via `options` or via `addRoutes` method. */
-  setupRouter(mount: ApplicationMountList): IApplicationManualSetup;
+  setupRouter(mount?: ApplicationMountList): IApplicationManualSetup;
 
   /** Sets notFoundHandler. */
   setupNotFoundHandler(handler?: RequestHandler): IApplicationManualSetup;
@@ -112,6 +112,10 @@ export interface IApplicationManualSetup {
 
   /** Proxy to public Application `start` method */
   start(cb?: Callback): void;
+}
+
+export interface IApplicationManualSetupSettings {
+  useMethodsByDefault?: boolean;
 }
 
 export interface IApplicationInfo {
