@@ -2,7 +2,9 @@ import { Err, Req, Res, Next, Middleware } from '@tsed/common';
 
 import { log } from '@tsrt/logger';
 import { msg } from '@tsrt/utils';
-import { patchedSend } from '@tsrt/application';
+import { createPatchedSend } from '@tsrt/application';
+
+const patchedSend = createPatchedSend();
 
 @Middleware()
 export class GlobalErrorHandlerMiddleware {

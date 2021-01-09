@@ -17,6 +17,9 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
   /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
   logger?: IApplicationLogger;
 
+  /** Whether to show debug info (logs). @default false */
+  debug?: boolean;
+
   /** Port to listen. */
   port?: number | string;
 

@@ -8,8 +8,9 @@ import merge from 'deepmerge';
 import glob from 'glob';
 import isPlainObject from 'is-plain-obj';
 
-import { isEmpty, getObjectValuesList } from '@tsrt/utils';
+import { isEmpty, getObjectValuesList, capitalize } from '@tsrt/utils';
 import { session } from '@tsrt/session';
+import { Logger } from '@tsrt/logger';
 
 import {
   IApplication, IApplicationManualSetup, IApplicationSettings, ApplicationStatics,
@@ -22,6 +23,7 @@ import {
 import { InfoController, HealthController } from './controllers';
 
 export class Application<T extends IApplication = IApplication> {
+  private _log = new Logger();
   private _app: T;
   private _settings: IApplicationSettings<T> = {
     apiBase: '/api/v1',
@@ -29,6 +31,7 @@ export class Application<T extends IApplication = IApplication> {
     qs: { strictNullHandling: true, comma: true },
     notFoundHandler,
     useDefaultControllers: true,
+    debug: false,
     mount: {},
     middlewares: {},
   };
@@ -124,20 +127,24 @@ export class Application<T extends IApplication = IApplication> {
 
   /* eslint-disable-next-line */
   protected use: ApplicationRequestHandler<IApplicationManualSetup> = (...args: any[]): IApplicationManualSetup => {
-    this._app.use(args);
+    if (this.settings.debug) {
+      const route = args && typeof args[0] === 'string' ? args[0] : '/';
+      this._log.debug(args, `Setting middleware for \`${route}\``);
+    }
+    this._app.use(...args);
     return this.manualSetup();
   };
 
   /* eslint-disable-next-line */
   protected setupQueryParser(cb?: (str: string) => any): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupQueryParser.name);
+    this.setManualyCalledMethods(this.setupQueryParser.name, cb ?? this._settings.qs);
     this._app.set('query parser', cb ?? ((str: string) => parse(str, this._settings.qs)));
     return this.manualSetup();
   }
 
   protected setupDefaultExpressMiddlewares(): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupDefaultExpressMiddlewares.name);
-    this._app
+    this
       .use(json())
       .use(urlencoded({ extended: true }))
       .use(cors(this._settings.cors))
@@ -148,18 +155,18 @@ export class Application<T extends IApplication = IApplication> {
 
   protected setupRequestIdMiddleware(): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupRequestIdMiddleware.name);
-    this._app.use(requestIdHandler);
+    this.use(requestIdHandler);
     return this.manualSetup();
   }
 
   protected setupSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupSession.name);
+    this.setManualyCalledMethods(this.setupSession.name, sessionConfig ?? { });
     if (!sessionConfig) return this.manualSetup();
     this._app.set('trust proxy', 1);
-    if (!sessionConfig.paths) this._app.use(session(sessionConfig));
+    if (!sessionConfig.paths) this.use(session(sessionConfig));
     else {
       (Array.isArray(sessionConfig.paths) ? sessionConfig.paths : [sessionConfig.paths]).forEach((item) => {
-        this._app.use(item, session(sessionConfig));
+        this.use(item, session(sessionConfig));
       });
     }
     return this.manualSetup();
@@ -169,19 +176,19 @@ export class Application<T extends IApplication = IApplication> {
     handler: RequestHandler = this._settings.sendResponseHandler, paths?: TypeOrArrayOfTypes<string | RegExp>,
   ): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupSendResponseMiddleware.name);
-    if (!paths) this._app.use(handler);
-    else if (typeof paths === 'string' || paths instanceof RegExp) this._app.use(paths, handler);
-    else paths.forEach((item) => this._app.use(item, handler));
+    if (!paths) this.use(handler);
+    else if (typeof paths === 'string' || paths instanceof RegExp) this.use(paths, handler);
+    else paths.forEach((item) => this.use(item, handler));
     return this.manualSetup();
   }
 
   protected setupStatics(statics: ApplicationStatics = this._settings.statics): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupStatics.name);
+    this.setManualyCalledMethods(this.setupStatics.name, statics ?? { });
     if (!statics) return this.manualSetup();
     if (Array.isArray(statics)) {
-      statics.forEach((item) => this._app.use(express.static(item)));
+      statics.forEach((item) => this.use(express.static(item)));
     } else if (typeof statics === 'object') {
-      Object.entries(statics).forEach(([key, value]) => this._app.use(key, express.static(value)));
+      Object.entries(statics).forEach(([key, value]) => this.use(key, express.static(value)));
     }
     return this.manualSetup();
   }
@@ -191,8 +198,8 @@ export class Application<T extends IApplication = IApplication> {
     if (!middlewares) return this.manualSetup();
 
     Object.entries(middlewares).forEach(([key, value]) => (Array.isArray(value)
-      ? value.forEach((item) => this._app.use(key, item))
-      : this._app.use(key, value)));
+      ? value.forEach((item) => this.use(key, item))
+      : this.use(key, value)));
 
     return this.manualSetup();
   }
@@ -214,6 +221,10 @@ export class Application<T extends IApplication = IApplication> {
 
     if (!mountObject) return this.manualSetup();
 
+    if (this.settings.debug) {
+      Object.entries(mountObject).forEach(([key, value]) => { this._log.debug(value, `Setting routers for \`${key}\``); });
+    }
+
     try {
       Object.entries(mountObject).forEach(([key, value]) => (Array.isArray(value)
         ? value.forEach((item) => this._app.use(key, this.getRouters(item)))
@@ -228,18 +239,18 @@ export class Application<T extends IApplication = IApplication> {
   protected setupNotFoundHandler(handler: RequestHandler = this._settings.notFoundHandler): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupNotFoundHandler.name);
     if (!this._settings.webApps) {
-      this._app.use(handler);
+      this.use(handler);
       return this.manualSetup();
     }
     if (!this._settings.apiBase) return this.manualSetup();
-    if (typeof this._settings.apiBase === 'string') this._app.use(this._settings.apiBase, handler);
+    if (typeof this._settings.apiBase === 'string') this.use(this._settings.apiBase, handler);
     else this._settings.apiBase.forEach((item) => this._app.use(item, handler));
 
     return this.manualSetup();
   }
 
   protected setupWebApps(webApps: ApplicationWebApps = this._settings.webApps): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupWebApps.name);
+    this.setManualyCalledMethods(this.setupWebApps.name, webApps);
     if (!webApps) return this.manualSetup();
 
     if (typeof webApps === 'string') this.serveWebApp(webApps);
@@ -250,11 +261,13 @@ export class Application<T extends IApplication = IApplication> {
 
   protected setupGlobalErrorHandler(handler: ErrorRequestHandler = this._settings.globalErrorHandler): IApplicationManualSetup {
     this.setManualyCalledMethods(this.setupGlobalErrorHandler.name);
-    this._app.use(handler);
+    this.use(handler);
     return this.manualSetup();
   }
 
-  protected setManualyCalledMethods(methodName: string): void {
+  protected setManualyCalledMethods(methodName: string, logInfo?: GenericAny): void {
+    if (this.settings.debug && logInfo) this._log.debug(logInfo, `${capitalize(methodName)}`);
+    else if (this.settings.debug) this._log.debug(`${capitalize(methodName)}`);
     this._manuallyCalledMethods[methodName] = true;
   }
 
@@ -262,13 +275,13 @@ export class Application<T extends IApplication = IApplication> {
     if (!webAppPath) throw Error('Invalid webApps path provided');
     if (!webAppPath.startsWith('/')) throw Error('Web App path must be absolute');
     const { dir, index } = this.getWebAppMetadata(webAppPath);
-    this._app.use(express.static(dir));
-    this._app.use(endPoint, (_req: Request, res: Response) => res.sendFile(index));
+    this.use(express.static(dir));
+    this.use(endPoint, (_req: Request, res: Response) => res.sendFile(index));
   }
 
   protected getWebAppMetadata(webAppPath: string): { dir: string; index: string } {
     if (!webAppPath) throw Error('Invalid webApps path provided');
-    const reg = /index\.(html|php)$/;
+    const reg = /\w*\.(html|php|hbs|ejs)$/;
     const dir = webAppPath.replace(reg, '');
     const index = webAppPath.match(reg) ? webAppPath : `${webAppPath}/index.html`;
     return { dir, index };

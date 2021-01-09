@@ -7,7 +7,7 @@ import { getApplicationInfo, IApplicationInfo } from '@tsrt/application';
 export class InfoController {
   @Get('/')
   @Summary('Shows current application info')
-  public check(): IApplicationInfo {
+  public async check(): Promise<IApplicationInfo> {
     return getApplicationInfo();
   }
 }

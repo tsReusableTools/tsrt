@@ -1,7 +1,9 @@
 // import { isBoolean, isNumber, isStream, isString } from '@tsed/core';
 import { OverrideProvider, Req, Res, SendResponseMiddleware as BaseSendResponseMiddleware } from '@tsed/common';
 
-import { patchedSend } from '@tsrt/application';
+import { createPatchedSend } from '@tsrt/application';
+
+const patchedSend = createPatchedSend();
 
 @OverrideProvider(BaseSendResponseMiddleware)
 export class SendResponseMiddleware {

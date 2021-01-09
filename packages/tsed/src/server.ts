@@ -33,21 +33,21 @@ export class Server {
     this._app = new Application(this.convertMapToObject(this.settings as any), this.app.raw);
     this.setDefaultSwagger(this._app.settings);
     this.setDefaultMount(this._app.settings);
-    this._app.config.setQueryParser();
+    this._app.manualSetup().setupQueryParser();
   }
 
   public $beforeRoutesInit(): void {
-    this._app.config.setDefaultMiddlewares();
-    // this._app.config.setSendResponseMiddleware((regExpExcludedStrings('/api-docs')));
-    this._app.config.setRequestIdMiddleware();
-    this._app.config.setSession();
-    this._app.config.setStatics();
-    this._app.config.setMiddlewares();
+    this._app.manualSetup().setupDefaultExpressMiddlewares();
+    // this._app.manualSetup().setupSendResponseMiddleware((regExpExcludedStrings('/api-docs')));
+    this._app.manualSetup().setupRequestIdMiddleware();
+    this._app.manualSetup().setupSession();
+    this._app.manualSetup().setupStatics();
+    this._app.manualSetup().setupMiddlewares();
   }
 
   public $afterRoutesInit(): void {
-    this._app.config.setNotFoundHandler();
-    this._app.config.setWebApps();
+    this._app.manualSetup().setupNotFoundHandler();
+    this._app.manualSetup().setupWebApps();
     this.app.use(GlobalErrorHandlerMiddleware);
   }
 

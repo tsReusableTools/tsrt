@@ -21,8 +21,8 @@ export function msg<T = any>(statusCode: number, body?: T, customCode?: number |
 export function msg<T = any>(config: number | Partial<IHttpError<T>>, body?: T, customCode?: number | string): IHttpError<T> {
   const status = (config && typeof config === 'object' ? config.status : config as number) || stc.OK;
   const statusText = (stc as GenericObject)[status];
-  const data = (config && typeof config === 'object' ? config.data : body) || statusText;
-  const code = (config && typeof config === 'object' ? config.code : customCode);
+  const data = (config && typeof config === 'object' && config.data ? config.data : body);
+  const code = (config && typeof config === 'object' && config.code ? config.code : customCode);
   let _isValid = config && typeof config === 'object' ? config._isValid : true;
   if (isNil(_isValid)) _isValid = true;
   let message = typeof data === 'string' ? data : statusText;
