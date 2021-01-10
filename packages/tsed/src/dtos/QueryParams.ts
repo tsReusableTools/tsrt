@@ -25,9 +25,9 @@ export class ReadListQueryParams extends CommonQueryParams {
   @IsOptional()
   public skip?: number;
 
-  @Property(Number || String)
+  @Property(String || Number)
   @IsOptional()
-  public limit?: number | string;
+  public limit?: string | number;
 
   @CollectionOf(String)
   @IsOptional()

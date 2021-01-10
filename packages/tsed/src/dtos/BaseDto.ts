@@ -20,7 +20,7 @@ export class BaseDto<T extends GenericObject = GenericObject> {
   public validate(options?: ValidatorOptions & { async?: false | undefined }): IValidationError[]
   public async validate(options?: ValidatorOptions & { async?: true }): Promise<IValidationError[]>
   public validate(options: ValidatorOptions & { async?: boolean } = { }): IValidationError[] | Promise<IValidationError[]> {
-    return !options.async
+    return options.async
       ? validate(this, options).then((result) => result.map(getValidationError))
       : validateSync(this, options).map(getValidationError);
   }

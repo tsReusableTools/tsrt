@@ -14,7 +14,7 @@ export class Application {
   private _settings: IApplicationSettings = { ...defaultSettings };
 
   constructor(settings: IApplicationSettings) {
-    this._settings = merge({ ...settings }, { ...this._settings }, { isMergeableObject: isPlainObject });
+    this._settings = merge({ ...this._settings }, settings, { isMergeableObject: isPlainObject });
     this.applySettings();
   }
 

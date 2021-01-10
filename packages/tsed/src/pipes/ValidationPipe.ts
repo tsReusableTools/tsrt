@@ -6,6 +6,7 @@ import { validate, ValidationError, ValidatorOptions } from 'class-validator';
 import { throwHttpError, parseTypes } from '@tsrt/utils';
 
 import { IApplicationSettings } from '../interfaces';
+import { getValidationError } from '../utils/getValidationError';
 
 @OverrideProvider(BaseValidationPipe)
 export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
@@ -25,7 +26,7 @@ export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
     const dataToValidate = plainToClass(metadata.type, value);
     const result = await this.validate(dataToValidate, options);
 
-    if (result?.length > 0) throwHttpError.badRequest(this.removeRestrictedProperties(result));
+    if (result?.length > 0) throwHttpError.badRequest(result.map(getValidationError));
     return this.settings.parseBodyTypesAfterValidation ? parseTypes(dataToValidate) : dataToValidate;
   }
 
@@ -45,15 +46,5 @@ export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
       ? this.settings.validationParamTypes.includes(metadata.type as any)
       : true;
     return isAllowedParamType && (!(metadata.type || metadata.collectionType) || !types.includes(metadata.type));
-  }
-
-  protected removeRestrictedProperties(errors: ValidationError[]): GenericObject[] {
-    if (!errors || !errors.length) return;
-    const result = errors.map((item) => ({
-      property: item.property,
-      value: item.value,
-      errors: item.constraints,
-    }));
-    return result;
   }
 }
