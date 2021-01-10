@@ -27,11 +27,12 @@ export class Application<T extends IApplication = IApplication> {
   private _app: T;
   private _settings: IApplicationSettings<T> = {
     apiBase: '/api/v1',
+    useDefaultControllers: true,
+    debug: false,
+    parseResponseTypes: false,
     cors: { credentials: true, origin: true },
     qs: { strictNullHandling: true, comma: true },
     notFoundHandler,
-    useDefaultControllers: true,
-    debug: false,
     mount: {},
     middlewares: {},
   };
@@ -42,7 +43,7 @@ export class Application<T extends IApplication = IApplication> {
   constructor(settings: IApplicationSettings<T> = { }, app?: T) {
     this._settings = merge({ ...this._settings }, settings, { isMergeableObject: isPlainObject });
     this._app = app ?? settings.app ?? express() as unknown as T;
-    this.initializeLoggerDependentSettings();
+    this.initializeSettingsDependentOptions();
   }
 
   public get app(): T { return this._app; }
@@ -324,9 +325,9 @@ export class Application<T extends IApplication = IApplication> {
     return Array.isArray(mount) ? mount : [mount];
   }
 
-  protected initializeLoggerDependentSettings(): void {
+  protected initializeSettingsDependentOptions(): void {
     if (!this._settings.globalErrorHandler) this._settings.globalErrorHandler = createGlobalErrorHandler(this._settings.log);
-    if (!this._settings.sendResponseHandler) this._settings.sendResponseHandler = createSendResponseHandler(this._settings.log);
+    if (!this._settings.sendResponseHandler) this._settings.sendResponseHandler = createSendResponseHandler(this._settings);
   }
 
   /* eslint-disable-next-line */

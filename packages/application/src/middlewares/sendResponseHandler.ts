@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 
-import { msg, isStream } from '@tsrt/utils';
+import { msg, isStream, parseTypes } from '@tsrt/utils';
 import { send, createApiResponse } from '@tsrt/api-utils';
 
-import { IApplicationLogger } from '../interfaces';
+import { IApplicationLogger, IApplicationSettings } from '../interfaces';
 
 function patch<T extends GenericObject>(object: T): T {
   const result: GenericObject = object;
@@ -33,8 +33,8 @@ export function createPatchedSend(logger?: IApplicationLogger): (res: Response, 
   };
 }
 
-export function createSendResponseHandler(logger?: IApplicationLogger): RequestHandler {
-  const patchedSend = createPatchedSend(logger);
+export function createSendResponseHandler(settings: IApplicationSettings = { }): RequestHandler {
+  const patchedSend = createPatchedSend(settings?.log);
 
   return (_req: Request, res: Response, next: NextFunction): void => {
     if (isPatched(res.send)) return next();
@@ -42,7 +42,8 @@ export function createSendResponseHandler(logger?: IApplicationLogger): RequestH
 
     res.send = (data): Response => {
       res.send = originalSend;
-      return patchedSend(res, data);
+      const parsedData = settings?.parseResponseTypes ? parseTypes(data) : data;
+      return patchedSend(res, parsedData);
     };
 
     res.send = patch(res.send);

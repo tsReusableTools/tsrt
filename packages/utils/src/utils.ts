@@ -390,3 +390,30 @@ export async function tryCatch(cb: () => Promise<any> | any, errCb?: (err: any) 
     if (errCb) return errCb(err);
   }
 }
+
+/**
+ *  Inserts data into provided class/context/object.
+ *
+ *  @param cls - Class/object/context to which to insert data.
+ *  @param data - Data to insert.
+ */
+export function insertIntoClass<C, T>(cls: C, data: T): void {
+  if (!data || !cls) throw new Error('It is necessary to provide both: class/context and data to insert');
+  Object.entries(data).forEach(([key, value]) => {
+    if (!Object.prototype.hasOwnProperty.call(data, key)) return;
+    /* eslint-disable-next-line no-param-reassign */
+    (cls as GenericObject)[key] = value;
+  });
+}
+
+/**
+ *  Creates `Class` instance from provided object.
+ *
+ *  @param Cls - Class, which instance it will create and insert data into it.
+ *  @param data - Data to insert.
+ */
+export function plainToClass<C extends Constructor, T>(Cls: C, data: T): C {
+  const result = new Cls();
+  insertIntoClass(result, data);
+  return result;
+}

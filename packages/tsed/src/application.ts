@@ -6,13 +6,16 @@ import isPlainObject from 'is-plain-obj';
 import { Callback } from '@tsrt/application';
 
 import { IApplicationSettings } from './interfaces';
+import { patchBodyParamsDecorator } from './pipes/BodyParamsPipe';
+import { defaultSettings } from './utils/defaultSettings';
 import { Server } from './server';
 
 export class Application {
-  private _settings: IApplicationSettings = { };
+  private _settings: IApplicationSettings = { ...defaultSettings };
 
   constructor(settings: IApplicationSettings) {
     this._settings = merge({ ...settings }, { ...this._settings }, { isMergeableObject: isPlainObject });
+    this.applySettings();
   }
 
   public get settings(): IApplicationSettings { return { ...this._settings }; }
@@ -22,5 +25,9 @@ export class Application {
     const server = await PlatformExpress.bootstrap(Server, this._settings as unknown as Configuration);
     await server.listen();
     if (cb) cb();
+  }
+
+  private applySettings(): void {
+    if (this._settings.patchBodyParamsDecorator) patchBodyParamsDecorator();
   }
 }

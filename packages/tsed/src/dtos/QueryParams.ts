@@ -1,41 +1,39 @@
 /* eslint-disable max-classes-per-file */
-import { AllowTypes, CollectionOf } from '@tsed/common';
+import { Property, CollectionOf } from '@tsed/common';
+import { IsOptional } from 'class-validator';
 
-export class ReadOneQueryParams implements IQueryParams {
-  // @Property({ use: String })
+import { BaseDto } from './BaseDto';
+
+export class CommonQueryParams extends BaseDto<IQueryParams> {
   @CollectionOf(String)
-  @AllowTypes('string')
+  @IsOptional()
   public select?: string;
 
   @CollectionOf(String)
-  // @Property({ use: String })
-  @AllowTypes('string')
-  public getBy?: string;
-
-  @CollectionOf(String)
-  // @Property({ use: String })
-  @AllowTypes('string')
+  @IsOptional()
   public include?: string;
 }
 
-export class ReadListQueryParams extends ReadOneQueryParams implements IQueryParams {
-  @CollectionOf(Number)
-  // @Property({ use: Number })
-  @AllowTypes('number')
+export class ReadOneQueryParams extends CommonQueryParams {
+  @Property(String)
+  @IsOptional()
+  public getBy?: string;
+}
+
+export class ReadListQueryParams extends CommonQueryParams {
+  @Property(Number)
+  @IsOptional()
   public skip?: number;
 
-  @CollectionOf(String)
-  // @Property({ use: String })
-  @AllowTypes('number', 'string')
+  @Property(Number || String)
+  @IsOptional()
   public limit?: number | string;
 
   @CollectionOf(String)
-  // @Property({ use: String })
-  @AllowTypes('string')
+  @IsOptional()
   public sort?: string;
 
-  @CollectionOf(String)
-  // @Property({ use: String })
-  @AllowTypes('object')
+  @Property(String)
+  @IsOptional()
   public filter?: GenericObject;
 }

@@ -65,6 +65,9 @@ export interface IApplicationSettings<T extends IApplication = IApplication> {
 
   /** Middleware to be used instead of default `globalErrorHandler` */
   globalErrorHandler?: ErrorRequestHandler;
+
+  /** Whether to parse types of server response. @default false. */
+  parseResponseTypes?: boolean;
 }
 
 export interface IApplicationManualSetup {

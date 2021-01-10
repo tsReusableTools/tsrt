@@ -1,27 +1,50 @@
-import { Type } from '@tsed/core';
 import { IPipe, OverrideProvider, ParamMetadata, ValidationPipe as BaseValidationPipe } from '@tsed/common';
+import { Configuration } from '@tsed/di';
 import { plainToClass } from 'class-transformer';
-import { validate, ValidationError } from 'class-validator';
+import { validate, ValidationError, ValidatorOptions } from 'class-validator';
 
-import { throwHttpError } from '@tsrt/utils';
+import { throwHttpError, parseTypes } from '@tsrt/utils';
+
+import { IApplicationSettings } from '../interfaces';
 
 @OverrideProvider(BaseValidationPipe)
-export class ValidationPipe extends BaseValidationPipe implements IPipe {
+export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
+  @Configuration() private settings: IApplicationSettings;
+  private _validateOptions: ValidatorOptions = { whitelist: true, forbidNonWhitelisted: true };
+
   /* eslint-disable-next-line */
   public async transform(value: any, metadata: ParamMetadata): Promise<any> {
     if (!this.shouldValidate(metadata)) return value;
 
-    const object = plainToClass(metadata.type, value);
-    const errors = await validate(object);
+    const options: ValidatorOptions = {
+      ...this._validateOptions,
+      ...this.settings.validationOptions,
+      groups: metadata.validationGroups,
+    };
 
-    if (errors.length > 0) throwHttpError.badRequest(this.removeRestrictedProperties(errors));
-    return value;
+    const dataToValidate = plainToClass(metadata.type, value);
+    const result = await this.validate(dataToValidate, options);
+
+    if (result?.length > 0) throwHttpError.badRequest(this.removeRestrictedProperties(result));
+    return this.settings.parseBodyTypesAfterValidation ? parseTypes(dataToValidate) : dataToValidate;
+  }
+
+  protected async validate<T>(list: T | T[], options: ValidatorOptions = { }): Promise<ValidationError[]> {
+    let result: ValidationError[] = [];
+    const array = Array.isArray(list) ? list : [list];
+    const promises = array.map((item) => validate(item, options).then((errors) => { result = result.concat(errors); }));
+    await Promise.all(promises);
+    return result;
   }
 
   protected shouldValidate(metadata: ParamMetadata): boolean {
-    const types: Type[] = [String, Boolean, Number, Array, Object];
-
-    return !super.shouldValidate(metadata) || !types.includes(metadata.type);
+    /* eslint-disable-next-line @typescript-eslint/ban-types */
+    const types: Function[] = [String, Boolean, Number, Array, Object];
+    const isAllowedParamType = this.settings.validationParamTypes
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      ? this.settings.validationParamTypes.includes(metadata.type as any)
+      : true;
+    return isAllowedParamType && (!(metadata.type || metadata.collectionType) || !types.includes(metadata.type));
   }
 
   protected removeRestrictedProperties(errors: ValidationError[]): GenericObject[] {
@@ -31,27 +54,6 @@ export class ValidationPipe extends BaseValidationPipe implements IPipe {
       value: item.value,
       errors: item.constraints,
     }));
-    return result;
-  }
-
-  protected convertErrorsToString(errors: ValidationError[]): string {
-    if (!errors || !errors.length) return;
-    return errors
-      .map((item) => `\`${item.property}\`: ${Object.keys(item.constraints).map((unit) => item.constraints[unit]).join('; ')}`)
-      .join('. ');
-  }
-
-  protected convertErrorsToArray(errors: ValidationError[]): GenericObject<string[]> {
-    if (!errors || !errors.length) return;
-    const result: GenericObject<string[]> = { };
-    errors.forEach((item) => { result[item.property] = Object.keys(item.constraints).map((unit) => item.constraints[unit]); });
-    return result;
-  }
-
-  protected convertErrorsToObject(errors: ValidationError[]): GenericObject<GenericObject<string>> {
-    if (!errors || !errors.length) return;
-    const result: GenericObject<GenericObject<string>> = { };
-    errors.forEach((item) => { result[item.property] = item.constraints; });
     return result;
   }
 }

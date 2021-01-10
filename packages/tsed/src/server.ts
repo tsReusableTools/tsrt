@@ -10,16 +10,11 @@ import { IApplicationSettings } from './interfaces';
 import { HealthController } from './controllers/HealthController';
 import { InfoController } from './controllers/InfoController';
 import { createNotFoundHandler, createGlobalErrorHandler } from './middlewares';
+import { defaultSettings } from './utils/defaultSettings';
+import { patchValidatorsWithoutGroups } from './utils/patchValidatorsWithoutGroups';
 import './pipes';
 
-@Configuration({
-  // mount: { '/api/v1': [HealthController, InfoController] },
-  logger: { level: 'error' },
-  httpsPort: false,
-  routers: { mergeParams: true },
-  exclude: ['**/*.spec.ts', '**/*.d.ts'],
-  setSwaggerForApiBaseByDefault: true,
-})
+@Configuration(defaultSettings as Configuration)
 export class Server {
   @Inject() public app: PlatformApplication;
   @Configuration() public settings: IApplicationSettings;
@@ -28,16 +23,15 @@ export class Server {
   public $beforeInit(): void {
     /* eslint-disable-next-line */
     this._app = new Application(this.convertMapToObject(this.settings as any), this.app.raw);
-    if (!this.settings.notFoundHandler) this._app.setNotFoundHandler(createNotFoundHandler(this.settings?.log));
-    if (!this.settings.globalErrorHandler) this._app.setGlobalErrorHandler(createGlobalErrorHandler(this.settings?.log));
+    this.initializeSettingsDependentOptions(this.settings);
     this.setDefaultSwagger(this._app.settings);
     this.setDefaultMount(this._app.settings);
-    this._app.manualSetup().setupQueryParser();
+    this._app.manualSetup({ useMethodsByDefault: false }).setupQueryParser();
   }
 
   public $beforeRoutesInit(): void {
     this._app
-      .manualSetup()
+      .manualSetup({ useMethodsByDefault: false })
       .setupDefaultExpressMiddlewares()
       .setupRequestIdMiddleware()
       .setupSession()
@@ -47,10 +41,14 @@ export class Server {
 
   public $afterRoutesInit(): void {
     this._app
-      .manualSetup()
+      .manualSetup({ useMethodsByDefault: false })
       .setupNotFoundHandler()
       .setupWebApps()
       .setupGlobalErrorHandler();
+  }
+
+  public $beforeListen(): void {
+    if (this.settings.patchValidatorsWithoutGroups) patchValidatorsWithoutGroups();
   }
 
   /* eslint-disable-next-line */
@@ -58,6 +56,11 @@ export class Server {
   //   /* eslint-disable-next-line */
   //   return this.settings as any;
   // }
+
+  private initializeSettingsDependentOptions(settings: IApplicationSettings): void {
+    if (!this.settings.notFoundHandler) this._app.setNotFoundHandler(createNotFoundHandler(settings?.log));
+    if (!this.settings.globalErrorHandler) this._app.setGlobalErrorHandler(createGlobalErrorHandler(settings?.log));
+  }
 
   private setDefaultSwagger(settings: IApplicationSettings): void {
     if (!this.settings.setSwaggerForApiBaseByDefault || !settings.apiBase || typeof settings.apiBase !== 'string') return;
