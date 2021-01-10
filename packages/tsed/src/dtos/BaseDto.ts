@@ -2,7 +2,7 @@
 import { getJsonSchema } from '@tsed/common';
 import { validate, validateSync, ValidatorOptions } from 'class-validator';
 
-import { insertIntoClass } from '@tsrt/utils';
+import { insertIntoClass, parseTypes } from '@tsrt/utils';
 
 import { getValidationError, IValidationError } from '../utils/getValidationError';
 
@@ -17,11 +17,15 @@ export class BaseDto<T extends GenericObject = GenericObject> {
     return getJsonSchema((this as any).constructor);
   }
 
-  public validate(options?: ValidatorOptions & { async?: false | undefined }): IValidationError[]
-  public async validate(options?: ValidatorOptions & { async?: true }): Promise<IValidationError[]>
-  public validate(options: ValidatorOptions & { async?: boolean } = { }): IValidationError[] | Promise<IValidationError[]> {
+  public validate?(options?: ValidatorOptions & { async?: false | undefined }): IValidationError[]
+  public async validate?(options?: ValidatorOptions & { async?: true }): Promise<IValidationError[]>
+  public validate?(options: ValidatorOptions & { async?: boolean } = { }): IValidationError[] | Promise<IValidationError[]> {
     return options.async
       ? validate(this, options).then((result) => result.map(getValidationError))
       : validateSync(this, options).map(getValidationError);
+  }
+
+  public parseTypes?<C extends T>(deepness?: number): C {
+    return parseTypes(this, deepness) as unknown as C;
   }
 }
