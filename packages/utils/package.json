@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/utils",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Typescript Reusable Tools: utils",
   "keywords": [
     "utils",
@@ -20,7 +20,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.6.0",
+    "@tsrt/types": "^0.6.1",
     "http-status": "1.4.2",
     "lodash.clonedeep": "4.5.0"
   },

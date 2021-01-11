@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty-aws",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Mparty AWS S3 Adapter - upload (stream) multipart/form-data directly to AWS S3",
   "keywords": [
     "multipart/form-data",
@@ -24,14 +24,14 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.6.0"
+    "@tsrt/types": "^0.6.1"
   },
   "peerDependencies": {
     "@tsrt/mparty": "^0.2.0",
     "aws-sdk": "^2.799.0"
   },
   "devDependencies": {
-    "@tsrt/mparty": "^0.6.0",
+    "@tsrt/mparty": "^0.6.1",
     "@types/node": "14.11.8",
     "aws-sdk": "^2.799.0",
     "tslib": "^2.0.3",

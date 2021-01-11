@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/application",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Common Express Application",
   "keywords": [
     "express",
@@ -21,11 +21,11 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/api-utils": "^0.6.0",
-    "@tsrt/logger": "^0.6.0",
-    "@tsrt/session": "^0.6.0",
-    "@tsrt/types": "^0.6.0",
-    "@tsrt/utils": "^0.6.0",
+    "@tsrt/api-utils": "^0.6.1",
+    "@tsrt/logger": "^0.6.1",
+    "@tsrt/session": "^0.6.1",
+    "@tsrt/types": "^0.6.1",
+    "@tsrt/utils": "^0.6.1",
     "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",
