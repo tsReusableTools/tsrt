@@ -1,8 +1,13 @@
 {
   "name": "@tsrt/application",
   "version": "0.6.0",
-  "description": "Typescript Reusable Tools: application",
-  "keywords": [],
+  "description": "Common Express Application",
+  "keywords": [
+    "express",
+    "server",
+    "application",
+    "starter"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

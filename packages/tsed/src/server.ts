@@ -103,10 +103,10 @@ export class Server {
     return this;
   }
 
-  protected setupSendResponseMiddleware(
+  protected setupSendResponseHandler(
     handler: IApplicationSendResponseHandler = this._settings.sendResponseHandler,
   ): Server {
-    // this.markMethodAsManuallyCalled(this.setupSendResponseMiddleware.name);
+    // this.markMethodAsManuallyCalled(this.setupSendResponseHandler.name);
     if (handler) this._settings.sendResponseHandler = handler;
     return this;
   }

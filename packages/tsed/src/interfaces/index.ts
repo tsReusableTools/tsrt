@@ -145,7 +145,7 @@ export interface IApplicationMethods {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseMiddleware(handler?: IApplicationSendResponseHandler): IApplicationManualSetup;
+  setupSendResponseHandler(handler?: IApplicationSendResponseHandler): IApplicationManualSetup;
 
   /** Sets statics. */
   // setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;

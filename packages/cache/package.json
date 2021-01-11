@@ -1,8 +1,11 @@
 {
   "name": "@tsrt/cache",
   "version": "0.6.0",
-  "description": "Typescript Reusable Tools: cache",
-  "keywords": [],
+  "description": "Typescript Reusable Tools: Redis cache wrapper",
+  "keywords": [
+    "cache",
+    "redis"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

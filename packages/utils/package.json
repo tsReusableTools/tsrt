@@ -2,7 +2,11 @@
   "name": "@tsrt/utils",
   "version": "0.6.0",
   "description": "Typescript Reusable Tools: utils",
-  "keywords": [],
+  "keywords": [
+    "utils",
+    "node-utils",
+    "js-utils"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

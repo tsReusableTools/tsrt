@@ -5,6 +5,9 @@
 
 Basic configurable Application built on top of awesome [TsED](https://v5.tsed.io/) framework.
 
+All necessary/common middlewares and configs are setted by default under the hood w/ ability to rewrite/disable/enable them
+using settings. 
+
 ## Important
 
 Until version 1.0.0 Api should be considered as unstable and may be changed.
@@ -82,7 +85,7 @@ export interface IApplicationManualSetup extends IApplicationMethods {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseMiddleware(handler?: IApplicationSendResponseHandler): IApplicationManualSetup;
+  setupSendResponseHandler(handler?: IApplicationSendResponseHandler): IApplicationManualSetup;
 
   /** Sets custom middlewares provide via `options` or via `addMiddlewares` method. */
   setupMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationManualSetup;
@@ -211,3 +214,7 @@ export interface IApplicationLogger {
 ## Plans
 
 Planning to update to use TsED v6 under the hood.
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).

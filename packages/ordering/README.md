@@ -167,3 +167,7 @@ export const defaultOptions: IOrderingServiceOptions = {
   refreshSequence: false,
 };
 ```
+
+## License
+
+This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).

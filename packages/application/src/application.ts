@@ -89,7 +89,7 @@ export class Application<T extends IApplication = IApplication> {
       setupDefaultExpressMiddlewares: this.setupDefaultExpressMiddlewares.bind(this),
       setupRequestIdMiddleware: this.setupRequestIdMiddleware.bind(this),
       setupSession: this.setupSession.bind(this),
-      setupSendResponseMiddleware: this.setupSendResponseMiddleware.bind(this),
+      setupSendResponseHandler: this.setupSendResponseHandler.bind(this),
       setupStatics: this.setupStatics.bind(this),
       setupMiddlewares: this.setupMiddlewares.bind(this),
       setupRouter: this.setupRouter.bind(this),
@@ -108,7 +108,7 @@ export class Application<T extends IApplication = IApplication> {
       this.setupDefaultExpressMiddlewares,
       this.setupRequestIdMiddleware,
       this.setupSession,
-      this.setupSendResponseMiddleware,
+      this.setupSendResponseHandler,
       this.setupStatics,
       this.setupMiddlewares,
       this.setupRouter,
@@ -177,10 +177,10 @@ export class Application<T extends IApplication = IApplication> {
     return this.manualSetup();
   }
 
-  protected setupSendResponseMiddleware(
+  protected setupSendResponseHandler(
     handler: RequestHandler = this._settings.sendResponseHandler, paths?: TypeOrArrayOfTypes<string | RegExp>,
   ): IApplicationManualSetup {
-    this.markMethodAsManuallyCalled(this.setupSendResponseMiddleware.name);
+    this.markMethodAsManuallyCalled(this.setupSendResponseHandler.name);
     if (!paths) this.use(handler);
     else if (typeof paths === 'string' || paths instanceof RegExp) this.use(paths, handler);
     else paths.forEach((item) => this.use(item, handler));

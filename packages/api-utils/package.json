@@ -1,8 +1,12 @@
 {
   "name": "@tsrt/api-utils",
   "version": "0.6.0",
-  "description": "Typescript Reusable Tools: api-utils",
-  "keywords": [],
+  "description": "Typescript Reusable Tools: Utilities for NodeJs/Express.",
+  "keywords": [
+    "express",
+    "utils",
+    "node-utils"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

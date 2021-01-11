@@ -1,8 +1,11 @@
 {
   "name": "@tsrt/session",
   "version": "0.6.0",
-  "description": "Typescript Reusable Tools: session",
-  "keywords": [],
+  "description": "Typescript Reusable Tools: express-session wrapper.",
+  "keywords": [
+    "session",
+    "express-session"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

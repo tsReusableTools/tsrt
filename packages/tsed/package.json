@@ -1,8 +1,14 @@
 {
   "name": "@tsrt/tsed",
   "version": "0.6.0",
-  "description": "Typescript Reusable Tools: TsED base server implementation",
-  "keywords": [],
+  "description": "Common TsED based Application",
+  "keywords": [
+    "tsed",
+    "application",
+    "server",
+    "open-api-server",
+    "starter"
+  ],
   "author": "Danyil Moroz",
   "license": "MIT",
   "main": "dist/index.js",

@@ -55,7 +55,7 @@ export class Application {
       setupDefaultExpressMiddlewares: this.setupDefaultExpressMiddlewares.bind(this),
       setupRequestIdMiddleware: this.setupRequestIdMiddleware.bind(this),
       setupSession: this.setupSession.bind(this),
-      setupSendResponseMiddleware: this.setupSendResponseMiddleware.bind(this),
+      setupSendResponseHandler: this.setupSendResponseHandler.bind(this),
       // setupStatics: this.setupStatics.bind(this),
       setupMiddlewares: this.setupMiddlewares.bind(this),
       setupNotFoundHandler: this.setupNotFoundHandler.bind(this),
@@ -73,7 +73,7 @@ export class Application {
       this.setupDefaultExpressMiddlewares,
       this.setupRequestIdMiddleware,
       this.setupSession,
-      this.setupSendResponseMiddleware,
+      this.setupSendResponseHandler,
       // this.setupStatics,
       this.setupMiddlewares,
       this.setupNotFoundHandler,
@@ -125,10 +125,10 @@ export class Application {
     return this.manualSetup();
   }
 
-  protected setupSendResponseMiddleware(
+  protected setupSendResponseHandler(
     handler: IApplicationSendResponseHandler = this._settings.sendResponseHandler,
   ): IApplicationManualSetup {
-    this.markMethodAsManuallyCalled(this.setupSendResponseMiddleware.name);
+    this.markMethodAsManuallyCalled(this.setupSendResponseHandler.name);
     if (handler) this._settings.sendResponseHandler = handler;
     return this.manualSetup();
   }

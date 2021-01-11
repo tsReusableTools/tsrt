@@ -3,7 +3,10 @@
 [![npm version](https://img.shields.io/npm/v/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application) [![Downloads](https://img.shields.io/npm/dm/@tsrt/application.svg)](https://www.npmjs.com/package/@tsrt/application)
 
 
-Basic configurable Application built on top of awesome `express` framework.
+Basic configurable Application built on top of awesome [Express](https://expressjs.com/) framework.
+
+All necessary/common middlewares and configs are setted by default under the hood w/ ability to rewrite/disable/enable them
+using settings. 
 
 ## Important
 
@@ -251,7 +254,7 @@ export interface IApplicationManualSetup {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseMiddleware(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
+  setupSendResponseHandler(paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
 
   /** Sets statics. */
   setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;

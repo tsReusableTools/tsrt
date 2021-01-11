@@ -93,7 +93,7 @@ export interface IApplicationManualSetup {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseMiddleware(handler?: RequestHandler, paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
+  setupSendResponseHandler(handler?: RequestHandler, paths?: TypeOrArrayOfTypes<string | RegExp>): IApplicationManualSetup;
 
   /** Sets statics. */
   setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
