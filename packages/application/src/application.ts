@@ -36,7 +36,6 @@ export class Application<T extends IApplication = IApplication> {
     mount: {},
     middlewares: {},
   };
-  private _isManualMiddlewaresOrder = false;
   private _manuallyCalledMethods: GenericObject<boolean> = { };
   private _manualSetupSettings: IApplicationManualSetupSettings = { useMethodsByDefault: true };
 
@@ -75,7 +74,7 @@ export class Application<T extends IApplication = IApplication> {
 
   public start(cb?: Callback): void {
     if (!this._settings.port) throw Error('It is necessary to provide at least `port` settings option');
-    if (!this._isManualMiddlewaresOrder) this.setupAll();
+    this.setupAll();
     this._app.listen(this._settings.port, cb);
   }
 
@@ -143,13 +142,13 @@ export class Application<T extends IApplication = IApplication> {
 
   /* eslint-disable-next-line */
   protected setupQueryParser(cb?: (str: string) => any): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupQueryParser.name, cb ?? this._settings.qs);
+    this.markMethodAsManuallyCalled(this.setupQueryParser.name, cb ?? this._settings.qs);
     this._app.set('query parser', cb ?? ((str: string) => parse(str, this._settings.qs)));
     return this.manualSetup();
   }
 
   protected setupDefaultExpressMiddlewares(): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupDefaultExpressMiddlewares.name);
+    this.markMethodAsManuallyCalled(this.setupDefaultExpressMiddlewares.name);
     this
       .use(json())
       .use(urlencoded({ extended: true }))
@@ -160,13 +159,13 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupRequestIdMiddleware(): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupRequestIdMiddleware.name);
+    this.markMethodAsManuallyCalled(this.setupRequestIdMiddleware.name);
     this.use(requestIdHandler);
     return this.manualSetup();
   }
 
   protected setupSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupSession.name, sessionConfig ?? { });
+    this.markMethodAsManuallyCalled(this.setupSession.name, sessionConfig ?? { });
     if (!sessionConfig) return this.manualSetup();
     this._app.set('trust proxy', 1);
     if (!sessionConfig.paths) this.use(session(sessionConfig));
@@ -181,7 +180,7 @@ export class Application<T extends IApplication = IApplication> {
   protected setupSendResponseMiddleware(
     handler: RequestHandler = this._settings.sendResponseHandler, paths?: TypeOrArrayOfTypes<string | RegExp>,
   ): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupSendResponseMiddleware.name);
+    this.markMethodAsManuallyCalled(this.setupSendResponseMiddleware.name);
     if (!paths) this.use(handler);
     else if (typeof paths === 'string' || paths instanceof RegExp) this.use(paths, handler);
     else paths.forEach((item) => this.use(item, handler));
@@ -189,7 +188,7 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupStatics(statics: ApplicationStatics = this._settings.statics): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupStatics.name, statics ?? { });
+    this.markMethodAsManuallyCalled(this.setupStatics.name, statics ?? { });
     if (!statics) return this.manualSetup();
     if (Array.isArray(statics)) {
       statics.forEach((item) => this.use(express.static(item)));
@@ -200,7 +199,7 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupMiddlewares.name);
+    this.markMethodAsManuallyCalled(this.setupMiddlewares.name);
     if (!middlewares) return this.manualSetup();
 
     Object.entries(middlewares).forEach(([key, value]) => (Array.isArray(value)
@@ -211,7 +210,7 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupRouter(mount: ApplicationMountList = this._settings.mount): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupRouter.name);
+    this.markMethodAsManuallyCalled(this.setupRouter.name);
 
     let mountObject = { ...mount };
 
@@ -243,7 +242,7 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupNotFoundHandler(handler: RequestHandler = this._settings.notFoundHandler): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupNotFoundHandler.name);
+    this.markMethodAsManuallyCalled(this.setupNotFoundHandler.name);
     if (!this._settings.webApps) {
       this.use(handler);
       return this.manualSetup();
@@ -256,7 +255,7 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupWebApps(webApps: ApplicationWebApps = this._settings.webApps): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupWebApps.name, webApps);
+    this.markMethodAsManuallyCalled(this.setupWebApps.name, webApps);
     if (!webApps) return this.manualSetup();
 
     if (typeof webApps === 'string') this.serveWebApp(webApps);
@@ -266,12 +265,12 @@ export class Application<T extends IApplication = IApplication> {
   }
 
   protected setupGlobalErrorHandler(handler: ErrorRequestHandler = this._settings.globalErrorHandler): IApplicationManualSetup {
-    this.setManualyCalledMethods(this.setupGlobalErrorHandler.name);
+    this.markMethodAsManuallyCalled(this.setupGlobalErrorHandler.name);
     this.use(handler);
     return this.manualSetup();
   }
 
-  protected setManualyCalledMethods(methodName: string, logInfo?: GenericAny): void {
+  protected markMethodAsManuallyCalled(methodName: string, logInfo?: GenericAny): void {
     if (this.settings.debug && logInfo) this._log.debug(logInfo, `${capitalize(methodName)}`);
     else if (this.settings.debug) this._log.debug(`${capitalize(methodName)}`);
     this._manuallyCalledMethods[methodName] = true;

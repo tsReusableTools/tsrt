@@ -3,7 +3,7 @@
 import { Response as Res } from 'express';
 import stc from 'http-status';
 
-import { msg, isEmpty, isNil, isEmptyNil, removeParams, parseTypes } from '@tsrt/utils';
+import { msg, isEmpty, isNil, isEmptyNil, removeParams, parseTypes, isStream } from '@tsrt/utils';
 
 export function createApiResponse(res: Res, config: Partial<IHttpError>): IApiResponse;
 export function createApiResponse(res: Res, statusCode: number, body?: any): IApiResponse;
@@ -60,3 +60,27 @@ send.isValid = (data: any): boolean => !!(data
   && Object.hasOwnProperty.call(data, 'url')
   && Object.hasOwnProperty.call(data, 'data')
 );
+
+export function createLoggedSend(logger?: ISendLogger): (res: Res, data: any) => Res {
+  return (res: Res, data: any): Res => {
+    if (isStream(data)) return res.pipe(data);
+
+    const response = (send.isValid(data) || msg.isValid(data))
+      ? { status: data.status, data: data.data }
+      : { status: res.statusCode, data };
+
+    const logResponse = createApiResponse(res, response);
+    if (typeof logger?.error === 'function' && logResponse.status >= 400) logger.error(logResponse);
+    else if (typeof logger?.info === 'function') logger.info(logResponse);
+
+    return send(res, response);
+    // return res.send(data);
+  };
+}
+
+export interface ISendLogger {
+  debug(data: any, ...args: any[]): any;
+  info(data: any, ...args: any[]): any;
+  warn(data: any, ...args: any[]): any;
+  error(data: any, ...args: any[]): any;
+}
