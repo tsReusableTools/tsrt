@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/api-utils",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Typescript Reusable Tools: api-utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,9 +16,9 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/logger": "^0.5.0",
-    "@tsrt/types": "^0.5.0",
-    "@tsrt/utils": "^0.5.0",
+    "@tsrt/logger": "^0.6.0",
+    "@tsrt/types": "^0.6.0",
+    "@tsrt/utils": "^0.6.0",
     "express-http-context": "1.2.4",
     "http-status": "1.4.2"
   },
