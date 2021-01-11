@@ -1,24 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { RequestHandler, ErrorRequestHandler } from 'express';
 import { PlatformExpress } from '@tsed/platform-express';
-import { Configuration } from '@tsed/common';
+import { Configuration, EndpointDirectoriesSettings } from '@tsed/common';
+import { SwaggerSettings } from '@tsed/swagger';
 import merge from 'deepmerge';
 import isPlainObject from 'is-plain-obj';
 
 import { createLoggedSend } from '@tsrt/api-utils';
-import { isNil } from '@tsrt/utils';
 
 import {
   IApplicationSettings, IApplicationPrivateSettings, IApplicationSendResponseHandler,
   IApplicationManualSetup, Callback, IApplicationManualSetupSettings, IApplicationSession,
-  ApplicationMiddlewareList, ApplicationWebApps, ApplicationStatics,
-  ApplicationMiddleware, ApplicationErrorMiddleware, ApplicationManuallyCalledMethod, IApplicationMethods,
+  ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
+  ApplicationErrorMiddleware, ApplicationManuallyCalledMethod, IApplicationMethods,
 } from './interfaces';
+import { HealthController } from './controllers/HealthController';
+import { InfoController } from './controllers/InfoController';
 import { patchBodyParamsDecorator } from './pipes/BodyParamsPipe';
 import { defaultSettings } from './utils/defaultSettings';
 import { Server } from './server';
-
-// type IApplicationManualSetup = Partial<TT>;
 
 export class Application {
   private _settings: IApplicationPrivateSettings = { manuallyCalledMethodsOrder: [], ...defaultSettings };
@@ -29,6 +28,8 @@ export class Application {
   constructor(settings: IApplicationSettings) {
     this._settings = merge({ ...this._settings }, settings, { isMergeableObject: isPlainObject }) as IApplicationPrivateSettings;
     this.applySettings();
+    this.setDefaultSwagger(this._settings);
+    this.setDefaultMount(this._settings);
   }
 
   public get settings(): IApplicationSettings { return { ...this._settings }; }
@@ -98,8 +99,6 @@ export class Application {
   }
 
   protected useBefore(methodName: keyof IApplicationMethods, ...handlers: any[]): IApplicationManualSetup {
-    // const index = this._settings.manuallyCalledMethodsOrder.findIndex((item) => item === methodName);
-    // console.log('index >>>', index);
     this._useBeforeMethodsOrder.push([methodName, ['use', ...handlers]]);
     return this.manualSetup();
   }
@@ -164,23 +163,14 @@ export class Application {
     return this.manualSetup();
   }
 
-  protected markMethodAsManuallyCalled(methodName: ApplicationManuallyCalledMethod | string, newIndex?: number): void {
-    // console.log('newIndex >>>', newIndex);
-    // const index = newIndex >= -1 ? Math.max(newIndex, 0) : newIndex;
-    // console.log('markMethodAsManuallyCalled index >>>', index);
-    // if (index >= -1) this._settings.manuallyCalledMethodsOrder.splice(index, 0, methodName as ApplicationManuallyCalledMethod);
-    // else this._settings.manuallyCalledMethodsOrder.push(methodName as ApplicationManuallyCalledMethod);
+  protected markMethodAsManuallyCalled(methodName: ApplicationManuallyCalledMethod | string): void {
     this._settings.manuallyCalledMethodsOrder.push(methodName as ApplicationManuallyCalledMethod);
   }
 
   protected insertUseBeforeMiddlewares(): void {
-    console.log('this._useBeforeMethodsOrder >>>', this._useBeforeMethodsOrder);
     this._useBeforeMethodsOrder.forEach(([methodName, middlewares]) => {
-      console.log('methodName >>>', methodName);
       const index = this._settings.manuallyCalledMethodsOrder.findIndex((item) => item === methodName);
-      console.log('index >>>', index);
       const beforeIndex = index > -1 ? Math.max(index, 0) : -1;
-      console.log('beforeIndex >>>', beforeIndex);
       if (beforeIndex !== -1) this._settings.manuallyCalledMethodsOrder.splice(beforeIndex, 0, middlewares);
       else this._settings.manuallyCalledMethodsOrder.push(middlewares);
     });
@@ -189,5 +179,31 @@ export class Application {
   protected applySettings(): void {
     if (this._settings.patchBodyParamsDecorator) patchBodyParamsDecorator();
     if (this._settings.log) this._settings.loggedSend = createLoggedSend(this._settings.log);
+  }
+
+  private setDefaultSwagger(settings: IApplicationPrivateSettings): void {
+    if (!this._settings.setSwaggerForApiBaseByDefault || !settings.apiBase || typeof settings.apiBase !== 'string') return;
+    const swagger: SwaggerSettings[] = [];
+    swagger.push({ path: `${settings.apiBase}/api-docs` });
+    if (!this._settings.swagger) this._settings.swagger = [];
+    this._settings.swagger = (this._settings.swagger as SwaggerSettings[]).concat(swagger);
+  }
+
+  private setDefaultMount(settings: IApplicationPrivateSettings): void {
+    if (!settings.apiBase || !settings.useDefaultControllers) return;
+    if (typeof settings.apiBase === 'string') this.mergeMount({ [settings.apiBase]: [InfoController, HealthController] });
+    else settings.apiBase.forEach((path) => this.mergeMount({ [path]: [InfoController, HealthController] }));
+  }
+
+  private mergeMount(mount: EndpointDirectoriesSettings): void {
+    if (!this._settings.mount) this._settings.mount = {};
+    const result = this._settings.mount;
+    Object.entries(mount).forEach(([key, value]) => {
+      const routes = Array.isArray(value) ? value : [value];
+      const existingMount = Array.isArray(result[key]) ? result[key] : [result[key]] as EndpointDirectoriesSettings;
+      if (!result[key]) result[key] = routes;
+      else result[key] = existingMount.concat(routes);
+    });
+    this._settings.mount = result;
   }
 }

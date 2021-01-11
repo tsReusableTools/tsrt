@@ -4,23 +4,21 @@ import cors from 'cors';
 import { parse } from 'qs';
 import helmet from 'helmet';
 
-import { PlatformApplication, EndpointDirectoriesSettings } from '@tsed/common';
+import { PlatformApplication } from '@tsed/common';
 import { Configuration, Inject } from '@tsed/di';
 import '@tsed/platform-express';
 import '@tsed/ajv';
-import { SwaggerSettings } from '@tsed/swagger';
+import '@tsed/swagger';
 
 import { capitalize } from '@tsrt/utils';
 import { session } from '@tsrt/session';
 
 import {
-  IApplicationSettings, IApplicationPrivateSettings, IApplicationManualSetup,
-  IApplicationSession, IApplicationSendResponseHandler, ApplicationStatics,
-  ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware, ApplicationErrorMiddleware,
-  ApplicationManuallyCalledMethod,
+  IApplicationPrivateSettings, IApplicationManualSetup,
+  IApplicationSession, IApplicationSendResponseHandler,
+  ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
+  ApplicationErrorMiddleware, ApplicationManuallyCalledMethod,
 } from './interfaces';
-import { HealthController } from './controllers/HealthController';
-import { InfoController } from './controllers/InfoController';
 import { ParseCookiesHandler, RequestIdHandler } from './middlewares';
 import { defaultTsedSettings } from './utils/defaultSettings';
 import { patchValidatorsWithoutGroups } from './utils/patchValidatorsWithoutGroups';
@@ -32,23 +30,18 @@ export class Server {
   @Configuration() private _settings: IApplicationPrivateSettings;
 
   public $beforeInit(): void {
-    console.log('this._settings.manuallyCalledMethodsOrder >>>', this._settings.manuallyCalledMethodsOrder);
-    this.setDefaultSwagger(this._settings);
-    this.setDefaultMount(this._settings);
     if (this.getMethodIndex('setupQueryParser') !== -1) this.callApplicationMethods(['setupQueryParser']);
   }
 
   public $beforeRoutesInit(): void {
-    const notFoundIndex = this.getMethodIndex('setupNotFoundHandler');
-    const methods = this.methods.slice(0, notFoundIndex).filter((item) => item !== 'setupQueryParser');
-    console.log('beforeRoutesInit methods >>>', methods);
+    const index = this.getDelimetrIndex();
+    const methods = this.methods.slice(0, index).filter((item) => item !== 'setupQueryParser');
     this.callApplicationMethods(methods);
   }
 
   public $afterRoutesInit(): void {
-    const notFoundIndex = this.getMethodIndex('setupNotFoundHandler');
-    const methods = this.methods.slice(notFoundIndex);
-    console.log('afterRoutesInit methods >>>', methods);
+    const index = this.getDelimetrIndex();
+    const methods = this.methods.slice(index).filter((item) => item !== 'setupQueryParser');
     this.callApplicationMethods(methods);
   }
 
@@ -132,11 +125,9 @@ export class Server {
 
   protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): Server {
     if (!middlewares) return this;
-
     Object.entries(middlewares).forEach(([key, value]) => (Array.isArray(value)
       ? value.forEach((item) => this.use(key, item))
       : this.use(key, value)));
-
     return this;
   }
 
@@ -167,6 +158,14 @@ export class Server {
 
   private get methods(): ApplicationManuallyCalledMethod[] {
     return this._settings.manuallyCalledMethodsOrder ?? [];
+  }
+
+  private getDelimetrIndex() {
+    let index = this.getMethodIndex('setupNotFoundHandler');
+    if (index === -1) index = this.getMethodIndex('setupWebApps');
+    if (index === -1) index = this.getMethodIndex('setupGlobalErrorHandler');
+    if (index === -1) index = this.methods.length;
+    return index;
   }
 
   private getMethodIndex(methodName: keyof IApplicationManualSetup): number {
@@ -204,37 +203,5 @@ export class Server {
     const dir = webAppPath.replace(reg, '');
     const index = webAppPath.match(reg) ? webAppPath : `${webAppPath}/index.html`;
     return { dir, index };
-  }
-
-  private setDefaultSwagger(settings: IApplicationPrivateSettings): void {
-    if (!this._settings.setSwaggerForApiBaseByDefault || !settings.apiBase || typeof settings.apiBase !== 'string') return;
-    const swagger: SwaggerSettings[] = [];
-    swagger.push({ path: `${settings.apiBase}/api-docs` });
-    if (!this._settings.swagger) this._settings.swagger = [];
-    this._settings.swagger = (this._settings.swagger as SwaggerSettings[]).concat(swagger);
-  }
-
-  private setDefaultMount(settings: IApplicationPrivateSettings): void {
-    if (!settings.apiBase || !settings.useDefaultControllers) return;
-    if (typeof settings.apiBase === 'string') this.mergeMount({ [settings.apiBase]: [InfoController, HealthController] });
-    else settings.apiBase.forEach((path) => this.mergeMount({ [path]: [InfoController, HealthController] }));
-  }
-
-  private mergeMount(mount: EndpointDirectoriesSettings): void {
-    if (!this._settings.mount) this._settings.mount = {};
-    const result = this._settings.mount;
-    Object.entries(mount).forEach(([key, value]) => {
-      const routes = Array.isArray(value) ? value : [value];
-      const existingMount = Array.isArray(result[key]) ? result[key] : [result[key]] as EndpointDirectoriesSettings;
-      if (!result[key]) result[key] = routes;
-      else result[key] = existingMount.concat(routes);
-    });
-    this._settings.mount = result;
-  }
-
-  private convertMapToObject(map: Map<string, any>): IApplicationSettings {
-    const result: IApplicationSettings = { };
-    map.forEach((value, key) => { result[key] = value; });
-    return result;
   }
 }

@@ -3,6 +3,8 @@
 // import { PathParams, RequestHandlerParams, ApplicationRequestHandler } from 'express-serve-static-core';
 import { Response, RequestHandler, ErrorRequestHandler } from 'express';
 import { ParamTypes, Req, Res } from '@tsed/common';
+import { Configuration } from '@tsed/di';
+import { SwaggerSettings } from '@tsed/swagger';
 import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
 import { IHelmetConfiguration } from 'helmet';
@@ -13,7 +15,10 @@ import { ISessionSettings } from '@tsrt/session';
 // // This one is NECESSARY because of for some reasone it is impossible to use TsED.Configuration w/ Omit type to exclude some props.
 // /* eslint-disable-next-line */
 // // @ts-ignore
-export interface IApplicationSettings extends Partial<TsED.Configuration> {
+export interface IApplicationSettings extends Partial<Configuration> {
+  /** TsED swagger settings. For some reason TS comliper doesn't see it by default. */
+  swagger?: SwaggerSettings | SwaggerSettings[];
+
   /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
   log?: IApplicationLogger;
 
