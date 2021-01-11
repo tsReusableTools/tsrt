@@ -166,6 +166,7 @@ export interface IApplicationMethods {
 export type ApplicationManuallyCalledMethod = keyof IApplicationMethods | ['set' | 'use', ...any[]];
 
 export interface IApplicationManualSetupSettings {
+  /** Whether to use not called manually default methods. @default true. */
   useMethodsByDefault?: boolean;
 }
 

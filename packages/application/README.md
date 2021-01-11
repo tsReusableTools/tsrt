@@ -160,10 +160,12 @@ export declare class Application<T extends IApplication = IApplication> {
 
   /** Reassign default globalErrorHandler (also could be done declaratively via settings). */
   setGlobalErrorHandler(handler: ErrorRequestHandler): Application;
+
+  /** Start Application. */
   start(cb?: Callback): void;
 
   /** Here it is possible to call every setup methods in necessary order. */
-  manualSetup(): IApplicationManualSetup;
+  manualSetup(settings?: IApplicationManualSetupSettings): IApplicationManualSetup;
 }
 ```
 
@@ -275,6 +277,10 @@ export interface IApplicationManualSetup {
 
 export interface IApplicationSession extends ISessionSettings {
   paths?: string | string[];
+}
+
+export interface IApplicationManualSetupSettings {
+  useMethodsByDefault?: boolean;
 }
 
 export type ApplicationMount = string | Router;
