@@ -11,12 +11,12 @@ export class BaseCacheService {
 
   constructor(clientOpts?: ClientOpts, settings?: ICacheServiceSettings) {
     if (clientOpts) this.init(clientOpts);
-    if (settings.log) this._log = settings.log;
+    if (settings?.log) this._log = settings.log;
   }
 
   public init(clientOpts: ClientOpts, settings?: ICacheServiceSettings): void {
     if (this._db) return;
-    if (settings.log) this._log = settings.log;
+    if (settings?.log) this._log = settings.log;
 
     this._db = createClient({
       ...clientOpts,
