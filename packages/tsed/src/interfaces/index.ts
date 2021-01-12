@@ -49,10 +49,10 @@ export interface IApplicationSettings extends Partial<Configuration> {
   /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
   useDefaultControllers?: boolean;
 
-  /** Middleware to be used instead of default `notFoundHandler` */
+  /** Middleware to be used instead of default `NotFoundHandler`. Could be also overriden by `OverrideProvider`. */
   notFoundHandler?: ApplicationMiddleware;
 
-  /** Middleware to be used instead of default `globalErrorHandler` */
+  /** Middleware to be used instead of default `GlobalErrorHandler`. Could be also overriden by `OverrideProvider`. */
   globalErrorHandler?: ApplicationErrorMiddleware;
 
   /** Method to be used in as responseFilter of TsED. Should implement `ResponseFilterMethods` interface. */
@@ -174,7 +174,7 @@ export interface IApplicationSession extends ISessionSettings {
 export interface IApplicationLogger {
   debug(data: any, ...args: any[]): any;
   info(data: any, ...args: any[]): any;
-  warn(data: any, ...args: any[]): any;
+  warn?(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }
 

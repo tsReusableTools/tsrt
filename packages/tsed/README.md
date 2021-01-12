@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@tsrt/tsed.svg)](https://www.npmjs.com/package/@tsrt/tsed) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE) [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/tsed.svg)](https://www.npmjs.com/package/@tsrt/tsed) [![Downloads](https://img.shields.io/npm/dm/@tsrt/tsed.svg)](https://www.npmjs.com/package/@tsrt/tsed)
 
 
-Basic configurable Application built on top of awesome [TsED](https://v5.tsed.io/) framework.
+Basic configurable Application built on top of awesome [TsED](https://tsed.io/) framework.
 
 All necessary/common middlewares and configs are setted by default under the hood w/ ability to rewrite/disable/enable them
 using settings. 
@@ -54,6 +54,15 @@ export declare class Application {
 
   /** Application middlewares/config manual setup (which is done by default under `start` method). */
   manualSetup(settings?: IApplicationManualSetupSettings): IApplicationManualSetup;
+
+  /** Proxy to native Express App `set` method */
+  set(setting: string, value: any): this;
+
+  /** Proxy to native Express App `use` method */
+  use(...handlers: any[]): IApplicationManualSetup;
+
+  /** Proxy to native Express App `use` method, w/ ability to use before one of `IApplicationMethods` methods. */
+  useBefore(methodName: keyof IApplicationMethods, ...handlers: any[]): IApplicationManualSetup;
 }
 
 export interface IApplicationManualSetup extends IApplicationMethods {
@@ -110,14 +119,16 @@ export interface IApplicationManualSetupSettings {
 
 ```ts
 export interface IApplicationSettings extends Partial<Configuration> {
-  /** TsED swagger settings. For some reason TS comliper doesn't see it by default. */
-  swagger?: SwaggerSettings | SwaggerSettings[];
-
   /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
   log?: IApplicationLogger;
 
-  /** Whether to show debug info (logs). @default false */
-  debug?: boolean;
+  /**
+   *  Debug mode.
+   *
+   *  @enum - TsED: full debug + TsED full debug.
+   *  @enum - Application: Only debug for server start (hooks/middlewares iitialization).
+   */
+  debugMode?: 'TsED' | 'Application';
 
   /** Port to listen. */
   port?: number | string;
@@ -149,20 +160,17 @@ export interface IApplicationSettings extends Partial<Configuration> {
   /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
   useDefaultControllers?: boolean;
 
-  /** Middleware to be used instead of default `notFoundHandler` */
+  /** Middleware to be used instead of default `NotFoundHandler`. Could be also overriden by `OverrideProvider`. */
   notFoundHandler?: ApplicationMiddleware;
 
-  /** Middleware to be used instead of default `globalErrorHandler` */
+  /** Middleware to be used instead of default `GlobalErrorHandler`. Could be also overriden by `OverrideProvider`. */
   globalErrorHandler?: ApplicationErrorMiddleware;
 
-  /** Method to be used in `SendResponseMiddleware` of TsED. */
-  sendResponseHandler?: IApplicationSendResponseHandler;
+  /** Method to be used in as responseFilter of TsED. Should implement `ResponseFilterMethods` interface. */
+  sendResponseHandler?: Constructor;
 
-  /** Whether to set swagger api-docs for `apiBase` if only 1 string value provided for it. @default true. */
+  /** Whether to set swagger api-docs for `apiBase` if only 1 string value provided for it. @default false. */
   setSwaggerForApiBaseByDefault?: boolean;
-
-  /** Whether to patch TsED native BodyParams to allow provide additional options like `validationGroups`. @default true. */
-  patchBodyParamsDecorator?: boolean;
 
   /**
    *  Whether to patch `class-validator` validators without groups and set `always: true` for them.
@@ -201,19 +209,18 @@ export interface IApplicationSettings extends Partial<Configuration> {
 
   /** List of TsED `ParamTypes` to validate in ValidationPipe. @default all. */
   validationParamTypes?: Array<ParamTypes | string>;
+
+  /** `class-transformer` options for `DeserializerPipe`. */
+  deserializerOptions?: ClassTransformOptions;
 }
 
 export interface IApplicationLogger {
   debug(data: any, ...args: any[]): any;
   info(data: any, ...args: any[]): any;
-  warn(data: any, ...args: any[]): any;
+  warn?(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }
 ```
-
-## Plans
-
-Planning to update to use TsED v6 under the hood.
 
 ## License
 
