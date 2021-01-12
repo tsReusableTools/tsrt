@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IPipe, OverrideProvider, ParamMetadata, ValidationPipe as BaseValidationPipe } from '@tsed/common';
 import { Configuration } from '@tsed/di';
 import { plainToClass } from 'class-transformer';
@@ -9,8 +10,9 @@ import { IApplicationSettings } from '../interfaces';
 import { getValidationError } from '../utils/getValidationError';
 
 @OverrideProvider(BaseValidationPipe)
-export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
-  @Configuration() private settings: IApplicationSettings;
+export class ValidationPipe extends BaseValidationPipe implements IPipe {
+  @Configuration() private _settings: IApplicationSettings;
+
   private _validateOptions: ValidatorOptions = { whitelist: true, forbidNonWhitelisted: true };
 
   /* eslint-disable-next-line */
@@ -19,18 +21,18 @@ export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
 
     const options: ValidatorOptions = {
       ...this._validateOptions,
-      ...this.settings.validationOptions,
-      groups: metadata.validationGroups,
+      ...this._settings.validationOptions,
+      groups: metadata.parameter.groups,
     };
 
-    const dataToValidate = plainToClass(metadata.type, value);
+    const dataToValidate = plainToClass(metadata.type, this.coerceTypes(value, metadata));
     const result = await this.validate(dataToValidate, options);
 
     if (result?.length > 0) throwHttpError.badRequest(result.map(getValidationError));
-    return this.settings.parseBodyTypesAfterValidation ? parseTypes(dataToValidate) : dataToValidate;
+    return this._settings.parseBodyTypesAfterValidation ? parseTypes(dataToValidate) : dataToValidate;
   }
 
-  protected async validate<T>(list: T | T[], options: ValidatorOptions = { }): Promise<ValidationError[]> {
+  private async validate<T>(list: T | T[], options: ValidatorOptions = { }): Promise<ValidationError[]> {
     let result: ValidationError[] = [];
     const array = Array.isArray(list) ? list : [list];
     const promises = array.map((item) => validate(item, options).then((errors) => { result = result.concat(errors); }));
@@ -38,12 +40,12 @@ export class ClassValidationPipe extends BaseValidationPipe implements IPipe {
     return result;
   }
 
-  protected shouldValidate(metadata: ParamMetadata): boolean {
+  private shouldValidate(metadata: ParamMetadata): boolean {
     /* eslint-disable-next-line @typescript-eslint/ban-types */
     const types: Function[] = [String, Boolean, Number, Array, Object];
-    const isAllowedParamType = this.settings.validationParamTypes
+    const isAllowedParamType = this._settings.validationParamTypes
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      ? this.settings.validationParamTypes.includes(metadata.type as any)
+      ? this._settings.validationParamTypes.includes(metadata.type as any)
       : true;
     return isAllowedParamType && (!(metadata.type || metadata.collectionType) || !types.includes(metadata.type));
   }

@@ -1,5 +1,5 @@
 import { IApplicationSettings } from '../interfaces';
-import { GlobalErrorHandler, NotFoundHandler } from '../middlewares';
+import { GlobalErrorHandler, NotFoundHandler, SendResponseHandler } from '../middlewares';
 
 /** TsED default options */
 export const defaultTsedSettings: IApplicationSettings = {
@@ -12,19 +12,21 @@ export const defaultTsedSettings: IApplicationSettings = {
 /** Application default options */
 export const defaultSettings: IApplicationSettings = {
   apiBase: '/api/v1',
+  debugMode: 'Application',
   cors: { credentials: true, origin: true },
   qs: { strictNullHandling: true, comma: true },
   validationOptions: { whitelist: true, forbidNonWhitelisted: true },
 
   notFoundHandler: NotFoundHandler,
   globalErrorHandler: GlobalErrorHandler,
+  sendResponseHandler: SendResponseHandler,
 
   useDefaultControllers: true,
   patchValidatorsWithoutGroups: true,
-  patchBodyParamsDecorator: true,
+  // patchBodyParamsDecorator: true,
   parseBodyTypesAfterValidation: true,
   parseResponseTypes: false,
-  setSwaggerForApiBaseByDefault: true,
+  setSwaggerForApiBaseByDefault: false,
 
   ...defaultTsedSettings,
 };

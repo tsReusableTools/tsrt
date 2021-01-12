@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@tsrt/api-utils": "^0.6.1",
-    "@tsrt/logger": "^0.6.1",
     "@tsrt/session": "^0.6.1",
     "@tsrt/types": "^0.6.1",
     "@tsrt/utils": "^0.6.1",

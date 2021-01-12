@@ -81,6 +81,6 @@ export function createLoggedSend(logger?: ISendLogger): (res: Res, data: any) =>
 export interface ISendLogger {
   debug(data: any, ...args: any[]): any;
   info(data: any, ...args: any[]): any;
-  warn(data: any, ...args: any[]): any;
+  warn?(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }

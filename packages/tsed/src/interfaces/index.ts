@@ -1,38 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable-next-line import/no-unresolved */
-// import { PathParams, RequestHandlerParams, ApplicationRequestHandler } from 'express-serve-static-core';
 import { Response, RequestHandler, ErrorRequestHandler } from 'express';
-import { ParamTypes, Req, Res } from '@tsed/common';
+import { ParamTypes } from '@tsed/common';
 import { Configuration } from '@tsed/di';
-import { SwaggerSettings } from '@tsed/swagger';
 import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
 import { IHelmetConfiguration } from 'helmet';
 import { ValidatorOptions } from 'class-validator';
+import { ClassTransformOptions } from 'class-transformer';
 
 import { ISessionSettings } from '@tsrt/session';
 
-// // This one is NECESSARY because of for some reasone it is impossible to use TsED.Configuration w/ Omit type to exclude some props.
-// /* eslint-disable-next-line */
-// // @ts-ignore
 export interface IApplicationSettings extends Partial<Configuration> {
-  /** TsED swagger settings. For some reason TS comliper doesn't see it by default. */
-  swagger?: SwaggerSettings | SwaggerSettings[];
-
   /** Custom application logger. It should implement at least 2 methods: `info` and `error`. */
   log?: IApplicationLogger;
 
-  /** Whether to show debug info (logs). @default false */
-  debug?: boolean;
+  /**
+   *  Debug mode.
+   *
+   *  @enum - TsED: full debug + TsED full debug.
+   *  @enum - Application: Only debug for server start (hooks/middlewares iitialization).
+   */
+  debugMode?: 'TsED' | 'Application';
 
   /** Port to listen. */
   port?: number | string;
 
   /** Base api path/pathes. This one is necessary for registering default notFound, globalError and other middlewares. */
   apiBase?: ApplicationPaths;
-
-  /** List of statics dirs, or object w/ key - route path, and value - statics dir. */
-  // statics?: ApplicationStatics;
 
   /** Same as for static, but also for serving webApps. */
   webApps?: ApplicationWebApps;
@@ -61,14 +55,14 @@ export interface IApplicationSettings extends Partial<Configuration> {
   /** Middleware to be used instead of default `globalErrorHandler` */
   globalErrorHandler?: ApplicationErrorMiddleware;
 
-  /** Method to be used in `SendResponseMiddleware` of TsED. */
-  sendResponseHandler?: IApplicationSendResponseHandler;
+  /** Method to be used in as responseFilter of TsED. Should implement `ResponseFilterMethods` interface. */
+  sendResponseHandler?: Constructor;
 
-  /** Whether to set swagger api-docs for `apiBase` if only 1 string value provided for it. @default true. */
+  /** Whether to set swagger api-docs for `apiBase` if only 1 string value provided for it. @default false. */
   setSwaggerForApiBaseByDefault?: boolean;
 
-  /** Whether to patch TsED native BodyParams to allow provide additional options like `validationGroups`. @default true. */
-  patchBodyParamsDecorator?: boolean;
+  // /** Whether to patch TsED native BodyParams to allow provide additional options like `validationGroups`. @default true. */
+  // patchBodyParamsDecorator?: boolean;
 
   /**
    *  Whether to patch `class-validator` validators without groups and set `always: true` for them.
@@ -107,6 +101,9 @@ export interface IApplicationSettings extends Partial<Configuration> {
 
   /** List of TsED `ParamTypes` to validate in ValidationPipe. @default all. */
   validationParamTypes?: Array<ParamTypes | string>;
+
+  /** `class-transformer` options for `DeserializerPipe`. */
+  deserializerOptions?: ClassTransformOptions;
 }
 
 export interface IApplicationPrivateSettings extends IApplicationSettings {
@@ -145,7 +142,7 @@ export interface IApplicationMethods {
   setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
-  setupSendResponseHandler(handler?: IApplicationSendResponseHandler): IApplicationManualSetup;
+  setupSendResponseHandler(handler?: Constructor): IApplicationManualSetup;
 
   /** Sets statics. */
   // setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
@@ -170,13 +167,6 @@ export interface IApplicationManualSetupSettings {
   useMethodsByDefault?: boolean;
 }
 
-export interface IApplicationInfo {
-  dateTime: string;
-  commit: string;
-  version: string;
-  env: string;
-}
-
 export interface IApplicationSession extends ISessionSettings {
   paths?: string | string[];
 }
@@ -194,8 +184,6 @@ export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<Applic
 export type ApplicationMiddleware = RequestHandler | Constructor;
 
 export type ApplicationErrorMiddleware = ErrorRequestHandler | Constructor;
-
-export type IApplicationSendResponseHandler = (req: Req, res: Res) => Response;
 
 export type ApplicationStatics = string[] | Record<string, string>;
 

@@ -2,25 +2,27 @@ import { RedisClient, ClientOpts, createClient } from 'redis';
 import { promisify } from 'util';
 
 import { throwHttpError, msg } from '@tsrt/utils';
-import { log } from '@tsrt/logger';
 
-import { IAllCacheRecords } from './interfaces';
+import { IAllCacheRecords, ICacheServiceSettings, ILogger } from './interfaces';
 
 export class BaseCacheService {
   private _db: RedisClient;
+  private _log: ILogger;
 
-  constructor(clientOpts?: ClientOpts) {
+  constructor(clientOpts?: ClientOpts, settings?: ICacheServiceSettings) {
     if (clientOpts) this.init(clientOpts);
+    if (settings.log) this._log = settings.log;
   }
 
-  public init(clientOpts: ClientOpts): void {
+  public init(clientOpts: ClientOpts, settings?: ICacheServiceSettings): void {
     if (this._db) return;
+    if (settings.log) this._log = settings.log;
 
     this._db = createClient({
       ...clientOpts,
       /* eslint-disable-next-line */
       retry_strategy: (options) => {
-        if (options?.error?.code === 'ECONNREFUSED') log.error(`REDIS CONNECTION REFUSED. URL: ${clientOpts.url}`);
+        if (options?.error?.code === 'ECONNREFUSED') this._log.error(`REDIS CONNECTION REFUSED. URL: ${clientOpts.url}`);
         return Math.max(options.attempt * 100, 2000);
       },
     });
@@ -28,8 +30,8 @@ export class BaseCacheService {
     process.on('SIGINT', () => this._db.quit());
     process.on('SIGTERM', () => this._db.quit());
 
-    this._db.on('error', (err: Error) => { log.error(err); this._db.quit(); });
-    this._db.on('reconnecting', () => log.debug('REDIS: RECONNECTING'));
+    this._db.on('error', (err: Error) => { this._log.error(err); this._db.quit(); });
+    this._db.on('reconnecting', () => this._log.debug('REDIS: RECONNECTING'));
   }
 
   public get db(): RedisClient {
@@ -46,12 +48,12 @@ export class BaseCacheService {
       await setAsync(key, JSON.stringify(data));
 
       if (!expire) {
-        log.debug(data, 'BaseCacheService.set: setted data without expiration');
+        this._log.debug(data, 'BaseCacheService.set: setted data without expiration');
         return;
       }
 
       await expAsync(key, expire > 10 ? expire - 10 : expire);
-      log.debug(data, `BaseCacheService.set: setted data which expires in ${expire}s`);
+      this._log.debug(data, `BaseCacheService.set: setted data which expires in ${expire}s`);
     } catch (err) {
       this.throwError(err);
     }
@@ -100,14 +102,14 @@ export class BaseCacheService {
     this.checkConnection();
     const delAsync = promisify(this._db.del).bind(this._db);
     await delAsync(key);
-    log.debug(`BaseCacheService.del: deleted by key - ${key}`);
+    this._log.debug(`BaseCacheService.del: deleted by key - ${key}`);
   }
 
   public async clear(): Promise<void> {
     this.checkConnection();
     const flushAsync = promisify(this._db.flushall).bind(this._db);
     await flushAsync('ASYNC');
-    log.debug('BaseCacheService.clear: cleared all dbs');
+    this._log.debug('BaseCacheService.clear: cleared all dbs');
   }
 
   /* eslint-disable-next-line */

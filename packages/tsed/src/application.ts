@@ -8,20 +8,19 @@ import isPlainObject from 'is-plain-obj';
 import { createLoggedSend } from '@tsrt/api-utils';
 
 import {
-  IApplicationSettings, IApplicationPrivateSettings, IApplicationSendResponseHandler,
+  IApplicationSettings, IApplicationPrivateSettings,
   IApplicationManualSetup, Callback, IApplicationManualSetupSettings, IApplicationSession,
   ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod, IApplicationMethods,
 } from './interfaces';
 import { HealthController } from './controllers/HealthController';
 import { InfoController } from './controllers/InfoController';
-import { patchBodyParamsDecorator } from './pipes/BodyParamsPipe';
+// import { patchBodyParamsDecorator } from './pipes/BodyParamsPipe';
 import { defaultSettings } from './utils/defaultSettings';
 import { Server } from './server';
 
 export class Application {
   private _settings: IApplicationPrivateSettings = { manuallyCalledMethodsOrder: [], ...defaultSettings };
-  // private _useBeforeMethodsOrder: Partial<Record<keyof IApplicationMethods, ApplicationManuallyCalledMethod>> = { };
   private _useBeforeMethodsOrder: Array<[keyof IApplicationMethods, ApplicationManuallyCalledMethod]> = [];
   private _manualSetupSettings: IApplicationManualSetupSettings = { useMethodsByDefault: true };
 
@@ -56,7 +55,6 @@ export class Application {
       setupRequestIdMiddleware: this.setupRequestIdMiddleware.bind(this),
       setupSession: this.setupSession.bind(this),
       setupSendResponseHandler: this.setupSendResponseHandler.bind(this),
-      // setupStatics: this.setupStatics.bind(this),
       setupMiddlewares: this.setupMiddlewares.bind(this),
       setupNotFoundHandler: this.setupNotFoundHandler.bind(this),
       setupWebApps: this.setupWebApps.bind(this),
@@ -64,6 +62,21 @@ export class Application {
 
       start: this.start.bind(this),
     };
+  }
+
+  public set(setting: string, value: any): IApplicationManualSetup {
+    this.markMethodAsManuallyCalled(['set', setting, value]);
+    return this.manualSetup();
+  }
+
+  public use(...handlers: any[]): IApplicationManualSetup {
+    this.markMethodAsManuallyCalled(['use', ...handlers]);
+    return this.manualSetup();
+  }
+
+  public useBefore(methodName: keyof IApplicationMethods, ...handlers: any[]): IApplicationManualSetup {
+    this._useBeforeMethodsOrder.push([methodName, ['use', ...handlers]]);
+    return this.manualSetup();
   }
 
   protected setupAll(): IApplicationManualSetup {
@@ -74,7 +87,6 @@ export class Application {
       this.setupRequestIdMiddleware,
       this.setupSession,
       this.setupSendResponseHandler,
-      // this.setupStatics,
       this.setupMiddlewares,
       this.setupNotFoundHandler,
       this.setupWebApps,
@@ -82,24 +94,10 @@ export class Application {
     ];
     methods.forEach((item) => {
       const called = this._settings.manuallyCalledMethodsOrder.find((key) => key === item.name);
-      if (!called) this._settings.manuallyCalledMethodsOrder.push(item.name as ApplicationManuallyCalledMethod);
+      // if (!called) this._settings.manuallyCalledMethodsOrder.push(item.name as ApplicationManuallyCalledMethod);
+      if (!called) item.call(this);
     });
 
-    return this.manualSetup();
-  }
-
-  protected set(setting: string, value: any): IApplicationManualSetup {
-    this.markMethodAsManuallyCalled(['set', setting, value]);
-    return this.manualSetup();
-  }
-
-  protected use(...handlers: any[]): IApplicationManualSetup {
-    this.markMethodAsManuallyCalled(['use', ...handlers]);
-    return this.manualSetup();
-  }
-
-  protected useBefore(methodName: keyof IApplicationMethods, ...handlers: any[]): IApplicationManualSetup {
-    this._useBeforeMethodsOrder.push([methodName, ['use', ...handlers]]);
     return this.manualSetup();
   }
 
@@ -125,19 +123,14 @@ export class Application {
     return this.manualSetup();
   }
 
-  protected setupSendResponseHandler(
-    handler: IApplicationSendResponseHandler = this._settings.sendResponseHandler,
-  ): IApplicationManualSetup {
+  protected setupSendResponseHandler(handler: Constructor = this._settings.sendResponseHandler): IApplicationManualSetup {
     this.markMethodAsManuallyCalled(this.setupSendResponseHandler.name);
-    if (handler) this._settings.sendResponseHandler = handler;
+    if (!handler) return this.manualSetup();
+
+    if (!this._settings.responseFilters) this._settings.responseFilters = [];
+    this._settings.responseFilters.push(handler);
     return this.manualSetup();
   }
-
-  // protected setupStatics(statics: ApplicationStatics = this._settings.statics): IApplicationManualSetup {
-  //   this.markMethodAsManuallyCalled(this.setupStatics.name);
-  //   if (statics) this._settings.statics = statics;
-  //   return this.manualSetup();
-  // }
 
   protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): IApplicationManualSetup {
     this.markMethodAsManuallyCalled(this.setupMiddlewares.name);
@@ -177,14 +170,14 @@ export class Application {
   }
 
   protected applySettings(): void {
-    if (this._settings.patchBodyParamsDecorator) patchBodyParamsDecorator();
+    // if (this._settings.patchBodyParamsDecorator) patchBodyParamsDecorator();
     if (this._settings.log) this._settings.loggedSend = createLoggedSend(this._settings.log);
   }
 
   private setDefaultSwagger(settings: IApplicationPrivateSettings): void {
     if (!this._settings.setSwaggerForApiBaseByDefault || !settings.apiBase || typeof settings.apiBase !== 'string') return;
     const swagger: SwaggerSettings[] = [];
-    swagger.push({ path: `${settings.apiBase}/api-docs` });
+    swagger.push({ path: `${settings.apiBase}/api-docs`, specVersion: '3.0.3' });
     if (!this._settings.swagger) this._settings.swagger = [];
     this._settings.swagger = (this._settings.swagger as SwaggerSettings[]).concat(swagger);
   }

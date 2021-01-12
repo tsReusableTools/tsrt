@@ -27,7 +27,7 @@
     "@tsrt/types": "^0.6.1"
   },
   "peerDependencies": {
-    "@tsrt/mparty": "^0.2.0",
+    "@tsrt/mparty": "^0.6.0",
     "express": "^4.17.1"
   },
   "devDependencies": {

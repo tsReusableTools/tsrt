@@ -5,6 +5,8 @@ import { Mparty } from '@tsrt/mparty';
 import { MpartyMiddleware, IMpartyMiddlewareOptions } from './types';
 import { throwErrorIfMiddlewareIsNotCalled, getMpartyOptions } from './utils';
 
+export * from './types';
+
 export function createMpartyMiddleware(options: IMpartyMiddlewareOptions): MpartyMiddleware {
   const mparty = new Mparty();
 

@@ -14,8 +14,7 @@ import { capitalize } from '@tsrt/utils';
 import { session } from '@tsrt/session';
 
 import {
-  IApplicationPrivateSettings, IApplicationManualSetup,
-  IApplicationSession, IApplicationSendResponseHandler,
+  IApplicationPrivateSettings, IApplicationManualSetup, IApplicationSession,
   ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod,
 } from './interfaces';
@@ -49,12 +48,16 @@ export class Server {
     if (this._settings.patchValidatorsWithoutGroups) patchValidatorsWithoutGroups();
   }
 
+  public $onReady(): void {
+    if (this._settings.debug && this._settings.debugMode === 'Application') this._settings.logger.level = 'error';
+  }
+
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
   //                                      Methods
   // // // // // // // // // // // // // // // // // // // // // // // // // // // // // //
 
   protected set(setting: string, value: any): Server {
-    this._app.raw.set(setting, value);
+    this._app.rawApp.set(setting, value);
     return this;
   }
 
@@ -68,13 +71,11 @@ export class Server {
   }
 
   protected setupQueryParser(cb?: (str: string) => any): Server {
-    // this.markMethodAsManuallyCalled(this.setupQueryParser.name, cb ?? this._settings.qs);
     this.set('query parser', cb ?? ((str: string) => parse(str, this._settings.qs)));
     return this;
   }
 
   protected setupDefaultExpressMiddlewares(): Server {
-    // this.markMethodAsManuallyCalled(this.setupDefaultExpressMiddlewares.name);
     this
       .use(json())
       .use(urlencoded({ extended: true }))
@@ -85,13 +86,11 @@ export class Server {
   }
 
   protected setupRequestIdMiddleware(): Server {
-    // this.markMethodAsManuallyCalled(this.setupRequestIdMiddleware.name);
     this.use(RequestIdHandler);
     return this;
   }
 
   protected setupSession(sessionConfig: IApplicationSession = this._settings.session): Server {
-    // this.markMethodAsManuallyCalled(this.setupSession.name, sessionConfig ?? { });
     if (!sessionConfig) return this;
     this._app.raw.set('trust proxy', 1);
     if (!sessionConfig.paths) this.use(session(sessionConfig));
@@ -103,25 +102,10 @@ export class Server {
     return this;
   }
 
-  protected setupSendResponseHandler(
-    handler: IApplicationSendResponseHandler = this._settings.sendResponseHandler,
-  ): Server {
-    // this.markMethodAsManuallyCalled(this.setupSendResponseHandler.name);
-    if (handler) this._settings.sendResponseHandler = handler;
+  protected setupSendResponseHandler(handler: Constructor = this._settings.sendResponseHandler): Server {
+    if (!handler) return this;
     return this;
   }
-
-  // Temporary commented in order to use native TsED.
-  // protected setupStatics(statics: ApplicationStatics = this._settings.statics): Server {
-  //   // this.markMethodAsManuallyCalled(this.setupStatics.name, statics ?? { });
-  //   if (!statics) return this;
-  //   if (Array.isArray(statics)) {
-  //     statics.forEach((item) => this.use(express.static(item)));
-  //   } else if (typeof statics === 'object') {
-  //     Object.entries(statics).forEach(([key, value]) => this.use(key, express.static(value)));
-  //   }
-  //   return this;
-  // }
 
   protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): Server {
     if (!middlewares) return this;
@@ -184,7 +168,7 @@ export class Server {
       if (Array.isArray(item)) {
         const [method, ...args] = item;
         if (!context[method] || typeof context[method] !== 'function') return;
-        context[method](args);
+        context[method](...args);
       }
     });
   }

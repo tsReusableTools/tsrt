@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-empty */
 import { Controller, Get } from '@tsed/common';
-import { Summary } from '@tsed/swagger';
+import { Summary, Returns } from '@tsed/schema';
 
 import { execSync } from 'child_process';
 import readPkgUp from 'read-pkg-up';
 
-import { IApplicationInfo } from '../interfaces';
+import { ApplicationInfo, IApplicationInfo } from '../dtos/ApplicationInfo';
 
 @Controller('/info')
 export class InfoController {
   @Get('/')
-  @Summary('Shows current application info')
+  @Summary('API basic information endpoint')
+  @Returns(200, ApplicationInfo).Description('API basic information')
   public async check(): Promise<IApplicationInfo> {
     return getApplicationInfo();
   }

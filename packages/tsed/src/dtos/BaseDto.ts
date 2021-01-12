@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getJsonSchema } from '@tsed/common';
+import { getJsonSchema } from '@tsed/schema';
 import { validate, validateSync, ValidatorOptions } from 'class-validator';
 
 import { insertIntoClass, parseTypes } from '@tsrt/utils';

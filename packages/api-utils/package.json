@@ -20,14 +20,12 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/logger": "^0.6.1",
     "@tsrt/types": "^0.6.1",
     "@tsrt/utils": "^0.6.1",
     "express-http-context": "1.2.4",
     "http-status": "1.4.2"
   },
   "peerDependencies": {
-    "@types/express": "4.17.9",
     "express": "^4.17.1"
   },
   "devDependencies": {
