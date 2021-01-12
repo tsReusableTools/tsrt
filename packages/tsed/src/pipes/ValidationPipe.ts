@@ -25,10 +25,11 @@ export class ValidationPipe extends BaseValidationPipe implements IPipe {
       groups: metadata.parameter.groups,
     };
 
-    const dataToValidate = plainToClass(metadata.type, this.coerceTypes(value, metadata));
+    const dataToValidate = plainToClass(metadata.type, value);
     const result = await this.validate(dataToValidate, options);
+    const inPlace = metadata?.paramType?.toLowerCase();
 
-    if (result?.length > 0) throwHttpError.badRequest(result.map(getValidationError));
+    if (result?.length > 0) throwHttpError.badRequest(result.map((item) => getValidationError(item, inPlace)));
     return this._settings.parseBodyTypesAfterValidation ? parseTypes(dataToValidate) : dataToValidate;
   }
 
