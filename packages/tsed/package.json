@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/tsed",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Common TsED based Application",
   "keywords": [
     "tsed",
@@ -22,12 +22,12 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/api-utils": "^0.6.1",
-    "@tsrt/session": "^0.6.1",
-    "@tsrt/types": "^0.6.1",
-    "@tsrt/utils": "^0.6.1",
-    "@tsrt/mparty": "^0.6.1",
-    "@tsrt/mparty-express": "^0.6.1",
+    "@tsrt/api-utils": "^0.7.0",
+    "@tsrt/mparty": "^0.7.0",
+    "@tsrt/mparty-express": "^0.7.0",
+    "@tsrt/session": "^0.7.0",
+    "@tsrt/types": "^0.7.0",
+    "@tsrt/utils": "^0.7.0",
     "cors": "2.8.5",
     "deepmerge": "4.2.2",
     "express-request-id": "1.4.1",

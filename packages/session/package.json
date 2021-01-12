@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/session",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Typescript Reusable Tools: express-session wrapper.",
   "keywords": [
     "session",
@@ -19,8 +19,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/cache": "^0.6.1",
-    "@tsrt/types": "^0.6.1",
+    "@tsrt/cache": "^0.7.0",
+    "@tsrt/types": "^0.7.0",
     "connect-redis": "5.0.0",
     "express-session": "1.17.1"
   },

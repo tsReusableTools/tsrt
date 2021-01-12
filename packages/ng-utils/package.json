@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/ng-utils",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Typescript Reusable Tools: ng-utils",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -26,10 +26,10 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/http": "^0.6.1",
-    "@tsrt/ordering": "^0.6.1",
-    "@tsrt/types": "^0.6.1",
-    "@tsrt/utils": "^0.6.1"
+    "@tsrt/http": "^0.7.0",
+    "@tsrt/ordering": "^0.7.0",
+    "@tsrt/types": "^0.7.0",
+    "@tsrt/utils": "^0.7.0"
   },
   "peerDependencies": {
     "@angular/animations": "^10.1.5",
