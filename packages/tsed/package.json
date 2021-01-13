@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/tsed",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Common TsED based Application",
   "keywords": [
     "tsed",
@@ -25,7 +25,7 @@
     "@tsrt/api-utils": "^0.7.0",
     "@tsrt/mparty": "^0.7.0",
     "@tsrt/mparty-express": "^0.7.0",
-    "@tsrt/session": "^0.7.0",
+    "@tsrt/session": "^0.7.1",
     "@tsrt/types": "^0.7.0",
     "@tsrt/utils": "^0.7.0",
     "cors": "2.8.5",

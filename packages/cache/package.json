@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/cache",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Typescript Reusable Tools: Redis cache wrapper",
   "keywords": [
     "cache",
