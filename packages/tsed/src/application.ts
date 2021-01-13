@@ -9,7 +9,7 @@ import { createLoggedSend } from '@tsrt/api-utils';
 
 import {
   IApplicationSettings, IApplicationPrivateSettings,
-  IApplicationManualSetup, Callback, IApplicationManualSetupSettings, IApplicationSession,
+  IApplicationManualSetup, Callback, IApplicationManualSetupSettings, ApplicationSession,
   ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod, IApplicationMethods,
 } from './interfaces';
@@ -117,7 +117,7 @@ export class Application {
     return this.manualSetup();
   }
 
-  protected setupSession(sessionConfig: IApplicationSession = this._settings.session): IApplicationManualSetup {
+  protected setupSession(sessionConfig: ApplicationSession = this._settings.session): IApplicationManualSetup {
     this.markMethodAsManuallyCalled(this.setupSession.name);
     if (sessionConfig) this._settings.session = sessionConfig;
     return this.manualSetup();

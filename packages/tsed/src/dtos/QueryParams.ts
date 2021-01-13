@@ -32,7 +32,7 @@ export class ReadListQueryParams extends CommonQueryParams {
   @Property(String || Number)
   @IsOptional()
   @IsString()
-  public limit?: string | number;
+  public limit?: 'none' | number;
 
   @CollectionOf(String)
   @IsOptional()

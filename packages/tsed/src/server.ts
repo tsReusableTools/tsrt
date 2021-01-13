@@ -14,7 +14,7 @@ import { capitalize } from '@tsrt/utils';
 import { session } from '@tsrt/session';
 
 import {
-  IApplicationPrivateSettings, IApplicationManualSetup, IApplicationSession,
+  IApplicationPrivateSettings, IApplicationManualSetup, ApplicationSession,
   ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod,
 } from './interfaces';
@@ -90,15 +90,13 @@ export class Server {
     return this;
   }
 
-  protected setupSession(sessionConfig: IApplicationSession = this._settings.session): Server {
+  protected setupSession(sessionConfig: ApplicationSession = this._settings.session): Server {
     if (!sessionConfig) return this;
-    this._app.raw.set('trust proxy', 1);
-    if (!sessionConfig.paths) this.use(session(sessionConfig));
-    else {
-      (Array.isArray(sessionConfig.paths) ? sessionConfig.paths : [sessionConfig.paths]).forEach((item) => {
-        this.use(item, session(sessionConfig));
-      });
-    }
+    this._app.rawApp.set('trust proxy', 1);
+    const middleware = typeof sessionConfig === 'function' ? sessionConfig : session(sessionConfig);
+    const paths = typeof sessionConfig === 'object' ? sessionConfig.paths : null;
+    if (!paths) this.use(middleware);
+    else (Array.isArray(paths) ? paths : [paths]).forEach((item) => { this.use(item, middleware); });
     return this;
   }
 

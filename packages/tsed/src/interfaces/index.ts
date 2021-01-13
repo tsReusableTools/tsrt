@@ -44,7 +44,7 @@ export interface IApplicationSettings extends Partial<Configuration> {
   middlewares?: ApplicationMiddlewareList;
 
   /** Session options. @see https://www.npmjs.com/package/express-session */
-  session?: IApplicationSession;
+  session?: ApplicationSession;
 
   /** Whether to use default controllers. They will be mounted under apiBase path(s). 2 controllers - server info and health check. */
   useDefaultControllers?: boolean;
@@ -139,7 +139,7 @@ export interface IApplicationMethods {
   setupRequestIdMiddleware(): IApplicationManualSetup;
 
   /** Sets session middleware. */
-  setupSession(sessionConfig?: IApplicationSession): IApplicationManualSetup;
+  setupSession(sessionConfig?: ApplicationSession): IApplicationManualSetup;
 
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
   setupSendResponseHandler(handler?: Constructor): IApplicationManualSetup;
@@ -177,6 +177,8 @@ export interface IApplicationLogger {
   warn?(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }
+
+export type ApplicationSession = IApplicationSession | ApplicationMiddleware;
 
 export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<ApplicationMiddleware>>;
 

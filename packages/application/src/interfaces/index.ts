@@ -135,7 +135,7 @@ export interface IApplicationSession extends ISessionSettings {
 export interface IApplicationLogger {
   debug(data: any, ...args: any[]): any;
   info(data: any, ...args: any[]): any;
-  warn(data: any, ...args: any[]): any;
+  warn?(data: any, ...args: any[]): any;
   error(data: any, ...args: any[]): any;
 }
 
