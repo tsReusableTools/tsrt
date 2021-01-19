@@ -17,6 +17,9 @@ import {
 } from './interfaces';
 import { defaultBaseRepositoryConfig } from './utils';
 
+/* eslint-disable-next-line */
+const inflection = require('inflection');
+
 export class BaseRepository<
   I extends GenericObject & O,
   R = Partial<I>,
@@ -133,7 +136,7 @@ export class BaseRepository<
   public async read(pk?: number | string, readOptions?: IReadOptions): Promise<I>;
   public async read(readOptionsOrPk?: number | string | IReadOptions, readOptions?: IReadOptions): Promise<I | IPagedData<I>> {
     const { genericPk, genericOptions } = this.getGenericOptionsAndPk(readOptionsOrPk, readOptions);
-    return genericPk ? this.readOne(genericPk, genericOptions) : this.readMany(genericOptions);
+    return !isNil(genericPk) ? this.readOne(genericPk, genericOptions) : this.readMany(genericOptions);
   }
 
   /**
@@ -162,7 +165,7 @@ export class BaseRepository<
       const result = await this.model.findOne(findQuery);
 
       if (!result && (genericOptions.silent ?? this.config.silent)) return null;
-      if (!result) throwHttpError.notFound('Item not found');
+      if (!result) throwHttpError.notFound(`${this.model.name} not found`);
 
       const value = this.mapSequelizeModelToPlainObject(result);
 
@@ -201,7 +204,7 @@ export class BaseRepository<
       const result = await this.model.findAndCountAll({ ...query, transaction });
 
       if (!result && (options.silent ?? this.config.silent)) return null;
-      if (!result) throwHttpError.notFound('Items not found');
+      if (!result) throwHttpError.notFound(`${inflection.pluralize(this.model.name)} not found`);
 
       const value = this.mapSequelizeModelToPlainObject(result.rows);
 
@@ -246,7 +249,9 @@ export class BaseRepository<
         : await this.model.findAll({ where, transaction }) as M[];
 
       if ((!updated || (Array.isArray(updated) && !updated?.length)) && (genericOptions.silent ?? this.config.silent)) return null;
-      if (!updated || (Array.isArray(updated) && !updated?.length)) throwHttpError.notFound();
+      if (!updated || (Array.isArray(updated) && !updated?.length)) {
+        throwHttpError.notFound(`${inflection.pluralize(this.model.name)} not found`);
+      }
 
       const insertOptions = { ...genericOptions, transaction };
       return !Array.isArray(updated)
@@ -341,7 +346,7 @@ export class BaseRepository<
       if (!result && (genericOptions.silent ?? this.config.silent)) return null;
       if (!result) throwHttpError.badRequest(`Cannot delete. Incorrect condition(s): ${JSON.stringify(where)}`);
 
-      return genericPk ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by condition(s).';
+      return !isNil(genericPk) ? `Successfully deleted by primaryKey: ${genericPk}` : 'Successfully deleted by condition(s).';
     });
   }
 
@@ -396,10 +401,10 @@ export class BaseRepository<
       if (!result) throwHttpError.badRequest(`Cannot restore. Incorrect condition(s): ${JSON.stringify(where)}`);
 
       const query = { ...genericOptions, transaction, limit: 'none' as const };
-      const restored = genericPk ? await this.read(genericPk, query) : await this.read(query);
+      const restored = !isNil(genericPk) ? await this.read(genericPk, query) : await this.read(query);
       return 'value' in restored ? restored.value : restored;
 
-      // return genericPk ? `Successfully restored by primaryKey: ${genericPk}` : 'Successfully restored by condition(s).';
+      // return !isNil(genericPk) ? `Successfully restored by primaryKey: ${genericPk}` : 'Successfully restored by condition(s).';
     });
   }
 
@@ -526,7 +531,7 @@ export class BaseRepository<
   protected getGenericOptionsAndPk<T extends GenericObject>(
     optionsOrPk: string | number | T, options?: T, additionalOpts: Partial<T> = { },
   ): { genericOptions: T; genericPk?: string | number | null } {
-    const genericPk = typeof optionsOrPk !== 'object' && optionsOrPk ? optionsOrPk : null;
+    const genericPk = typeof optionsOrPk !== 'object' && !isNil(optionsOrPk) ? optionsOrPk : null;
     const genericOptions = (typeof optionsOrPk === 'object' && optionsOrPk ? optionsOrPk : options) ?? { } as T;
     if (additionalOpts) Object.entries(additionalOpts).forEach(([key, value]) => { (genericOptions as GenericObject)[key] = value; });
     return { genericPk, genericOptions };
@@ -542,13 +547,15 @@ export class BaseRepository<
     const { limit, skip, sort, select, include = [], filter, getBy = this.pk, where } = cloneDeep(options);
     const query: FindAndCountOptions = { where: { } };
 
-    if (pk) query.where = { [getBy]: pk };
+    const hasPk = !isNil(pk);
+
+    if (hasPk) query.where = { [getBy]: pk };
 
     this.attributesParser(select, query);
     this.includeParser(include, query);
-    this.filterParser(pk ? { } : filter, where, query);
+    this.filterParser(hasPk ? { } : filter, where, query);
 
-    if (!pk) {
+    if (!hasPk) {
       this.orderParser(sort, null, query);
       this.offsetParser(skip, query);
       this.limitParser(limit, query);
