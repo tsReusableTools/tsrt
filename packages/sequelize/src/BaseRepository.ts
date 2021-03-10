@@ -830,20 +830,17 @@ export class BaseRepository<
   private mapSequelizeModelToPlainObject<C extends Model>(data: C | C[]): I | I[] {
     if (!data) return data as unknown as I | I[];
 
-    if (Array.isArray(data)) {
-      return data.map((item) => {
-        if (item.get && typeof item.get === 'function') {
-          return parseTypes(item.get({ plain: true })) as I;
-        }
-        return item as unknown as I;
-      });
+    function mapAndParseTypes(input: C): I {
+      const result = (typeof input === 'object' && input.get && typeof input.get === 'function' ? input.get({ plain: true }) : data) as I;
+
+      try {
+        return parseTypes(result);
+      } catch (err) {
+        return result;
+      }
     }
 
-    if (typeof data === 'object' && data.get && typeof data.get === 'function') {
-      return parseTypes(data.get({ plain: true })) as I;
-    }
-
-    return data as unknown as I;
+    return Array.isArray(data) ? data.map(mapAndParseTypes) : mapAndParseTypes(data);
   }
 
   /**
