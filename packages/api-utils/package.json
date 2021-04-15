@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/api-utils",
-  "version": "0.7.0",
+  "version": "0.7.4",
   "description": "Typescript Reusable Tools: Utilities for NodeJs/Express.",
   "keywords": [
     "express",
@@ -20,8 +20,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.7.0",
-    "@tsrt/utils": "^0.7.0",
+    "@tsrt/types": "^0.7.4",
+    "@tsrt/utils": "^0.7.4",
     "express-http-context": "1.2.4",
     "http-status": "1.4.2"
   },

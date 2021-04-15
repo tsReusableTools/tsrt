@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/store",
-  "version": "0.7.0",
+  "version": "0.7.4",
   "description": "Typescript Reusable Tools: state store",
   "keywords": [],
   "author": "Danyil Moroz",
@@ -16,7 +16,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.7.0"
+    "@tsrt/types": "^0.7.4"
   },
   "peerDependencies": {
     "rxjs": "^6.6.3"
