@@ -1,13 +1,14 @@
+import { CancelTokenSource } from 'axios';
 import { IPagedData } from '@tsrt/utils';
 
-import { ICrudApiClient, IHttpServiceCancellation, IHttpServiceRequestConfig } from '../types';
+import { ICrudApiClient, IHttpServiceRequestConfig } from '../types';
 import { HttpService } from './HttpService';
 
 /* eslint-disable-next-line */
 export abstract class CrudApiClient<I extends GenericObject = GenericObject, EntityList = IPagedData<I>> implements ICrudApiClient<I, EntityList> {
   private _item: I;
   private _hasPendingRequest = false;
-  private _requestCancellation: IHttpServiceCancellation;
+  private _requestCancellation: CancelTokenSource;
 
   protected constructor(
     protected readonly httpService: HttpService,
