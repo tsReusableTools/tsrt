@@ -1,9 +1,9 @@
-import axios, { AxiosRequestConfig, AxiosError } from 'axios';
+import axios, { AxiosRequestConfig, AxiosError, CancelTokenSource } from 'axios';
 import qs from 'qs';
 
 import { isEmpty, msg } from '@tsrt/utils';
 
-import { IHttpServiceSettings, IHttpServiceCancellation, IHttpServiceHttpClient, IHttpServiceResponse } from '../types';
+import { IHttpServiceSettings, IHttpServiceHttpClient, IHttpServiceResponse } from '../types';
 
 export class HttpService {
   private readonly _httpClient: IHttpServiceHttpClient;
@@ -12,7 +12,6 @@ export class HttpService {
   private readonly _settings: IHttpServiceSettings = {
     withCredentials: true,
     requestTimeout: 3000 * 1000,
-    shouldExtractResponse: true,
     shouldCatchErrors: true,
     debug: false,
     queryStringifyOptions: { arrayFormat: 'comma', strictNullHandling: true, encode: false },
@@ -42,7 +41,7 @@ export class HttpService {
     return this._requestProgress;
   }
 
-  public createCancelToken(): IHttpServiceCancellation {
+  public createCancelToken(): CancelTokenSource {
     return axios.CancelToken.source();
   }
 
@@ -128,7 +127,7 @@ export class HttpService {
   }
 
   protected setupHttpClientInterceptors({
-    httpClient, requestTimeout, shouldExtractResponse, shouldCatchErrors, debug, queryStringifyOptions,
+    httpClient, requestTimeout, shouldCatchErrors, debug, queryStringifyOptions,
   }: IHttpServiceSettings): void {
     httpClient.defaults.timeout = requestTimeout;
 
@@ -149,7 +148,8 @@ export class HttpService {
     httpClient.interceptors.response.use(
       (res) => {
         this.decreasePendingRequestsCounter();
-        return shouldExtractResponse ? { ...res, ...res.data } : res;
+        return res;
+        // return shouldExtractResponse ? { ...res, ...res.data } : res;
       },
       (err) => {
         const isCancel = axios.isCancel(err);
@@ -183,10 +183,10 @@ export class HttpService {
     else console.error('HttpService catched Error: ', catchedError);
   }
 
-  protected catchError(err: AxiosError, isCancel?: boolean): IHttpError {
+  protected catchError(err: AxiosError, isCancel?: boolean): IHttpError & { errors?: IValidationError[] } {
     const status = isCancel ? 499 : err?.response?.status || 500;
     const message = isCancel ? 'Request was cancelled from client' : err?.response?.data?.data || 'Some error occured during request';
-    return msg(status, message);
+    return err?.response?.data && typeof err?.response?.data === 'object' ? err?.response?.data : msg(status, message);
   }
 }
 

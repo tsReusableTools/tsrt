@@ -2,7 +2,6 @@
 import { Store, useDecorators } from '@tsed/core';
 import { ParamMetadata, ParamTypes, EndpointMetadata, Use } from '@tsed/common';
 import { JsonEntityFn, JsonParameter, JsonEntityStore, JsonSchema } from '@tsed/schema';
-import { AnyDecorator } from '@tsed/core/lib/interfaces/AnyDecorator';
 
 import { MpartyMiddleware, IMpartyMiddlewareOptions } from '@tsrt/mparty-express';
 

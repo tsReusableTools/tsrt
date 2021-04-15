@@ -7,7 +7,6 @@ import helmet from 'helmet';
 import { PlatformApplication } from '@tsed/common';
 import { Configuration, Inject } from '@tsed/di';
 import '@tsed/platform-express';
-import '@tsed/ajv';
 import '@tsed/swagger';
 
 import { capitalize } from '@tsrt/utils';

@@ -7,22 +7,22 @@ export class ApplicationInfo extends BaseDto<IApplicationInfo> implements IAppli
   @Property()
   @Required()
   @IsDateString()
-  dateTime: string;
+  public dateTime: string;
 
   @Property()
   @IsOptional()
   @IsString()
-  commit?: string;
+  public commit?: string;
 
   @Property()
   @Required()
   @IsString()
-  version: string;
+  public version: string;
 
   @Property()
   @Required()
   @IsString()
-  env: string;
+  public env: string;
 }
 
 export interface IApplicationInfo {

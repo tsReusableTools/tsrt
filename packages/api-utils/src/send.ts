@@ -22,6 +22,10 @@ export function createApiResponse(res: Res, config: number | Partial<IHttpError>
   if (isEmpty(query)) delete response.query;
   if (isNil(referer)) delete response.referer;
   if (isNil(reqId)) delete response.reqId;
+  if (status >= 400 && Array.isArray(data)) {
+    delete response.data;
+    response.errors = data;
+  }
 
   return response;
 }

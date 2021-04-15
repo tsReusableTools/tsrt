@@ -26,6 +26,13 @@ declare global {
     filter?: GenericObject;
   }
 
+  export interface IValidationError {
+    property: string;
+    value: any;
+    constraints: Record<string, string>;
+    in?: string;
+  }
+
   /** Interface for HttpError like object */
   export interface IHttpError<T = any> {
     message: string;
@@ -47,7 +54,8 @@ declare global {
     commit?: string;
     params?: GenericObject;
     query?: GenericObject;
-    data: T;
+    data?: T;
+    errors?: IValidationError[];
   }
 }
 

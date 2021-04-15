@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AxiosInstance, CancelToken, Canceler, AxiosStatic, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosInstance, AxiosStatic, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { IStringifyOptions } from 'qs';
 
 import '@tsrt/types';
@@ -8,15 +8,9 @@ export interface IHttpServiceSettings {
   httpClient?: AxiosStatic | AxiosInstance;
   withCredentials?: boolean;
   requestTimeout?: number;
-  shouldExtractResponse?: boolean;
   shouldCatchErrors?: boolean;
   debug?: boolean;
   queryStringifyOptions?: IStringifyOptions;
-}
-
-export interface IHttpServiceCancellation {
-  token: CancelToken;
-  cancel: Canceler;
 }
 
 export type IHttpServiceRequestConfig = AxiosRequestConfig;
