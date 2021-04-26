@@ -1,7 +1,7 @@
-import { CancelTokenSource } from 'axios';
+import { CancelTokenSource, AxiosRequestConfig } from 'axios';
 import { IPagedData } from '@tsrt/utils';
 
-import { ICrudApiClient, IHttpServiceRequestConfig } from '../types';
+import { ICrudApiClient } from '../types';
 import { HttpService } from './HttpService';
 
 /* eslint-disable-next-line */
@@ -223,10 +223,10 @@ export abstract class CrudApiClient<I extends GenericObject = GenericObject, Ent
    */
   private createRequestConfig(
     customConfig: GenericObject = { }, baseUrl?: string, id?: string | number,
-  ): IHttpServiceRequestConfig {
+  ): AxiosRequestConfig {
     this.beforeRequest(customConfig.params ? customConfig.params.noCancelation : null);
 
-    const config: IHttpServiceRequestConfig = { ...customConfig };
+    const config: AxiosRequestConfig = { ...customConfig };
 
     config.cancelToken = this._requestCancellation.token;
 
