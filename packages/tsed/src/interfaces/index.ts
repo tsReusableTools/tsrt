@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Response, RequestHandler, ErrorRequestHandler } from 'express';
-import { ParamTypes } from '@tsed/common';
+import { ParamTypes, PlatformMiddlewareSettings } from '@tsed/common';
 import { Configuration } from '@tsed/di';
 import { CorsOptions } from 'cors';
 import { IParseOptions } from 'qs';
@@ -17,10 +17,11 @@ export interface IApplicationSettings extends Partial<Configuration> {
   /**
    *  Debug mode.
    *
-   *  @enum - TsED: full debug + TsED full debug.
+   *  @enum - TsED: TsED only debug.
    *  @enum - Application: Only debug for server start (hooks/middlewares iitialization).
+   *  @enum - Full: full debug + TsED full debug.
    */
-  debugMode?: 'TsED' | 'Application';
+  debugMode?: 'TsED' | 'Application' | 'Full';
 
   /** Port to listen. */
   port?: number | string;
@@ -39,9 +40,6 @@ export interface IApplicationSettings extends Partial<Configuration> {
 
   /** Helmep options @see https://www.npmjs.com/package/helmet */
   helmet?: IHelmetConfiguration;
-
-  /** Register default middlewares here. */
-  middlewares?: ApplicationMiddlewareList;
 
   /** Session options. @see https://www.npmjs.com/package/express-session */
   session?: ApplicationSession;
@@ -144,11 +142,8 @@ export interface IApplicationMethods {
   /** Sets send response pathcer middleware (pathces `send` function before sending response). */
   setupSendResponseHandler(handler?: Constructor): IApplicationManualSetup;
 
-  /** Sets statics. */
-  // setupStatics(statics?: ApplicationStatics): IApplicationManualSetup;
-
   /** Sets custom middlewares provide via `options` or via `addMiddlewares` method. */
-  setupMiddlewares(middlewares?: ApplicationMiddlewareList): IApplicationManualSetup;
+  setupMiddlewares(middlewares?: PlatformMiddlewareSettings): IApplicationManualSetup;
 
   /** Sets notFoundHandler. */
   setupNotFoundHandler(handler?: RequestHandler): IApplicationManualSetup;
@@ -180,14 +175,9 @@ export interface IApplicationLogger {
 
 export type ApplicationSession = IApplicationSession | ApplicationMiddleware;
 
-export type ApplicationMiddlewareList = Record<string, TypeOrArrayOfTypes<ApplicationMiddleware>>;
-
-// export type ApplicationMiddleware = RequestHandler | { use(req: Req, res: Res, next: Next): Response | void };
 export type ApplicationMiddleware = RequestHandler | Constructor;
 
 export type ApplicationErrorMiddleware = ErrorRequestHandler | Constructor;
-
-export type ApplicationStatics = string[] | Record<string, string>;
 
 export type ApplicationWebApps = string | Record<string, string>;
 

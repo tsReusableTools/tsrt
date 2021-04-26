@@ -27,7 +27,7 @@
     "@tsrt/types": "^0.7.4"
   },
   "peerDependencies": {
-    "@tsrt/mparty": "^0.6.0",
+    "@tsrt/mparty": "^0.7.4",
     "aws-sdk": "^2.799.0"
   },
   "devDependencies": {

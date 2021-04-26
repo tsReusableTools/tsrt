@@ -14,7 +14,7 @@ import { session } from '@tsrt/session';
 
 import {
   IApplicationPrivateSettings, IApplicationManualSetup, ApplicationSession,
-  ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
+  ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod,
 } from './interfaces';
 import { ParseCookiesHandler, RequestIdHandler } from './middlewares';
@@ -61,7 +61,7 @@ export class Server {
   }
 
   protected use(...handlers: any[]): Server {
-    if (this._settings.debug && this._settings.log) {
+    if (this._settings.debug && this._settings.debugMode !== 'TsED' && this._settings.log) {
       const route = handlers && typeof handlers[0] === 'string' ? handlers[0] : '/';
       this._settings.log.debug(handlers, `Setting middleware for \`${route}\``);
     }
@@ -70,7 +70,7 @@ export class Server {
   }
 
   protected setupQueryParser(cb?: (str: string) => any): Server {
-    this.set('query parser', cb ?? ((str: string) => parse(str, this._settings.qs)));
+    this.set('query parser', cb ?? ((str: string) => parse(decodeURIComponent(str), this._settings.qs)));
     return this;
   }
 
@@ -101,14 +101,6 @@ export class Server {
 
   protected setupSendResponseHandler(handler: Constructor = this._settings.sendResponseHandler): Server {
     if (!handler) return this;
-    return this;
-  }
-
-  protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): Server {
-    if (!middlewares) return this;
-    Object.entries(middlewares).forEach(([key, value]) => (Array.isArray(value)
-      ? value.forEach((item) => this.use(key, item))
-      : this.use(key, value)));
     return this;
   }
 
@@ -159,7 +151,9 @@ export class Server {
     methods.forEach((item) => {
       const context = this as GenericObject;
       if (!Array.isArray(item) && context[item] && typeof context[item] === 'function') {
-        if (this._settings.debug && this._settings.log) this._settings.log.debug(`${capitalize(item)}`);
+        if (this._settings.debug && this._settings.debugMode !== 'TsED' && this._settings.log) {
+          this._settings.log.debug(`${capitalize(item)}`);
+        }
         context[item]();
       }
       if (Array.isArray(item)) {

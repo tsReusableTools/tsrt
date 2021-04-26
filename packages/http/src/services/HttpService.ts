@@ -1,12 +1,12 @@
-import axios, { AxiosRequestConfig, AxiosError, CancelTokenSource } from 'axios';
+import axios, { AxiosError, CancelTokenSource, AxiosInstance } from 'axios';
 import qs from 'qs';
 
 import { isEmpty, msg } from '@tsrt/utils';
 
-import { IHttpServiceSettings, IHttpServiceHttpClient, IHttpServiceResponse } from '../types';
+import { IHttpServiceSettings } from '../types';
 
 export class HttpService {
-  private readonly _httpClient: IHttpServiceHttpClient;
+  private readonly _httpClient: AxiosInstance;
   private _pendingRequests = 0;
   private _isOffline = false;
   private readonly _settings: IHttpServiceSettings = {
@@ -22,10 +22,9 @@ export class HttpService {
     this._httpClient = settings.httpClient || axios.create({ });
     this._settings = { ...this._settings, ...settings, httpClient: this._httpClient };
     this.setupHttpClientInterceptors(this._settings);
-    this.patchHttpClientRequestMethod(this._settings);
   }
 
-  public get client(): IHttpServiceHttpClient {
+  public get client(): AxiosInstance {
     return this._httpClient;
   }
 
@@ -47,19 +46,6 @@ export class HttpService {
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
   /* eslint-disable no-param-reassign */
-  protected patchHttpClientRequestMethod({ httpClient, withCredentials = true }: IHttpServiceSettings): void {
-    const { request } = httpClient;
-
-    const patchedRequest = async <T = any, R = IHttpServiceResponse<T>>(config: AxiosRequestConfig): Promise<R> => {
-      const newConfig: AxiosRequestConfig = { ...config, withCredentials };
-      if (newConfig.data && !newConfig.headers['Content-Type']) newConfig.headers['Content-Type'] = 'application/json';
-      newConfig.data = this.convertDataIntoFormData(config.data);
-      return request(newConfig);
-    };
-
-    httpClient.request = patchedRequest;
-  }
-
   /**
    *  Converts request body into FormData if any file detected.
    *
@@ -127,7 +113,7 @@ export class HttpService {
   }
 
   protected setupHttpClientInterceptors({
-    httpClient, requestTimeout, shouldCatchErrors, debug, queryStringifyOptions,
+    httpClient, requestTimeout, shouldCatchErrors, debug, queryStringifyOptions, withCredentials,
   }: IHttpServiceSettings): void {
     httpClient.defaults.timeout = requestTimeout;
 
@@ -140,7 +126,7 @@ export class HttpService {
     httpClient.interceptors.request.use(
       (config) => {
         this.increasePendingRequestsCounter();
-        return config;
+        return { ...config, withCredentials, data: this.convertDataIntoFormData(config.data) };
       },
       (err) => Promise.reject(err),
     );

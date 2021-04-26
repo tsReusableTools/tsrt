@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PlatformExpress } from '@tsed/platform-express';
-import { Configuration, EndpointDirectoriesSettings } from '@tsed/common';
+import { Configuration, EndpointDirectoriesSettings, PlatformMiddlewareSettings } from '@tsed/common';
 import { SwaggerSettings } from '@tsed/swagger';
 import merge from 'deepmerge';
 import isPlainObject from 'is-plain-obj';
@@ -10,7 +10,7 @@ import { createLoggedSend } from '@tsrt/api-utils';
 import {
   IApplicationSettings, IApplicationPrivateSettings,
   IApplicationManualSetup, Callback, IApplicationManualSetupSettings, ApplicationSession,
-  ApplicationMiddlewareList, ApplicationWebApps, ApplicationMiddleware,
+  ApplicationWebApps, ApplicationMiddleware,
   ApplicationErrorMiddleware, ApplicationManuallyCalledMethod, IApplicationMethods,
 } from './interfaces';
 import { HealthController } from './controllers/HealthController';
@@ -132,7 +132,7 @@ export class Application {
     return this.manualSetup();
   }
 
-  protected setupMiddlewares(middlewares: ApplicationMiddlewareList = this._settings.middlewares): IApplicationManualSetup {
+  protected setupMiddlewares(middlewares: PlatformMiddlewareSettings = this._settings.middlewares): IApplicationManualSetup {
     this.markMethodAsManuallyCalled(this.setupMiddlewares.name);
     if (middlewares) this._settings.middlewares = middlewares;
     return this.manualSetup();

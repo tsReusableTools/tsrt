@@ -69,6 +69,6 @@ export class Store<T extends GenericObject = IState> {
   }
 
   private cloneDeep<C>(value: C): C {
-    return JSON.parse(JSON.stringify(value));
+    return value ? JSON.parse(JSON.stringify(value)) : value;
   }
 }
