@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty-express",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Mparty Express Middleware for usage handling file uploads to FileSystem, AWS S3 and whatever",
   "keywords": [
     "multipart/form-data",

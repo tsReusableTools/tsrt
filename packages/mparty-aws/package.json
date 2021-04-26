@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty-aws",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Mparty AWS S3 Adapter - upload (stream) multipart/form-data directly to AWS S3",
   "keywords": [
     "multipart/form-data",

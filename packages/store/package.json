@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/store",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Typescript Reusable Tools: state store",
   "keywords": [],
   "author": "Danyil Moroz",

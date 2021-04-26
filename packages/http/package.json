@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/http",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Typescript Reusable Tools: http modules",
   "keywords": [],
   "author": "Danyil Moroz",
