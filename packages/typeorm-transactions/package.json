@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/typeorm-transactions",
-  "version": "0.7.4",
+  "version": "0.7.6",
   "description": "TypeORM UnitOfWork and transactions support",
   "keywords": [
     "typeorm",
@@ -22,8 +22,6 @@
     "node": ">=12.0.0",
     "npm": ">=6.0.0"
   },
-  "dependencies": {
-  },
   "peerDependencies": {
     "typeorm": "^0.*"
   },
@@ -43,10 +41,10 @@
     "dotenv": "^8.2.0",
     "mocha": "^8.2.1",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.2.32",
     "sqlite3": "^4.0.0",
     "ts-node": "^9.1.0",
     "tslib": "^2.0.3",
+    "typeorm": "^0.2.32",
     "typescript": "^4.0.2"
   },
   "publishConfig": {
