@@ -1,0 +1,63 @@
+{
+  "name": "@tsrt/typeorm-transactions",
+  "version": "0.7.4",
+  "description": "TypeORM UnitOfWork and transactions support",
+  "keywords": [
+    "typeorm",
+    "typeorm-transactions",
+    "typeorm-unit-of-work",
+    "unit-of-work",
+    "transactions",
+    "node-transactions"
+  ],
+  "author": "Danyil Moroz",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "rm -rf dist && tsc"
+  },
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "typeorm": "^0.*"
+  },
+  "optionalDependencies": {
+    "cls-hooked": "^4.*"
+  },
+  "devDependencies": {
+    "@types/bluebird": "^3.5.32",
+    "@types/chai": "^4.2.14",
+    "@types/chai-as-promised": "^7.1.3",
+    "@types/lodash.clonedeep": "4.5.6",
+    "@types/mocha": "^8.0.4",
+    "@types/pluralize": "0.0.29",
+    "@types/validator": "^13.1.0",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "dotenv": "^8.2.0",
+    "mocha": "^8.2.1",
+    "reflect-metadata": "^0.1.13",
+    "typeorm": "^0.2.32",
+    "sqlite3": "^4.0.0",
+    "ts-node": "^9.1.0",
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsReusableTools/tsrt"
+  },
+  "bugs": {
+    "url": "https://github.com/tsReusableTools/tsrt/issues/new"
+  },
+  "homepage": "https://github.com/tsReusableTools/tsrt/tree/master/packages/typeorm-unit-of-work"
+}
