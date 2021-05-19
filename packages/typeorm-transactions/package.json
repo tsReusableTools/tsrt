@@ -57,5 +57,5 @@
   "bugs": {
     "url": "https://github.com/tsReusableTools/tsrt/issues/new"
   },
-  "homepage": "https://github.com/tsReusableTools/tsrt/tree/master/packages/typeorm-unit-of-work"
+  "homepage": "https://github.com/tsReusableTools/tsrt/tree/master/packages/typeorm-transactions"
 }

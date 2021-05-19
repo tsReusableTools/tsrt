@@ -56,7 +56,12 @@ function createRepositories<C extends Repositories>(
   return result;
 }
 
-function getConnection(connection: Connection, connectionName: string): Connection {
+function getConnection(
+  connectionFactory: Connection | AnyFunction<Connection>,
+  connectionNameFactory: string | AnyFunction<string>,
+): Connection {
+  const connection = typeof connectionFactory === 'function' ? connectionFactory() : connectionFactory;
+  const connectionName = typeof connectionNameFactory === 'function' ? connectionNameFactory() : connectionNameFactory;
   const result = connection ?? typeOrmGetConnection(connectionName);
   if (!result.isConnected) throw Error('Please, initialize connection before creating `UnitOfWork` instance');
   return result;
@@ -105,7 +110,7 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
       this._transactionId = `${this._connection.name}__${id}`;
       this._parentTransaction = getTransactionFromNs(this._transactionId);
       this._validateParentTransaction();
-      this._hasParentTransaction = !!manager || !!this._parentTransaction;
+      this._hasParentTransaction = !!manager?.queryRunner || !!this._parentTransaction;
       this._shouldUseNs = id !== false;
       this._queryRunner = manager?.queryRunner ?? this._parentTransaction?.queryRunner ?? this._connection.createQueryRunner();
     }
@@ -130,10 +135,6 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
 
   public get id(): string | number | boolean {
     return this._options.id;
-  }
-
-  public get transactionId(): string {
-    return this._transactionId;
   }
 
   public get queryRunner(): QueryRunner {
@@ -209,7 +210,7 @@ export class UnitOfWork<T extends Repositories = Repositories> implements IUnitO
   }
 }
 
-export class TransactionManager<T extends Repositories> {
+export class TransactionManager<T extends Repositories = Repositories> {
   protected _repositories: RepositoriesInstances<T>;
   protected _connection: Connection;
 
@@ -246,18 +247,18 @@ export class TransactionManager<T extends Repositories> {
     return new Transaction(this._getDefaults(options));
   }
 
-  public get repositories(): RepositoriesInstances<T> {
-    if (!this._repositories) {
-      const { repositories, repositoryConstructorParams } = this._options;
-      this._repositories = createRepositories(repositories, this._connection.manager, repositoryConstructorParams);
-    }
-    return this._repositories;
-  }
-
   public get connection(): Connection {
     const { manager, connection, connectionName } = this._options;
     if (!this._connection) this._connection = manager?.connection ?? getConnection(connection, connectionName);
     return this._connection;
+  }
+
+  public get repositories(): RepositoriesInstances<T> {
+    if (!this._repositories) {
+      const { repositories, repositoryConstructorParams } = this._options;
+      this._repositories = createRepositories(repositories, this.connection.manager, repositoryConstructorParams);
+    }
+    return this._repositories;
   }
 
   protected _getDefaults<O extends TransactionExecutorOptions>(options?: O): O {
@@ -287,7 +288,7 @@ export class TransactionManager<T extends Repositories> {
 }
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export type AnyFunction = (...args: any) => any;
+export type AnyFunction<T = any> = (...args: any) => T;
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export type Repository<T = any> = new (manager: EntityManager, ...args: any[]) => T;
 export type Repositories = Record<string, Repository>;
@@ -303,7 +304,6 @@ export interface ITransaction<T extends Repositories> {
   manager: EntityManager;
   repositories: RepositoriesInstances<T>;
   id?: string | number | boolean;
-  transactionId?: string;
   queryRunner: QueryRunner;
   begin(): Promise<void>;
   commit(): Promise<void>;
@@ -325,8 +325,8 @@ export interface IUnitOfWork<T extends Repositories = Repositories> {
 }
 
 export interface IUnitOfWorkOptions<T extends Repositories = Repositories> {
-  connection?: Connection;
-  connectionName?: string;
+  connection?: Connection | AnyFunction<Connection>;
+  connectionName?: string | AnyFunction<string>;
   manager?: EntityManager;
   repositories?: T;
   repositoryConstructorParams?: RepositoryConstructorParams;
@@ -343,3 +343,7 @@ export type UnitOfWorkExecutorPayload<T extends Repositories = Repositories> = {
 
 export type UnitOfWorkExecutorOptions<T extends Repositories = Repositories> =
   Omit<IUnitOfWorkOptions<T>, 'connection' | 'connectionName'>;
+
+export type ITransactionable<T extends Repositories = Repositories> = {
+  transaction?: ITransaction<T>;
+}
