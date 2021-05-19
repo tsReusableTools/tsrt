@@ -344,6 +344,6 @@ export type UnitOfWorkExecutorPayload<T extends Repositories = Repositories> = {
 export type UnitOfWorkExecutorOptions<T extends Repositories = Repositories> =
   Omit<IUnitOfWorkOptions<T>, 'connection' | 'connectionName'>;
 
-export type ITransactionable<T extends Repositories = Repositories> = {
-  transaction?: ITransaction<T>;
+export type Transactionable<T extends Repositories = Repositories> = {
+  transaction?: Transaction<T>;
 }
