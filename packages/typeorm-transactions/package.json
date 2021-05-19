@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/typeorm-transactions",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "TypeORM UnitOfWork and transactions support",
   "keywords": [
     "typeorm",

@@ -28,14 +28,14 @@ export async function execInTransactionsNamespace<R extends AnyFunction>(cb: R):
   return createTransactionsNamespace().runPromise(cb);
 }
 
-function setTransactionIntoNs<T extends Transaction>(
+function setTransactionIntoNs<T extends ITransaction>(
   key: string | number, transaction: T,
 ): T {
   const ns = getTransactionsNamespace();
   if (ns && ns.active) return ns.set(`${TRANSACTION_KEY}_${key}`, transaction);
 }
 
-function getTransactionFromNs<T extends Repositories>(key: string | number): Transaction<T> {
+function getTransactionFromNs<T extends Repositories>(key: string | number): ITransaction<T> {
   const ns = getTransactionsNamespace();
   if (ns && ns.active) return ns.get(`${TRANSACTION_KEY}_${key}`);
 }
@@ -91,28 +91,27 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   protected readonly _shouldUseNs: boolean;
   protected readonly _hasParentTransaction: boolean;
   protected readonly _transactionId?: string;
-  protected readonly _parentTransaction?: Transaction<T>;
+  protected readonly _parentTransaction?: ITransaction<T>;
 
   constructor(protected readonly _options: ITransactionOptions<T>) {
     this._validateConnectionOptios(_options);
 
-    const { connection, connectionName, manager, transaction, id = DEFAULT_TRANSACTION_ID } = _options;
+    const { connection, connectionName, manager, transaction } = _options;
 
     if (transaction) {
+      this._connection = transaction.manager.connection;
+      this._transactionId = `${this._connection.name}__${transaction.id}`;
       this._parentTransaction = transaction;
       this._hasParentTransaction = true;
-      this._shouldUseNs = transaction._shouldUseNs;
-      this._connection = transaction._connection;
-      this._transactionId = transaction._transactionId;
-      this._queryRunner = transaction._queryRunner;
+      this._shouldUseNs = transaction.id !== false;
+      this._queryRunner = transaction.manager.queryRunner;
     } else {
       this._connection = manager?.connection ?? getConnection(connection, connectionName);
-      this._transactionId = `${this._connection.name}__${id}`;
+      this._transactionId = `${this._connection.name}__${this.id}`;
       this._parentTransaction = getTransactionFromNs(this._transactionId);
-      this._validateParentTransaction();
       this._hasParentTransaction = !!manager?.queryRunner || !!this._parentTransaction;
-      this._shouldUseNs = id !== false;
-      this._queryRunner = manager?.queryRunner ?? this._parentTransaction?.queryRunner ?? this._connection.createQueryRunner();
+      this._shouldUseNs = this.id !== false;
+      this._queryRunner = manager?.queryRunner ?? this._parentTransaction?.manager.queryRunner ?? this._connection.createQueryRunner();
     }
 
     if (this._shouldUseNs) {
@@ -134,11 +133,7 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   }
 
   public get id(): string | number | boolean {
-    return this._options.id;
-  }
-
-  public get queryRunner(): QueryRunner {
-    return this._queryRunner;
+    return this._options.id ?? DEFAULT_TRANSACTION_ID;
   }
 
   public async begin(): Promise<void> {
@@ -178,12 +173,6 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
     if (!hasOnlyOneOfProvidedProperties(options, ['manager', 'connection', 'connectionName'])) return;
     throw new Error('Please, provide only one option of: `manager`, `connection`, `connectionName`.');
   }
-
-  protected _validateParentTransaction(): void {
-    if (this._parentTransaction && this._connection.name !== this._parentTransaction.manager.connection.name) {
-      throw new Error('Parent transaction, provided either via `transaction` or `id` options, uses another connection.');
-    }
-  }
 }
 
 export class UnitOfWork<T extends Repositories = Repositories> implements IUnitOfWork<T> {
@@ -210,7 +199,7 @@ export class UnitOfWork<T extends Repositories = Repositories> implements IUnitO
   }
 }
 
-export class TransactionManager<T extends Repositories = Repositories> {
+export class TransactionManager<T extends Repositories = Repositories> implements ITransactionManager<T> {
   protected _repositories: RepositoriesInstances<T>;
   protected _connection: Connection;
 
@@ -224,17 +213,17 @@ export class TransactionManager<T extends Repositories = Repositories> {
     return new UnitOfWork(this._getDefaults(options));
   }
 
-  public async transaction<C extends Repositories = T>(options?: TransactionExecutorOptions<C>): Promise<Transaction<C>>;
+  public async transaction<C extends Repositories = T>(options?: TransactionExecutorOptions<C>): Promise<ITransaction<C>>;
   public async transaction<C extends Repositories = T, R = unknown>(
     cb: TransactionExecutor<C, R>, options?: TransactionExecutorOptions<C>,
   ): Promise<R>;
   public async transaction<C extends Repositories = T, R = unknown>(
     cbOrOptions: TransactionExecutorOptions<C> | TransactionExecutor<C, R>, options?: TransactionExecutorOptions<C>,
-  ): Promise<Transaction<C> | R> {
+  ): Promise<ITransaction<C> | R> {
     const opts = this._getDefaults(typeof cbOrOptions === 'function' ? options : cbOrOptions);
     const transaction = this.createTransaction(opts);
 
-    if (!transaction.queryRunner.isTransactionActive) await transaction.begin();
+    if (!transaction.manager.queryRunner.isTransactionActive) await transaction.begin();
 
     return typeof cbOrOptions === 'function'
       ? cbOrOptions(transaction)
@@ -243,7 +232,7 @@ export class TransactionManager<T extends Repositories = Repositories> {
       : transaction;
   }
 
-  public createTransaction<C extends Repositories = T>(options: TransactionExecutorOptions<C> = { }): Transaction<C> {
+  public createTransaction<C extends Repositories = T>(options: TransactionExecutorOptions<C> = { }): ITransaction<C> {
     return new Transaction(this._getDefaults(options));
   }
 
@@ -292,19 +281,28 @@ export type AnyFunction<T = any> = (...args: any) => T;
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export type Repository<T = any> = new (manager: EntityManager, ...args: any[]) => T;
 export type Repositories = Record<string, Repository>;
-export type RepositoriesInstances<T extends Repositories> = { [K in keyof T]: InstanceType<T[K]> };
+export type RepositoriesInstances<T extends Repositories = Repositories> = { [K in keyof T]: InstanceType<T[K]> };
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export type RepositoryConstructorParams = (() => any[]) | any[];
+
+export interface ITransactionManager<T extends Repositories = Repositories> {
+  connection: Connection;
+  repositories: RepositoriesInstances<T>;
+  unitOfWork<R>(cb: UnitOfWorkExecutor<T, R>, options?: UnitOfWorkExecutorOptions<T>): Promise<R>;
+  createUnitOfWork<C extends Repositories = T>(options?: UnitOfWorkExecutorOptions<C>): UnitOfWork<C>;
+  transaction<C extends Repositories = T>(options?: TransactionExecutorOptions<C>): Promise<ITransaction<C>>;
+  transaction<C extends Repositories = T, R = unknown>(cb: TransactionExecutor<C, R>, options?: TransactionExecutorOptions<C>): Promise<R>;
+  createTransaction<C extends Repositories = T>(options?: TransactionExecutorOptions<C>): ITransaction<C>;
+}
 
 export interface ITransactionManagerOptions<T extends Repositories = Repositories> extends ITransactionOptions<T> {
   defaultTransactionId?: string | number | boolean;
 }
 
-export interface ITransaction<T extends Repositories> {
+export interface ITransaction<T extends Repositories = Repositories> {
   manager: EntityManager;
   repositories: RepositoriesInstances<T>;
   id?: string | number | boolean;
-  queryRunner: QueryRunner;
   begin(): Promise<void>;
   commit(): Promise<void>;
   rollback(error?: string | Error): Promise<void>;
@@ -312,10 +310,10 @@ export interface ITransaction<T extends Repositories> {
 
 export interface ITransactionOptions<T extends Repositories = Repositories> extends IUnitOfWorkOptions<T> {
   id?: string | number | false;
-  transaction?: Transaction<T>;
+  transaction?: ITransaction<T>;
 }
 
-export type TransactionExecutor<T extends Repositories = Repositories, R = unknown> = (transaction: Transaction<T>) => Promise<R>;
+export type TransactionExecutor<T extends Repositories = Repositories, R = unknown> = (transaction: ITransaction<T>) => Promise<R>;
 
 export type TransactionExecutorOptions<T extends Repositories = Repositories> =
   Omit<ITransactionOptions<T>, 'connection' | 'connectionName'>;
@@ -345,5 +343,5 @@ export type UnitOfWorkExecutorOptions<T extends Repositories = Repositories> =
   Omit<IUnitOfWorkOptions<T>, 'connection' | 'connectionName'>;
 
 export type Transactionable<T extends Repositories = Repositories> = {
-  transaction?: Transaction<T>;
+  transaction?: ITransaction<T>;
 }
