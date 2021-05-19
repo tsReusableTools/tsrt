@@ -51,8 +51,24 @@ function createRepositories<C extends Repositories>(
   let params = typeof constructorParams === 'function' ? constructorParams() : constructorParams;
   if (!Array.isArray(params)) params = [params];
 
+  // Object.entries(repositories).forEach(([key, Repository]) => { result[key as keyof C] = new Repository(manager, ...params); });
+  // const instantiated: RepositoriesInstances<C> = { } as RepositoriesInstances<C>;
+  // Object.defineProperty(result, key, { get: () => {
+  //   if (!instantiated[key]) instantiated[key as keyof C] = new Repository(manager, ...params);
+  //   return instantiated[key];
+  // } });
   const result: RepositoriesInstances<C> = { } as RepositoriesInstances<C>;
-  Object.entries(repositories).forEach(([key, Repository]) => { result[key as keyof C] = new Repository(manager, ...params); });
+  Object.entries(repositories).forEach(([key, Repository]) => {
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => {
+        const value = new Repository(manager, ...params);
+        Object.defineProperty(result, key, { enumerable: true, configurable: false, value });
+        return value;
+      },
+    });
+  });
   return result;
 }
 
@@ -188,6 +204,7 @@ export class UnitOfWork<T extends Repositories = Repositories> implements IUnitO
 
     const execute = async (mgr: EntityManager): Promise<R> => cb({ manager: mgr, get repositories() { return getRepositories(mgr); } });
     return manager ? execute(manager) : this._connection.transaction(isolationLevel, execute);
+    // return manager ? manager.transaction(isolationLevel, execute) : this._connection.transaction(isolationLevel, execute);
   }
 
   protected _getRepositories(manager: EntityManager): RepositoriesInstances<T> {
