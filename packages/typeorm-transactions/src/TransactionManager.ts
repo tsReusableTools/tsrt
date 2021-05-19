@@ -94,7 +94,7 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   protected readonly _parentTransaction?: ITransaction<T>;
 
   constructor(protected readonly _options: ITransactionOptions<T>) {
-    this._validateConnectionOptios(_options);
+    // this._validateConnectionOptios(_options);
 
     const { connection, connectionName, manager, transaction } = _options;
 
