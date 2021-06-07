@@ -4,10 +4,12 @@ import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 import { EventEmitter } from 'events';
 import { getNamespace, createNamespace, Namespace } from 'cls-hooked';
 
+import { getManagerFromNs, setManagerIntoNs } from './utils';
+
 const NAMESPACE = '__typeorm_transactions_namespace__';
 const TRANSACTION_KEY = '__typeorm_transaction_key__';
-// const DEFAULT_TRANSACTION_ID = 'default';
-const DEFAULT_TRANSACTION_ID = false;
+const DEFAULT_TRANSACTION_ID = 'default';
+// const DEFAULT_TRANSACTION_ID = false;
 
 export function createTransactionsNamespace(): Namespace {
   return getNamespace(NAMESPACE) ?? createNamespace(NAMESPACE);
@@ -106,33 +108,38 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   protected readonly _queryRunner: QueryRunner;
   protected readonly _shouldUseNs: boolean;
   protected readonly _hasParentTransaction: boolean;
-  protected readonly _transactionId?: string;
-  protected readonly _parentTransaction?: ITransaction<T>;
 
   constructor(protected readonly _options: ITransactionOptions<T>) {
     // this._validateConnectionOptios(_options);
 
-    const { connection, connectionName, manager, transaction } = _options;
+    const { connection, connectionName, manager, transaction, propagation } = _options;
 
     if (transaction) {
       this._connection = transaction.manager.connection;
-      this._transactionId = `${this._connection.name}__${transaction.id}`;
-      this._parentTransaction = transaction;
       this._hasParentTransaction = true;
-      this._shouldUseNs = transaction.id !== false;
       this._queryRunner = transaction.manager.queryRunner;
+    } else if (manager) {
+      this._connection = manager.connection;
+      this._hasParentTransaction = true;
+      this._queryRunner = manager.queryRunner;
     } else {
-      this._connection = manager?.connection ?? getConnection(connection, connectionName);
-      this._transactionId = `${this._connection.name}__${this.id}`;
-      this._parentTransaction = getTransactionFromNs(this._transactionId);
-      this._hasParentTransaction = !!manager?.queryRunner || !!this._parentTransaction;
-      this._shouldUseNs = this.id !== false;
-      this._queryRunner = manager?.queryRunner ?? this._parentTransaction?.manager.queryRunner ?? this._connection.createQueryRunner();
+      this._connection = getConnection(connection, connectionName);
+
+      if (!propagation) {
+        this._shouldUseNs = true;
+        this._queryRunner = getManagerFromNs(this._connection.name)?.queryRunner;
+        this._hasParentTransaction = !!this._queryRunner;
+      }
+
+      if (!this._queryRunner) {
+        this._queryRunner = this._connection.createQueryRunner();
+        this._hasParentTransaction = false;
+      }
     }
 
     if (this._shouldUseNs) {
       this._validateNsAvailability();
-      setTransactionIntoNs(this._transactionId, this);
+      if (!this._hasParentTransaction) setManagerIntoNs(this._connection.name, this.manager);
     }
   }
 
@@ -148,10 +155,6 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
     return this._queryRunner.manager;
   }
 
-  public get id(): string | number | boolean {
-    return this._options.id ?? DEFAULT_TRANSACTION_ID;
-  }
-
   public async begin(): Promise<void> {
     if (this._hasParentTransaction) return;
     if (!this._queryRunner.isTransactionActive) await this._queryRunner.startTransaction(this._options.isolationLevel);
@@ -159,17 +162,19 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   }
 
   public async commit(): Promise<void> {
-    if (this._hasParentTransaction) return;
-    if (this._queryRunner.isTransactionActive && !this._options.manager?.queryRunner) await this._queryRunner.commitTransaction();
-    if (!this._queryRunner.isReleased && !this._options.manager?.queryRunner) await this._queryRunner.release();
-    if (this._shouldUseNs) removeTransactionFromNs(this._transactionId);
+    if (!this._hasParentTransaction) {
+      if (this._queryRunner.isTransactionActive && !this._options.manager?.queryRunner) await this._queryRunner.commitTransaction();
+      if (!this._queryRunner.isReleased && !this._options.manager?.queryRunner) await this._queryRunner.release();
+      if (this._shouldUseNs) setManagerIntoNs(this._connection.name, null);
+    }
   }
 
   public async rollback(error?: string | Error): Promise<void> {
-    if (this._hasParentTransaction) return;
-    if (this._queryRunner.isTransactionActive && !this._options.manager?.queryRunner) await this._queryRunner.rollbackTransaction();
-    if (!this._queryRunner.isReleased && !this._options.manager?.queryRunner) await this._queryRunner.release();
-    if (this._shouldUseNs) removeTransactionFromNs(this._transactionId);
+    if (!this._hasParentTransaction) {
+      if (this._queryRunner.isTransactionActive && !this._options.manager?.queryRunner) await this._queryRunner.rollbackTransaction();
+      if (!this._queryRunner.isReleased && !this._options.manager?.queryRunner) await this._queryRunner.release();
+      if (this._shouldUseNs) setManagerIntoNs(this._connection.name, null);
+    }
     if (error && typeof error === 'string') throw new Error(error);
     else if (error) throw error;
   }
@@ -182,6 +187,9 @@ export class Transaction<T extends Repositories = Repositories> implements ITran
   }
 
   protected _validateConnectionOptios(options: ITransactionOptions<T> = { }): void {
+    // if (!hasOnlyOneOfProvidedProperties(options, ['transaction', 'manager', 'propagation'])) return;
+    // throw new Error('Please, provide only one option of: `transaction`, `manager`, `propagation`.');
+
     if (options.transaction && !hasOnlyProperties(options, ['transaction'])) {
       throw new Error('If option `transaction` is provided it is forbidden to provide any other options.');
     }
@@ -275,7 +283,6 @@ export class TransactionManager<T extends Repositories = Repositories> implement
       repositories: options?.repositories ?? this._options?.repositories,
       repositoryConstructorParams: options?.repositoryConstructorParams ?? this._options?.repositoryConstructorParams,
       isolationLevel: options?.isolationLevel ?? this._options?.isolationLevel,
-      id: options?.id ?? this._options?.defaultTransactionId,
     } as O;
     this._validateOptions(result);
     return result;
@@ -316,17 +323,20 @@ export interface ITransactionManagerOptions<T extends Repositories = Repositorie
   defaultTransactionId?: string | number | boolean;
 }
 
-export interface ITransaction<T extends Repositories = Repositories> {
-  manager: EntityManager;
-  repositories: RepositoriesInstances<T>;
-  id?: string | number | boolean;
+export interface ISimpleTransaction {
   begin(): Promise<void>;
   commit(): Promise<void>;
   rollback(error?: string | Error): Promise<void>;
 }
 
+export type Propagation = 'REQUIRED' | 'SUPPORT' | 'SEPARATE';
+
+export interface ITransaction<T extends Repositories = Repositories> extends ISimpleTransaction {
+  manager: EntityManager;
+  repositories: RepositoriesInstances<T>;
+}
+
 export interface ITransactionOptions<T extends Repositories = Repositories> extends IUnitOfWorkOptions<T> {
-  id?: string | number | false;
   transaction?: ITransaction<T>;
 }
 
@@ -346,6 +356,7 @@ export interface IUnitOfWorkOptions<T extends Repositories = Repositories> {
   repositories?: T;
   repositoryConstructorParams?: RepositoryConstructorParams;
   isolationLevel?: IsolationLevel;
+  propagation?: Propagation;
 }
 
 export type UnitOfWorkExecutor<T extends Repositories = Repositories, R = unknown> =

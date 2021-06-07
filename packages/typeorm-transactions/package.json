@@ -16,7 +16,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "watch": "tsc --watch",
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "mocha -r ts-node/register"
   },
   "engines": {
     "node": ">=12.0.0",
