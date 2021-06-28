@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/cache",
-  "version": "0.7.4",
+  "version": "0.8.0",
   "description": "Typescript Reusable Tools: Redis cache wrapper",
   "keywords": [
     "cache",
@@ -19,7 +19,7 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/utils": "^0.7.4",
+    "@tsrt/utils": "^0.8.0",
     "redis": "3.0.2"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/mparty",
-  "version": "0.7.4",
+  "version": "0.8.0",
   "description": "Mparty - wrapper over busboy for multipart/form-data upload in nodejs",
   "keywords": [
     "multipart/form-data",
@@ -22,8 +22,8 @@
     "npm": ">=6.0.0"
   },
   "dependencies": {
-    "@tsrt/types": "^0.7.4",
-    "@tsrt/utils": "^0.7.4",
+    "@tsrt/types": "^0.8.0",
+    "@tsrt/utils": "^0.8.0",
     "busboy": "0.3.1"
   },
   "devDependencies": {
