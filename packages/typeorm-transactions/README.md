@@ -104,7 +104,7 @@ The main purpose of using new API - ability to abstract from realization, share 
 ## Legacy API
 
 From version __0.8.0__ it is recommended to use new API.
-Still old API is available for usage under `@tsrt/typeorm-transactions/legacy`.
+Still old API is available for usage under `@tsrt/typeorm-transactions/dist/legacy`.
 
 ### Transaction
 
