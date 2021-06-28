@@ -66,9 +66,10 @@ export class Transaction implements ITransaction {
   }
 
   public async rollback(error?: string | Error): Promise<void> {
-    if (this._shouldUseParentManager) return;
-    if (this._isTransactionActive) await this._queryRunner.rollbackTransaction();
-    await this._endTransaction();
+    if (!this._shouldUseParentManager) {
+      if (this._isTransactionActive) await this._queryRunner.rollbackTransaction();
+      await this._endTransaction();
+    }
     if (error && typeof error === 'string') throw new Error(error);
     else if (error) throw error;
   }

@@ -46,7 +46,7 @@ async function makeStuffInTransaction(): Promise<any> {
 
 ```ts
 // rootApplicationFile.ts
-import { createTransactionsNamespace, bindTransactionsNamespace, patchTypeOrmRepository, execInTransactionsNamespace } from  '@tsrt/typeorm-transactions';
+import { createTransactionsNamespace, bindTransactionsNamespace, patchTypeOrmRepository, execInTransactionsNamespace } from '@tsrt/typeorm-transactions';
 
 createTransactionsNamespace(); // This one should be called before any transactions usage
 patchTypeOrmRepository(Repository.prototype); // This one only necessary if repositories extends native TypeORM's Repository.
@@ -57,13 +57,13 @@ const app =  express();
 app.use(bindTransactionsNamespace); // Now all transactions will be bound to this namespace.
 
 
-// Example in any other place
+// Example in any other place (this is not necessary if bindTransactionsNamespace was called)
 execInTransactionsNamespace(() => { /* YOUR CODE GOES HERE: SomeService.doStuff()... */ });
   
 
 // SomeRepository.ts
-import { BaseRepository } from  '@tsrt/typeorm-transactions';
-import { Repository, EntityRepository, EntityManager } from  'typeorm';
+import { BaseRepository } from '@tsrt/typeorm-transactions';
+import { Repository, EntityRepository, EntityManager } from 'typeorm';
 
 // Optionally could be annotated w/ TypeORM's `EntityRepository` decorator.
 export class SomeRepository extends BaseRepository { /* ... */ }
@@ -75,9 +75,9 @@ export class SomeRepository extends Repository {
 
 
 // SomeService.ts
-import { getConnection, getManager } from  'typeorm';
-import { TransactionManager, Transaction } from  '@tsrt/typeorm-transactions';
-import { SomeRepository } from  'path/to/repositories';
+import { getConnection, getManager } from 'typeorm';
+import { TransactionManager, Transaction } from '@tsrt/typeorm-transactions';
+import { SomeRepository } from 'path/to/repositories';
 
 export class SomeService {
   public async doStuff(): Promise<void> {
@@ -88,6 +88,29 @@ export class SomeService {
     // Then usage is the same as in `The most basic example` section ...
   }
 }
+```
+
+__!!! Note__, that popular [express-session](https://www.npmjs.com/package/express-session) package can lead to [context loss](https://github.com/othiym23/node-continuation-local-storage/issues/29).
+To prevent that try (one of):
+1. bind namespace to express _AFTER_ calling `express-session` middleware.
+2. call `express-session` middleware and bind `next` function to namespace.
+
+Example:
+```ts
+import express from 'express';
+import expressSession from 'express-session';
+import { createTransactionsNamespace, bindTransactionsNamespace } from '@tsrt/typeorm-transactions';;
+
+const ns = createTransactionsNamespace();
+const app = express();
+
+// 1. bind namespace to express _AFTER_ calling `express-session` middleware.
+app.use(expressSession({ ... }));
+app.use(bindTransactionsNamespace);
+
+
+// 2. call `express-session` middleware and bind `next` function to namespace.
+app.use((req, res, next) => expressSession({ ... })(req, res, ns.bind(next)));
 ```
 
 ### Propagation
