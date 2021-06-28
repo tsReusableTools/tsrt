@@ -14,7 +14,7 @@ export class Transaction implements ITransaction {
   protected readonly _shouldUseParentManager: boolean;
   protected readonly _parentManager: EntityManager;
 
-  constructor(protected readonly _options?: ITransactionOptions) {
+  constructor(protected readonly _options?: ITransactionOptionsExtended) {
     const { connection, connectionName, manager, propagation } = _options;
 
     this._connection = manager?.connection ?? getConnection(connection, connectionName); // Necessary for _transactionId
@@ -101,17 +101,17 @@ export class Transaction implements ITransaction {
 export class TransactionManager implements ITransactionManager {
   private _connection: Connection;
 
-  constructor(protected readonly _options: ITransactionOptions = { }) { }
+  constructor(protected readonly _options: ITransactionOptionsExtended = { }) { }
 
-  public createTransaction(options?: ITransactionOptions): ITransaction {
+  public createTransaction(options?: ITransactionOptions): Transaction {
     return new Transaction(this._getDefaultOptions(options));
   }
 
-  public async transaction(options?: ITransactionOptions): Promise<ITransaction>;
-  public async transaction<R = unknown>(cb: TransactionCallback<R>, options?: ITransactionOptions): Promise<R>;
+  public async transaction(options?: ITransactionOptions): Promise<Transaction>;
+  public async transaction<R = unknown>(cb: (transaction: Transaction) => Promise<R>, options?: ITransactionOptions): Promise<R>;
   public async transaction<R = unknown>(
-    cbOrOptions?: ITransactionOptions | TransactionCallback<R>, options?: ITransactionOptions,
-  ): Promise<ITransaction | R> {
+    cbOrOptions?: ITransactionOptions | ((transaction: Transaction) => Promise<R>), options?: ITransactionOptions,
+  ): Promise<Transaction | R> {
     const opts = typeof cbOrOptions === 'function' ? options : cbOrOptions;
     const t = this.createTransaction(opts);
 
@@ -121,10 +121,10 @@ export class TransactionManager implements ITransactionManager {
       ? cbOrOptions(t)
         .then(async (result) => { await t.rollback(); return result; })
         .catch(async (err) => await t.rollback(err) as unknown as R)
-      : t;
+      : t as Transaction;
   }
 
-  public async autoTransaction<R = unknown>(cb: TransactionCallback<R>, options?: ITransactionOptions): Promise<R> {
+  public async autoTransaction<R = unknown>(cb: (transaction: Transaction) => Promise<R>, options?: ITransactionOptions): Promise<R> {
     const t = this.createTransaction(options);
     await t.begin();
     return cb(t)
@@ -138,7 +138,7 @@ export class TransactionManager implements ITransactionManager {
     return this._connection;
   }
 
-  protected _getDefaultOptions<O extends ITransactionManagerTransactionOptions>(options?: O): O {
+  protected _getDefaultOptions<O extends ITransactionOptions>(options?: O): O {
     return {
       ...options,
       connection: this.connection,
@@ -152,13 +152,17 @@ export class TransactionManager implements ITransactionManager {
 export type Propagation = 'REQUIRED' | 'SUPPORT' | 'SEPARATE';
 
 export interface ITransaction {
-  manager: EntityManager;
   begin(): Promise<void>;
   commit(): Promise<void>;
   rollback(err?: string | Error): Promise<void>;
 }
 
 export interface ITransactionOptions {
+  propagation?: Propagation;
+  isolationLevel?: IsolationLevel;
+}
+
+export interface ITransactionOptionsExtended extends ITransactionOptions {
   connection?: Connection | AnyFunction<Connection>;
   connectionName?: string | AnyFunction<string>;
   manager?: EntityManager;
@@ -169,12 +173,10 @@ export interface ITransactionOptions {
 export type TransactionCallback<R = unknown> = (transaction: ITransaction) => Promise<R>;
 
 export interface ITransactionManager {
-  transaction(options?: ITransactionManagerTransactionOptions): Promise<ITransaction>;
-  transaction<R = unknown>(cb: TransactionCallback<R>, options?: ITransactionManagerTransactionOptions): Promise<R>;
+  createTransaction(options?: ITransactionOptions): ITransaction;
 
-  createTransaction(options?: ITransactionManagerTransactionOptions): ITransaction;
+  transaction(options?: ITransactionOptions): Promise<ITransaction>;
+  transaction<R = unknown>(cb: TransactionCallback<R>, options?: ITransactionOptions): Promise<R>;
+
+  autoTransaction<R = unknown>(cb: TransactionCallback<R>, options?: ITransactionOptions): Promise<R>;
 }
-
-export type ITransactionManagerOptions = Omit<ITransactionOptions, 'manager' | 'propagation'>;
-
-export type ITransactionManagerTransactionOptions = Omit<ITransactionOptions, 'connection' | 'connectionName' | 'manager'>;
