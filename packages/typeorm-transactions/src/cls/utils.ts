@@ -5,8 +5,6 @@ import { getNamespace, createNamespace, Namespace } from 'cls-hooked';
 
 const NAMESPACE = '__typeorm_transactions_namespace__';
 const TRANSACTION_KEY = '__typeorm_transaction_key__';
-// const DEFAULT_TRANSACTION_ID = 'default';
-export const DEFAULT_TRANSACTION_ID = false;
 
 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
 export type AnyFunction<T = any> = (...args: any) => T;
@@ -40,21 +38,9 @@ export function getManagerFromNs(connectionName: string): EntityManager {
   if (ns && ns.active) return ns.get(`${TRANSACTION_KEY}_${connectionName}`);
 }
 
-export function setTransactionIntoNs<T>(
-  key: string | number, transaction: T,
-): T {
+export function removeManagerFromNs(connectionName: string): EntityManager {
   const ns = getTransactionsNamespace();
-  if (ns && ns.active) return ns.set(`${TRANSACTION_KEY}_${key}`, transaction);
-}
-
-export function getTransactionFromNs<T>(key: string | number): T {
-  const ns = getTransactionsNamespace();
-  if (ns && ns.active) return ns.get(`${TRANSACTION_KEY}_${key}`);
-}
-
-export function removeTransactionFromNs(key: string | number): void {
-  const ns = getTransactionsNamespace();
-  if (ns && ns.active) ns.set(`${TRANSACTION_KEY}_${key}`, null);
+  if (ns && ns.active) return ns.set(`${TRANSACTION_KEY}_${connectionName}`, null);
 }
 
 export function getConnection(
@@ -66,21 +52,4 @@ export function getConnection(
   const result = connection ?? typeOrmGetConnection(connectionName);
   if (!result.isConnected) throw Error('Please, initialize connection before creating `UnitOfWork` instance');
   return result;
-}
-
-export function hasProperty<O>(object: O, prop: keyof O): boolean {
-  return !!Object.hasOwnProperty.call(object, prop);
-}
-
-// export function hasOneOfProperties<O>(object: O, props: Array<keyof O>): boolean {
-//   return !!(props.find((item) => hasProperty(object, item)));
-// }
-
-export function hasOnlyProperties<O>(object: O, props: Array<keyof O>): boolean {
-  const existingProps = Object.keys(object);
-  return !(existingProps.find((item) => !props.includes(item as keyof O)));
-}
-
-export function hasOnlyOneOfProvidedProperties<O>(object: O, props: Array<keyof O>): boolean {
-  return props.reduce((acc, curr) => (hasProperty(object, curr) ? acc + 1 : acc), 0) === 1;
 }

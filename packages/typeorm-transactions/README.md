@@ -35,6 +35,77 @@ For advanced usage follow next sections:
  - [UnitOfWork](#unitofwork)
  - [TransactionManager](#transactionmanager)
 
+## Current API
+
+From version __0.8.0__ it is recommended to use new API.
+New API works only w/ [cls-hooked](https://www.npmjs.com/package/cls-hooked).
+It is heavely inspired by [this package](https://www.npmjs.com/package/typeorm-transactional-cls-hooked).
+
+__NOTE__: all repositories should (one of):
+1. extends __BaseRepository__ from `@tsrt/typeorm-transactions`.
+2. extends TypeORM's __Repository__ and before usage `patchTypeOrmRepository` should be called.
+3. annotated w/ TypeORM's `EntityRepository` decorator or receive TypeORM's `EntityManager` as first argument in constructor.
+
+```ts
+// SomeRepository.ts
+import { BaseRepository } from '@tsrt/typeorm-transactions';
+import { Repository, EntityRepository, EntityManager } from 'typeorm';
+
+// Optionally could be annotated w/ TypeORM's `EntityRepository` decorator.
+export class SomeRepository extends BaseRepository { /* ... */ }
+
+// Or
+export class SomeRepository extends Repository {
+  constructor(public readonly manager: EntityManager) { super(); }
+  /* ... */
+}
+
+
+
+
+// rootApplicationFile.ts
+import { createTransactionsNamespace, execInTransactionsNamespace, bindTransactionsNamespace, patchTypeOrmRepository, TransactionManager } from '@tsrt/typeorm-transactions';
+import { Repository } from 'typeorm';
+
+createTransactionsNamespace(); // This one should be called before any transactions usage
+patchTypeOrmRepository(Repository.prototype); // This one only necessary if repositories extends native TypeORM's Repository.
+
+
+// Example w/ Express
+const app = express();
+app.use(bindTransactionsNamespace); // Now all transactions will be bound to this namespace.
+
+
+// SomeService.ts
+import { getConnection, getManager } from 'typeorm';
+import { TransactionManager, Transaction } from '@tsrt/typeorm-transactions';
+import { SomeRepository } from 'path/to/repositories';
+
+export class SomeService {
+  public async doStuff(): Promise<void> {
+    const repository = new getConnection().getCustomRepository(SomeRepository);
+    // const repository = new SomeRepository(getManager());
+
+    const t = new Transaction({ propagation: 'SEPARATE' });
+    // Then usage is the same as in `USAGE` section ...
+  }
+}
+```
+
+The main purpose of using new API - ability to abstract from realization, share transactions easily and have different propagation levels.
+
+### Propagation
+
+- __REQUIRED__ (default) - supports existing transaction if it is or creates new if there is no.
+- __SEPARATE__ - creates new transaction even if there is already an existing transaction.
+- __SUPPORT__ - supports only existing transaction and does not create new.
+
+
+## Legacy API
+
+From version __0.8.0__ it is recommended to use new API.
+Still old API is available for usage under `@tsrt/typeorm-transactions/legacy`.
+
 ### Transaction
 
 Transaction constructor. Could be used to create a transaction for any database connection or already existing EntityManager.
