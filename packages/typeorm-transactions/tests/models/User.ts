@@ -9,14 +9,14 @@ export class User extends BaseEntity<IUser> implements IUser {
   @Column()
   public lastName: string;
 
-  @Column()
-  public age: number;
+  @Column({ nullable: true })
+  public age?: number;
 }
 
 export interface IUserPayload {
   firstName: string;
   lastName: string;
-  age: number;
+  age?: number;
 }
 
 export interface IUser extends IBaseEntity, IUserPayload { }

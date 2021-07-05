@@ -4,6 +4,10 @@
     "outDir": "./dist",
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "tests/**/*.ts" // Just for tests type and config inheritance
+  ],
+  "exclude": [
+    "tests/**/*.ts" // Just for tests type and config inheritance
   ]
 }

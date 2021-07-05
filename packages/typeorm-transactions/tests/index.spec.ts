@@ -1,83 +1,140 @@
-/* eslint-disable import/first */
-import { assert } from 'chai';
-import { Connection, Repository } from 'typeorm';
+import { expect } from 'chai';
+import { Connection } from 'typeorm';
 
-import { createTransactionsNamespace, execInTransactionsNamespace, patchTypeOrmRepository, TransactionManager } from '../src';
+import { execInTransactionsNamespace } from '../src';
 
-createTransactionsNamespace();
-patchTypeOrmRepository(Repository.prototype);
+import { Database, tm, connectionName } from './utils';
+import { UsersRepository, UsersBaseRepository } from './repositories';
+import { UsersService } from './services';
 
-import { Database } from './utils';
-import { User } from './models';
-import { UsersRepository } from './repositories';
-
-const tm = new TransactionManager({ connectionName: 'lala' });
 execInTransactionsNamespace(() => {
-  describe('Testing Database factory', () => {
+  describe('Testing Modern API', () => {
     let database: Database;
+    let usersService: UsersService;
+    let usersBaseService: UsersService;
 
     before(async () => {
       database = new Database();
-      await database.createConnection();
+      await database.connect();
       await database.connection.synchronize(true);
+      usersService = new UsersService({ usersRepository: database.connection.getCustomRepository(UsersRepository) });
+      usersBaseService = new UsersService({ usersRepository: new UsersBaseRepository() });
     });
 
     after(async () => {
-      await database.closeConnection();
+      await database.disconnect();
     });
 
-    it('it should test connection', async () => {
-      assert.instanceOf(database.connection, Connection);
+    beforeEach(async () => {
+      await database.connection.synchronize(true); // Clean db after each test case.
     });
 
-    it('it should create user', async () => {
-      async function separateTransaction(): Promise<void> {
-        const repo = database.connection.getCustomRepository(UsersRepository);
-        // const t = await tm.transaction({ propagation: 'SEPARATE' });
-        const t = await tm.transaction();
+    it('should test connection', async () => {
+      expect(database.connection).to.be.instanceOf(Connection);
+      expect(database.connection.isConnected).to.be.equal(true);
+      expect(database.connection.name).to.be.equal(connectionName);
+    });
 
-        try {
-          // const repo = new UsersRepository(database.connection.manager);
-          // const repo = database.connection.getCustomRepository(UsersRepository);
-          const userInTest = await repo.createUser({ firstName: 'user in separate transaction', lastName: 'lastName', age: 26 });
-          console.log('user in separate transaction >>>', userInTest);
-          // throw new Error('asdasdasd');
-          await t.commit();
-        } catch (err2) {
-          console.log('err2 >>>', err2);
-          await t.rollback(err2);
-        }
-      }
+    it('should create users using UsersRepository and UsersBaseRepository is same transaction', async () => {
+      await tm.transaction(async (t) => {
+        await usersService.createUser({ firstName: 'first', lastName: 'first' });
+        await usersBaseService.createUser({ firstName: 'second', lastName: 'second' });
+        const [, usersCount] = await usersService.findAndCountUsers();
 
-      // await separateTransaction();
-      const t2 = await tm.transaction();
-      // const us = new UserService(tm, t.repositories.usersRepository);
+        expect(usersCount).to.equal(2);
 
-      try {
-        const repo = new UsersRepository(database.connection.manager);
-        // const repo = database.connection.getCustomRepository(UsersRepository);
-        const user = await repo.createUser({ firstName: 'first user', lastName: 'lastName', age: 26 });
-        console.log('first user >>>', user);
-        await separateTransaction();
-        if (tm instanceof TransactionManager) {
-          const [users] = await repo.findAndCountUsers();
-          console.log('users before Test error >>>', users);
-          throw new Error('Test');
-        }
-        const user2 = await repo.createUser({ firstName: 'second user', lastName: 'lastName', age: 26 });
-        console.log('second user >>>', user2);
-        await t2.commit();
-      } catch (err) {
-        console.log('err >>>', err);
+        await t.rollback();
+        const [, usersCountAfterRollback] = await usersBaseService.findAndCountUsers();
+
+        expect(usersCountAfterRollback).to.equal(0);
+      });
+    });
+
+    it('should create users using UsersRepository is separate transactions (created w/ propagation = \'SEPARATE\')', async () => {
+      const t1 = await tm.transaction();
+
+      const user1 = await usersService.createUser({ firstName: 'first', lastName: 'first' });
+
+      await tm.transaction(async (t2) => {
+        await usersService.createUser({ firstName: 'second', lastName: 'second' });
+        const [, usersCount] = await usersBaseService.findAndCountUsers();
+        expect(usersCount).to.equal(1); // We don't see user created in transaction 1.
         await t2.rollback();
-      }
+      }, { propagation: 'SEPARATE' });
+
+      await t1.commit();
+      const [, usersCountAfterRollback] = await usersService.findAndCountUsers();
+
+      expect(usersCountAfterRollback).to.equal(1);
+
+      await usersService.deleteUser(user1.id);
+      const [, usersCountAfterDeletion] = await usersBaseService.findAndCountUsers();
+
+      expect(usersCountAfterDeletion).to.equal(0);
     });
 
-    it('it should list users', async () => {
-      // const [users, count] = await userService.findAndCountUsers();
-      const [users, count] = await database.connection.getRepository(User).findAndCount();
-      console.log('users >>>', users);
-      assert.equal(count, 0);
+    it('should not rollback if there is no transaction (created w/ propagation = \'SUPPORT\')', async () => {
+      const t = await tm.transaction({ propagation: 'SUPPORT' });
+
+      await usersService.createUser({ firstName: 'first', lastName: 'first' });
+      await usersBaseService.createUser({ firstName: 'second', lastName: 'second' });
+
+      const [, usersCount] = await usersService.findAndCountUsers();
+
+      expect(usersCount).to.equal(2);
+
+      await t.rollback(); // Rollback has no influence as transaction was not even started w/ propagation: 'SUPPORT'.
+      const [, usersCountAfterRollback] = await usersBaseService.findAndCountUsers();
+
+      expect(usersCountAfterRollback).to.equal(2);
+    });
+
+    it('should support already created transaction and not create new if propagation = \'SUPPORT\'', async () => {
+      const t = tm.createTransaction();
+      await t.begin();
+
+      await usersService.createUser({ firstName: 'first', lastName: 'first' });
+
+      await tm.autoTransaction(async (t2) => {
+        await usersBaseService.createUser({ firstName: 'second', lastName: 'second' });
+        const [, usersCount] = await usersService.findAndCountUsers();
+        await t2.rollback(); // Should have no effect as there is parentTransaction which is only supported here
+        expect(usersCount).to.equal(2);
+      }, { propagation: 'SUPPORT' });
+
+      await t.rollback();
+      const [, usersCountAfterRollback] = await usersBaseService.findAndCountUsers();
+      expect(usersCountAfterRollback).to.equal(0);
+    });
+
+    it('should create users in same transaction via method w/ Transactional decorator (created by factory)', async () => {
+      const t = await tm.transaction();
+
+      await usersService.transactionallyCreateUser({ firstName: 'first', lastName: 'first' });
+      await usersService.transactionallyCreateUser({ firstName: 'second', lastName: 'second' });
+      const [, usersCount] = await usersBaseService.findAndCountUsers();
+
+      expect(usersCount).to.equal(2);
+
+      await t.rollback();
+
+      const [, usersCountAfterRollback] = await usersBaseService.findAndCountUsers();
+      expect(usersCountAfterRollback).to.equal(0);
+    });
+
+    it('should create users in separate transactions via method w/ Transactional decorator (basic)', async () => {
+      const t = await tm.transaction();
+
+      await usersService.transactionallySeparatelyCreateUser({ firstName: 'first', lastName: 'first' });
+      await usersService.transactionallySeparatelyCreateUser({ firstName: 'second', lastName: 'second' });
+      const [, usersCount] = await usersBaseService.findAndCountUsers();
+
+      expect(usersCount).to.equal(2);
+
+      await t.rollback(); // Rollback should have no effect as transactionallySeparatelyCreateUser executes in separate transaction.
+
+      const [, usersCountAfterRollback] = await usersBaseService.findAndCountUsers();
+      expect(usersCountAfterRollback).to.equal(2);
     });
   });
 });

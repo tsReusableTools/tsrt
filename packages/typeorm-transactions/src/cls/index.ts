@@ -1,3 +1,8 @@
 export * from './BaseRepository';
+export * from './Transaction';
 export * from './TransactionManager';
-export { createTransactionsNamespace, getTransactionsNamespace, bindTransactionsNamespace, execInTransactionsNamespace } from './utils';
+export * from './Transactional';
+export {
+  createTransactionsNamespace, getTransactionsNamespace, bindTransactionsNamespace, execInTransactionsNamespace,
+  insertEntityProperties, getEntityColumns,
+} from './utils';

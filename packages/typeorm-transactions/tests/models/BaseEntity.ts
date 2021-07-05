@@ -1,6 +1,6 @@
 import { PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
 
-import { insertEntityData } from './utils';
+import { insertEntityProperties } from '../../src';
 
 export class BaseEntity<T extends IBaseEntity> implements IBaseEntity {
   @PrimaryGeneratedColumn()
@@ -16,7 +16,7 @@ export class BaseEntity<T extends IBaseEntity> implements IBaseEntity {
   public deletedAt?: Date;
 
   constructor(data: T) {
-    if (data) insertEntityData(this, data);
+    if (data) insertEntityProperties(this, data);
   }
 }
 

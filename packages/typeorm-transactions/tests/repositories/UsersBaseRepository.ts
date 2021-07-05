@@ -1,9 +1,12 @@
-import { Repository, EntityManager, EntityRepository, FindManyOptions } from 'typeorm';
+import { EntityManager, EntityRepository, FindManyOptions } from 'typeorm';
 
 import { User, IUser, IUserPayload } from '../models';
+import { BaseRepository, patchTypeOrmRepository } from '../../src';
+import { connectionName } from '../utils';
 
 @EntityRepository(User) // This is not necessary. Just for anility to use via connection.getCustomRepoistory().
-export class UsersRepository extends Repository<User> {
+export class UsersBaseRepository extends BaseRepository<User> {
+  public manager: EntityManager;
   // constructor(public readonly manager: EntityManager) { super(); } // This is not necessary. Just for ability to call via new operator.
 
   public async createUser(body: IUserPayload): Promise<IUser> {
@@ -20,3 +23,4 @@ export class UsersRepository extends Repository<User> {
     return !!result.affected;
   }
 }
+patchTypeOrmRepository(UsersBaseRepository, { connectionName });
