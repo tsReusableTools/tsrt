@@ -1,14 +1,17 @@
 {
   "name": "@tsrt/typeorm-transactions",
-  "version": "0.9.0",
-  "description": "TypeORM UnitOfWork and transactions support",
+  "version": "0.10.0",
+  "description": "TypeORM convenient transactions management",
   "keywords": [
     "typeorm",
     "typeorm-transactions",
     "typeorm-unit-of-work",
     "unit-of-work",
     "transactions",
-    "node-transactions"
+    "node-transactions",
+    "transaction",
+    "commit",
+    "rollback"
   ],
   "author": "Danyil Moroz",
   "license": "MIT",

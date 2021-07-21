@@ -1,5 +1,5 @@
 
-# Typescript Reusable Tools: TypeORM Transactions
+# TsRT: TypeORM Transactions
 
 [![npm version](https://img.shields.io/npm/v/@tsrt/typeorm-transactions.svg)](https://www.npmjs.com/package/@tsrt/typeorm-transactions)  [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE)  [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/typeorm-transactions.svg)](https://www.npmjs.com/package/@tsrt/typeorm-transactions)  [![Downloads](https://img.shields.io/npm/dm/@tsrt/typeorm-transactions.svg)](https://www.npmjs.com/package/@tsrt/typeorm-transactions)
 
@@ -14,7 +14,7 @@ So prefer using exact version instead of version with `~` or `^`.
 
 Since __v0.8.0__ - this package depends on [cls-hooked](https://www.npmjs.com/package/cls-hooked).
 
-__New API__ heavily inspired by [this package](https://www.npmjs.com/package/typeorm-transactional-cls-hooked).
+__New API__ heavily inspired by [this package](https://www.npmjs.com/package/typeorm-transactional-cls-hooked) but with more _[flexible API](#apis)_.
 
 The main purpose of using new API - ability to abstract from implementation, share transactions easily and have different propagation levels.
 
@@ -67,6 +67,14 @@ execInTransactionsNamespace(/* Any async code which uses transactions via CLS fr
 // Example for Express:
 const app = express();
 app.use(bindTransactionsNamespace);
+
+// If using only `Transactional` decorator - no need to init namespace first.
+class Service {
+  @Transactional()
+  public async doStuff(): Promise<any> {
+    // do stuff inside transaction
+  }
+}
 ```
 
 __!!! Note__, that popular [express-session](https://www.npmjs.com/package/express-session) package can lead to [context loss](https://github.com/othiym23/node-continuation-local-storage/issues/29).
@@ -183,9 +191,9 @@ new SomeRepository(getManager()).create(/* ... */);
 1. __Transaction__ - constructor to create new single Transaction.
 2. __TransactionManager__ - constructor to create TransactionManager for specific connection w/ default options. Has 3 methods:
 	- __createTransaction__ - creates new single Transaction w/ TransactionManager default options and connection.
-	- __transaction__ - creates and starts new single Transaction. Could be provided w/ callback to execute inside transaction and will rollback automatically if no manual commit is called.
-	- __autoTransaction__ - same as __transaction__ method, but will commit automatically if no error thrown.
-3. __Transactional__ - method decorator. Has 2 variants:
+	- __transaction__ - creates and starts new single Transaction. Could be provided w/ callback to execute inside transaction which will _rollback automatically_ if no manual commit is called. _If no callback provided, commit and rollback should be done manually._
+	- __autoTransaction__ - same as __transaction__ method (_with callback case_), but will commit automatically if no error thrown.
+3. __Transactional__ - method decorator (more convenient/declarative, but less flexible comparing to __TransactionManager__). Has 2 variants:
     - __createTransactional__ - factory function for creating __Transactional__ decorator for specific connection w/ default options. (uses __TransactionManager__ under the hood).
     - __Transactional__ - decorator itself w/ ability to provide any connection and other options.
 

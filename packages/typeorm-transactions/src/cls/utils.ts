@@ -31,7 +31,11 @@ export function bindTransactionsNamespace(req: EventEmitter, res: EventEmitter, 
 }
 
 export async function execInTransactionsNamespace<R extends AnyFunction>(cb: R): Promise<ReturnType<R>> {
-  return createTransactionsNamespace().runPromise(cb);
+  const ns = createTransactionsNamespace();
+  // Call `runPromise` only if there is no `active` namespace yet, as there are context loss problems
+  // running `runPromise` inside another `runPromise`.
+  const runner = ns.active ? ns.runAndReturn.bind(ns) : ns.runPromise.bind(ns);
+  return runner(cb);
 }
 
 export function setManagerIntoNs(connectionName: string, manager: EntityManager): EntityManager {

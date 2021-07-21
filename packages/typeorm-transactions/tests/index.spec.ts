@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { Connection } from 'typeorm';
 
-import { execInTransactionsNamespace } from '../src';
+import { execInTransactionsNamespace, createTransactionsNamespace } from '../src';
 
 import { Database, tm, connectionName } from './utils';
 import { UsersRepository, UsersBaseRepository } from './repositories';
@@ -27,6 +27,39 @@ execInTransactionsNamespace(() => {
 
     beforeEach(async () => {
       await database.connection.synchronize(true); // Clean db after each test case.
+    });
+
+    it('execInTransactionsNamespace should correctly set and retrieve context', async () => {
+      const ns = createTransactionsNamespace();
+
+      await execInTransactionsNamespace(async () => {
+        const key = 'test';
+        expect(ns.get(key)).to.be.equal(undefined);
+
+        await execInTransactionsNamespace(async () => {
+          ns.set(key, 2);
+          expect(ns.get(key)).to.be.equal(2);
+
+          await execInTransactionsNamespace(async () => {
+            ns.set(key, 3);
+            expect(ns.get(key)).to.be.equal(3);
+          });
+
+          await execInTransactionsNamespace(async () => {
+            ns.set(key, 4);
+            expect(ns.get(key)).to.be.equal(4);
+
+            await execInTransactionsNamespace(async () => {
+              ns.set(key, 5);
+              expect(ns.get(key)).to.be.equal(5);
+            });
+
+            expect(ns.get(key)).to.be.equal(4);
+          });
+        });
+
+        expect(ns.get(key)).to.be.equal(undefined);
+      });
     });
 
     it('should test connection', async () => {

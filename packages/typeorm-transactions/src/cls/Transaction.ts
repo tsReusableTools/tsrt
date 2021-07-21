@@ -114,6 +114,4 @@ export interface ITransactionOptionsExtended extends ITransactionOptions {
   connection?: Connection | AnyFunction<Connection>;
   connectionName?: string | AnyFunction<string>;
   manager?: EntityManager;
-  propagation?: Propagation;
-  isolationLevel?: IsolationLevel;
 }
