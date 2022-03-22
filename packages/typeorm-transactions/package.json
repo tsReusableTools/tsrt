@@ -1,6 +1,6 @@
 {
   "name": "@tsrt/typeorm-transactions",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "TypeORM convenient transactions management",
   "keywords": [
     "typeorm",

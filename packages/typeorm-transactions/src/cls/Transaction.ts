@@ -13,7 +13,7 @@ export class Transaction implements ITransaction {
   protected readonly _shouldUseParentManager: boolean;
   protected readonly _parentManager: EntityManager;
 
-  constructor(protected readonly _options?: ITransactionOptionsExtended) {
+  constructor(protected readonly _options: ITransactionOptionsExtended) {
     const { connection, connectionName, manager, propagation } = _options;
 
     this._connection = manager?.connection ?? getConnection(connection, connectionName); // Necessary for _transactionId

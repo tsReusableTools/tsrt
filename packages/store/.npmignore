@@ -1,8 +1,11 @@
 ### Directories
 src
+tests
 
 ### Files
+.env
 .eslintrc
 .eslintignore
 .editorconfig
+.mocharc.json
 tsconfig.json
