@@ -7,8 +7,6 @@ export function insertIntoClass<C, T>(context: C, data: T): void {
   });
 }
 
-export const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(() => { resolve(null); }, ms));
-
 export class Base<T> {
   constructor(input: T) {
     insertIntoClass(this, input);

@@ -1,10 +1,18 @@
-import { BehaviorSubject, observable, Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck, distinctUntilChanged } from 'rxjs/operators';
 import { cloneDeep, assign, isNil, get, isEqual, toPath, set } from 'lodash';
 import { Get, PartialDeep } from 'type-fest';
 
 import { IStoreObservable, IStorePropertyObservable, ISetterOptions, NestedKeys, GenericObject } from './types';
 
+/**
+ * Lodash.assing but also for deeply nested properties
+ *
+ * @Note mutates `source` object.
+ *
+ * @param - source object, to assign values to.
+ * @param - object, to assign values from.
+ */
 export function assignDeep<T extends GenericObject, R extends GenericObject>(source: T, newObject: R): T {
   Object.entries(newObject).forEach(([key, value]) => {
     if (typeof value === 'object') {
@@ -65,9 +73,7 @@ export class RxStore<S extends object> {
       : this.state$.pipe(
         distinctUntilChanged((a, b) => isEqual(get(a, prop), get(b, prop))),
         pluck(...toPath(prop)),
-        // switchMap((x) => {
-        //   return Array.isArray(x) ? of(...x) : of(x);
-        // })
+        // switchMap((x) => Array.isArray(x) ? of(...x) : of(x))
       ) as IStorePropertyObservable<Get<S, P> | S, PartialDeep<Get<S, P>>>;
 
     const getValue = (): S => (isNil(prop) ? this.state : get(this.state, prop) as S);
@@ -78,14 +84,7 @@ export class RxStore<S extends object> {
         value,
         { assign: shoudAssign = true } = { },
       ) => {
-        // console.log('\n\n -------- ');
-        // console.log('prop >>>', prop, ':');
-        // console.log('currentValue >>>', result.value);
-        // console.log('inputValue >>>', value);
-
         const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(result.value, value) : value;
-
-        // console.log('computedValue >>>', computedValue);
         this._state.next(set(this.state, prop, cloneDeep(computedValue)));
       };
     }

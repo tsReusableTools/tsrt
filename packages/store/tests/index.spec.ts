@@ -2,16 +2,9 @@ import { expect } from 'chai';
 import { skip } from 'rxjs/operators';
 import { PartialDeep } from 'type-fest';
 
-import { RxStore, assignDeep } from '../src';
+import { RxStore } from '../src';
 
-import {
-  ITodo, Todo,
-  ICountry, Country,
-  ICity, City,
-  IUser, User,
-  IState, State,
-  wait,
-} from './models.spec';
+import { Todo, Country, City, User, State } from './models.spec';
 
 const todos: Todo[] = [
   new Todo({ id: 1, title: 'F' }),
@@ -48,7 +41,6 @@ describe('Testing RxStore', () => {
     expect(store.state.user).to.be.instanceOf(User);
     expect(store.state.user.get()).to.be.equal(name);
 
-    expect(store.state.version).not.to.be.instanceOf(Number);
     expect(store.state.version).to.be.equal(versionUpdated);
   });
 
@@ -62,24 +54,25 @@ describe('Testing RxStore', () => {
     expect(store.state.user).not.to.be.instanceOf(User);
     expect(store.state.user.get).to.be.equal(undefined);
 
-    expect(store.state.version).not.to.be.instanceOf(Number);
     expect(store.state.version).to.be.equal(versionUpdated);
   });
 
   it(('RxStore.get(prop?.nested).set(value): should set nested property value via property observable setter'), () => {
     const name = 'Name 3.1';
-
     store.get('user').set({ name });
-
     expect(store.state.user).to.be.instanceOf(User);
     expect(store.state.user.get()).to.be.equal(name);
 
     const name2 = 'Name 3.2';
-
     store.get('user.name').set(name2);
-
     expect(store.state.user).to.be.instanceOf(User);
     expect(store.state.user.get()).to.be.equal(name2);
+
+    const name3 = 'Name 3.3';
+    store.get('user').set({ name: name3 }, { assign: false });
+    expect(store.state.user).not.to.be.instanceOf(User);
+    expect(store.state.user.name).to.be.equal(name3);
+    expect(store.state.user.get).to.be.equal(undefined);
   });
 
   it(('RxStore.get(prop?.nested).value: should get (nested) property value via property observable value'), () => {
@@ -119,23 +112,7 @@ describe('Testing RxStore', () => {
     let userChangesCount = 0;
     let userCityNameChangesCount = 0;
 
-    const userSub = userObs
-      .pipe(skip(1)) // Skip current state
-      // .subscribe((val) => {
-      //   console.log('user val >>>', val);
-      //   userChangesCount++;
-      // });
-      .subscribe(() => { userChangesCount++; });
-
-    const userCityNameSub = userCityNameObs
-      .pipe(skip(1)) // Skip current state
-      // .subscribe((val) => {
-      //   console.log('city val >>>', val);
-      //   userCityNameChangesCount++;
-      // });
-      .subscribe(() => { userCityNameChangesCount++; });
-
-    const userChanges: Array<PartialDeep<IUser>> = [
+    const userChanges: Array<PartialDeep<User>> = [
       { name: 'Name' },
       { name: 'Name 2' },
       { city: { name: 'Kiev 2' } }, // This should be also calculated inside expect for userCityNameChangesCount
@@ -149,17 +126,88 @@ describe('Testing RxStore', () => {
       'Kiev',
     ];
 
+    const userSub = userObs
+      .pipe(skip(1)) // Skip current state
+      .subscribe(() => { userChangesCount++; });
+
+    const userCityNameSub = userCityNameObs
+      .pipe(skip(1)) // Skip current state
+      .subscribe(() => { userCityNameChangesCount++; });
+
     userChanges.forEach((item) => userObs.set(item));
     userCityNameChanges.forEach((item) => userCityNameObs.set(item));
 
     userSub.unsubscribe();
     userCityNameSub.unsubscribe();
 
+    const userChangesWhichAffectCityName = userChanges.filter((item) => !!item?.city?.name);
+
     expect(userChangesCount).to.be.equal(userChanges.length + userCityNameChanges.length);
-    expect(userCityNameChangesCount).to.be.equal(userCityNameChanges.length + 1);
+    expect(userCityNameChangesCount).to.be.equal(userCityNameChanges.length + userChangesWhichAffectCityName.length);
   });
 
-  it('RxStore.set(array?.nested): should correctly fire events and set values for arrays|nested items', () => {
-    const todosObs
+  it('RxStore.get(array?.nested).set(): should correctly fire events and set values for arrays|nested items', () => {
+    const todosObs = store.get('todos');
+    const secondTodoObs = store.get('todos.1');
+    const secondTodoTitleObs = store.get('todos.1.title');
+
+    let todosChangesCount = 0;
+    let secondTodoChangesCount = 0;
+    let secondTodoTitleChangesCount = 0;
+
+    const todosChanges: Todo[][] = [
+      [
+        new Todo({ id: 1, title: 'Frist Array 1' }),
+      ],
+      [
+        new Todo({ id: 2, title: 'Second Array 1' }),
+        new Todo({ id: 3, title: 'Second Array 2' }),
+      ],
+    ];
+    const secondTodoChanges: Array<PartialDeep<Todo>> = [
+      { id: 123 },
+      { title: 'Todo Title Changed' },
+    ];
+    const secondTodoTitleChanges: string[] = [
+      'Title 1',
+      'Title 2',
+    ];
+
+    const todosSub = todosObs
+      .pipe(skip(1))
+      .subscribe(() => todosChangesCount++);
+
+    const secondTodoSub = secondTodoObs
+      .pipe(skip(1))
+      .subscribe(() => secondTodoChangesCount++);
+
+    const secondTodoTitleSub = secondTodoTitleObs
+      .pipe(skip(1))
+      .subscribe(() => secondTodoTitleChangesCount++);
+
+    // todosChanges.forEach((item) => todosObs.set(item, { assign: false }));
+    todosChanges.forEach((item) => todosObs.set(item));
+    secondTodoChanges.forEach((item) => secondTodoObs.set(item));
+    secondTodoTitleChanges.forEach((item) => secondTodoTitleObs.set(item));
+    todosChanges.forEach((item) => store.set('todos', item));
+
+    todosSub.unsubscribe();
+    secondTodoSub.unsubscribe();
+    secondTodoTitleSub.unsubscribe();
+
+    const todoChangesWhichAffectSecondTodo = todosChanges.filter((item) => item.length >= 2);
+    const secondTodoChangesWhichAffectTodoTitle = secondTodoChanges.filter((item) => !!item.title);
+
+    expect(todosChangesCount).to.be.equal((todosChanges.length * 2) + secondTodoChanges.length + secondTodoTitleChanges.length);
+    expect(secondTodoChangesCount).to.be.equal(
+      (todoChangesWhichAffectSecondTodo.length * 2)
+      + secondTodoChanges.length
+      + secondTodoTitleChanges.length,
+    );
+    expect(secondTodoTitleChangesCount).to.be.equal(
+      (todoChangesWhichAffectSecondTodo.length * 2)
+      + secondTodoChangesWhichAffectTodoTitle.length
+      + secondTodoTitleChanges.length,
+    );
   });
 });
