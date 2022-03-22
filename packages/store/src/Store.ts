@@ -3,7 +3,7 @@ import { pluck, distinctUntilChanged } from 'rxjs/operators';
 import { cloneDeep, assign, isNil, get, isEqual, toPath, set } from 'lodash';
 import { Get, PartialDeep } from 'type-fest';
 
-import { IStoreSubject, IStorePropertySubject, ISetterOptions, NestedKeys, GenericObject, IRxStoreOptions } from './types';
+import { IStoreSubject, IStorePropertySubject, ISetterOptions, NestedKeys, GenericObject, IStoreOptions } from './types';
 
 /**
  * Lodash.assing but also for deeply nested properties
@@ -26,14 +26,14 @@ export function assignDeep<T extends GenericObject, R extends GenericObject>(sou
 }
 
 /* eslint-disable-next-line @typescript-eslint/ban-types */
-export class RxStore<S extends object> {
+export class Store<S extends object> {
   protected readonly _initialState: S;
   protected readonly _state: BehaviorSubject<S>;
-  protected readonly _options: IRxStoreOptions;
+  protected readonly _options: IStoreOptions;
 
   public constructor(
     _initialState: S = { } as S,
-    _options: IRxStoreOptions = { },
+    _options: IStoreOptions = { },
   ) {
     this._initialState = cloneDeep(_initialState);
     this._state = new BehaviorSubject(this._initialState);

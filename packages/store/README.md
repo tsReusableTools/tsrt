@@ -25,9 +25,9 @@ interface IState {
 ##### Create store
 
 ```ts
-import { RxStore } from '@tsrt/store';
+import { Store } from '@tsrt/store';
 
-export const store = new RxStore<IState>();
+export const store = new Store<IState>();
 ```
 
 ##### Listen for changes
@@ -61,76 +61,18 @@ store.get('todos.1.title').set('Updated Second Todo Title');
 
 ##### Angular Example (optional)
 
-```ts
-// app.module.ts
-import { NgModule } from '@angular/core';
-import { store } from 'path/to/store';
-
-@NgModule({
-  /* ... */
-  declarations: [ /* ... */, TodosComponent],
-  providers: [ /* ... */, { provide: RxStore, useValue: store }]
-})
-export class AppModule { }
-
-// todos.component.ts
-import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { map, filter } from 'rxjs/operators';
-import { RxStore } from '@tsrt/store';
-
-import { IState } from 'path/to/state';
-
-@Component({
-  selector: 'todos',
-  template: `
-    <button (click)="handleAddTodo()">ADd Todo</button>
-
-    <div *ngFor="let todo of evenTodos$ | async">
-      id - {{ todo.id }}
-    </div>
-  `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class TodosComponent {
-  public evenTodos$ = evenTodosSelector(this.store);
-
-  constructor(
-    public readonly store: RxStore<IState>,
-
-  ) { }
-
-  public handleAddTodo(): void {
-    const prevTodos = this.store.state.todos ?? [];
-    const nextId = prevTodos.length ? prevTodos[prevTodos.length - 1].id + 1 : 1;
-    const todo = { id: nextId, title: 'Dynamically added todo' };
-    const todos = prevTodos.concat(todo);
-    // this.store.set('todos', todos);
-    this.store.get('todos').set(todos);
-  }
-}
-
-function evenTodosSelector(store: RxStore<IState>) {
-  return store
-    .get('todos')
-    .pipe(
-      map((todos) => {
-        return todos?.filter((item) => item.id % 2 === 0);
-      }),
-      filter((todos) => !!todos?.length),
-    )
-}
-```
+[See on Stackblitz](https://stackblitz.com/edit/angular-tsrt-store?file=src/app/todos.component.ts)
 
 ### `assign` option
 
 ```ts
-export interface IRxStoreOptions {
+export interface IStoreOptions {
   /**
    * Whether to assign new object into existing in store or just replace it.
    *
    * @example
    * const user = new User({ id: 1, name: 'Me' });
-   * const store = new RxStore({ user });
+   * const store = new Store({ user });
    *
    * // If `assign.object` === false
    * store.get('user').set({ name: 'You })

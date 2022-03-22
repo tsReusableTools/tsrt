@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { skip, filter } from 'rxjs/operators';
 import { PartialDeep } from 'type-fest';
 
-import { RxStore, assignDeep } from '../src';
+import { Store, assignDeep } from '../src';
 
 import { Todo, Country, City, User, State } from './models.spec';
 
@@ -17,9 +17,9 @@ const user = new User({ name: 'Me', city });
 const version = 1;
 
 const state = new State({ user, todos, version });
-const store = new RxStore(state, { assign: { object: true } });
+const store = new Store(state, { assign: { object: true } });
 
-describe('Testing RxStore', () => {
+describe('Testing Store', () => {
   before(() => {
     //
   });
@@ -64,7 +64,7 @@ describe('Testing RxStore', () => {
     });
   });
 
-  it(('RxStore.set(...): should set nested property value via setter'), () => {
+  it(('Store.set(...): should set nested property value via setter'), () => {
     const name = 'Name 1';
     const versionUpdated = 2;
 
@@ -77,7 +77,7 @@ describe('Testing RxStore', () => {
     expect(store.state.version).to.be.equal(versionUpdated);
   });
 
-  it(('RxStore.set(..., { assign: false }): should set objectLike value to new value via setter'), () => {
+  it(('Store.set(..., { assign: false }): should set objectLike value to new value via setter'), () => {
     const name = 'Name 2';
     const versionUpdated = 2;
 
@@ -90,7 +90,7 @@ describe('Testing RxStore', () => {
     expect(store.state.version).to.be.equal(versionUpdated);
   });
 
-  it(('RxStore.get(prop?.nested).set(value): should set nested property value via property observable setter'), () => {
+  it(('Store.get(prop?.nested).set(value): should set nested property value via property observable setter'), () => {
     const name = 'Name 3.1';
     store.get('user').set({ name });
     expect(store.state.user).to.be.instanceOf(User);
@@ -108,7 +108,7 @@ describe('Testing RxStore', () => {
     expect(store.state.user.get).to.be.equal(undefined);
   });
 
-  it(('RxStore.get(prop?.nested).value: should get (nested) property value via property observable value'), () => {
+  it(('Store.get(prop?.nested).value: should get (nested) property value via property observable value'), () => {
     const stateValue = store.get().value;
     expect(stateValue).to.be.instanceOf(State);
     expect(store.state.user.name).to.be.equal(stateValue.user.name);
@@ -121,7 +121,7 @@ describe('Testing RxStore', () => {
     expect(store.state.user.city.country.code).to.be.equal(userCityCountryCodeValue);
   });
 
-  it('RxStore.get(prop?.nested): should fire event only when `prop?.nested` changes', () => {
+  it('Store.get(prop?.nested): should fire event only when `prop?.nested` changes', () => {
     const nameObs = store.get('user.name');
 
     const names = ['Name 1', 'Name 2'];
@@ -138,7 +138,7 @@ describe('Testing RxStore', () => {
     changes.forEach((item, index) => expect(item).to.be.equal(names[index]));
   });
 
-  it(('RxStore.get(prop): should fire event on any nested property changes'), () => {
+  it(('Store.get(prop): should fire event on any nested property changes'), () => {
     const userObs = store.get('user');
     const userCityNameObs = store.get('user.city.name');
 
@@ -179,7 +179,7 @@ describe('Testing RxStore', () => {
     expect(userCityNameChangesCount).to.be.equal(userCityNameChanges.length + userChangesWhichAffectCityName.length);
   });
 
-  it('RxStore.get(array?.nested).set(): should correctly fire events and set values for arrays|nested items', () => {
+  it('Store.get(array?.nested).set(): should correctly fire events and set values for arrays|nested items', () => {
     const todosObs = store.get('todos');
     const secondTodoObs = store.get('todos.1');
     const secondTodoTitleObs = store.get('todos.1.title');

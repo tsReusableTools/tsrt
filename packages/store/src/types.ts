@@ -28,7 +28,7 @@ export interface IStorePropertySubject<T, V> extends IStoreSubject<T> {
    * Setter for selected store property.
    *
    * @param value - Value to set.
-   * @param [options.assign] - Whether to assign to set value. @see IRxStoreOptions.
+   * @param [options.assign] - Whether to assign to set value. @see IStoreOptions.
    */
   set(value: V, options?: ISetterOptions): void;
 }
@@ -37,13 +37,14 @@ export interface ISetterOptions {
   assign?: boolean
 }
 
-export interface IRxStoreOptions {
+export interface IStoreOptions {
   /**
    * Whether to assign new object into existing in store or just replace it.
    *
    * @example
    * const user = new User({ id: 1, name: 'Me' });
-   * const store = new RxStore({ user });
+   * const todos = [{ id: 1, title: 'First' }];
+   * const store = new Store({ user });
    *
    * // If `assign.object` === false
    * store.get('user').set({ name: 'You })
@@ -52,6 +53,14 @@ export interface IRxStoreOptions {
    * // If `assign.object` === true
    * store.get('user').set({ name: 'You })
    * store.state.user // User { id: 1, name: 'You' }
+   *
+   * // For `assign.array` its more obvious to use `false` (which is by default).
+   * // If use `assign.array`: true - it will assgin existing array items and add those are not exist.
+   * store.get('todos').set([
+   *    { title: 'Updated First' },
+   *    { title: 'New Second' },
+   * ]);
+   * store.state.todos // [{ id: 1, title: 'Updated First' }, { title: 'New Second' }];
    *
    * @property [object] - Defines whether to assign when updating object values. @default false.
    * @property [array] - Defines whether to assign when updating array values. @default false.
