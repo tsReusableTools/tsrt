@@ -34,7 +34,7 @@ export function createTransactional(
  *
  * @param [options] - Extended Trasnaction options as for `Transaction` constructor.
  */
-export function Transactional(options?: ITransactionOptionsExtended): MethodDecorator {
+export function Transactional(options: ITransactionOptionsExtended): MethodDecorator {
   return function TransactionalDecorator(_target: Object, _propertyKey: string, descriptor: TypedPropertyDescriptor<any>) {
     const originalMethod = descriptor.value;
 

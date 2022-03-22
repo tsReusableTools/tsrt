@@ -5,19 +5,6 @@
 
 Convenient transactions support for great [TypeORM](https://github.com/typeorm/typeorm).
 
-## Important
-
-Until version 1.0.0 Api should be considered as unstable and may be changed.
-So prefer using exact version instead of version with `~` or `^`.
-
-## Modern API
-
-Since __v0.8.0__ - this package depends on [cls-hooked](https://www.npmjs.com/package/cls-hooked).
-
-__New API__ heavily inspired by [this package](https://www.npmjs.com/package/typeorm-transactional-cls-hooked) but with more _[flexible API](#apis)_.
-
-The main purpose of using new API - ability to abstract from implementation, share transactions easily and have different propagation levels.
-
 ### The most basic example:
 [Refer to full example for more info](#full-example)
 ```ts
@@ -254,22 +241,14 @@ app.listen(3333);
 
 ## Legacy API
 
-From version __0.8.0__ it is recommended to use new [Modern API](#modern-api).
+Before __0.8.0__ there was ability to use Transactions without [cls-hooked](https://www.npmjs.com/package/cls-hooked)..
 Still old API is available for usage under `@tsrt/typeorm-transactions/dist/legacy`.
 
 Most basic usage is same as in [this example](#the-most-basic-example), w/ only one difference - it is not necessary to initialise and use clsNamespace.
 
-Legacy API used separate repositories for each transaction.
+Legacy API instantiates separate repositories for each transaction.
 
 For more docs please refer to [legacy docs](https://www.npmjs.com/package/@tsrt/typeorm-transactions/v/0.7.11#usage).
-
-## TODO
-
-  
-
-- [ ] __@Transaction__ decorator for [Modern API](#modern-api).
-
-  
 
 ## License
 
