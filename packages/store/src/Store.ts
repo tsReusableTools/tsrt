@@ -1,74 +1,95 @@
-import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { BehaviorSubject, observable, Observable } from 'rxjs';
+import { pluck, distinctUntilChanged } from 'rxjs/operators';
+import { cloneDeep, assign, isNil, get, isEqual, toPath, set } from 'lodash';
+import { Get, PartialDeep } from 'type-fest';
 
-import { IState } from './types';
+import { IStoreObservable, IStorePropertyObservable, ISetterOptions, NestedKeys, GenericObject } from './types';
 
-export class Store<T extends GenericObject = IState> {
-  private _state = new BehaviorSubject<T>({} as T);
+export function assignDeep<T extends GenericObject, R extends GenericObject>(source: T, newObject: R): T {
+  Object.entries(newObject).forEach(([key, value]) => {
+    if (typeof value === 'object') {
+      assignDeep(source[key], value);
+      assign(source[key], value);
+      /* eslint-disable-next-line no-param-reassign */
+    } else (source as GenericObject)[key] = value;
+  });
 
-  constructor(
-    private readonly InitialState: Constructor<T>,
-  ) {}
+  return source;
+}
 
-  /** Current state */
-  public get state(): T {
-    return this.cloneDeep(this._state.getValue());
+/* eslint-disable-next-line @typescript-eslint/ban-types */
+export class RxStore<S extends object> {
+  protected readonly _initialState: S;
+  protected readonly _state: BehaviorSubject<S>;
+
+  public constructor(
+    _initialState: S = { } as S,
+  ) {
+    this._initialState = cloneDeep(_initialState);
+    this._state = new BehaviorSubject(this._initialState);
   }
 
-  /** State observable */
-  public get state$(): Observable<T> {
+  public get state(): S {
+    return cloneDeep(this._state.getValue());
+  }
+
+  public get state$(): Observable<S> {
     return this._state.asObservable();
   }
 
   /**
-   *  Subscribe for state updates.
-   *
-   *  @param [next] - Handler for each value emitted by the observable.
-   *  @param [error] - Handler for each error emitted by the observable.
-   *  @param [complete] - Handler for observable completeness.
-   */
-  public subscribe(next?: (value: T) => void, error?: (error: Error) => void, complete?: () => void): Subscription {
-    return this.state$.subscribe(next, error, complete);
-  }
-
-  /**
-   *  Unsubscribe state observable.
-   *
-   *  @param subscription- State subscription.
-   */
-  public unsubscribe(subscription: Subscription): void {
-    if (subscription) subscription.unsubscribe();
-  }
-
-  /**
-   *  Setter (reducer) for state.
+   *  Setter (reducer) for state
    *
    *  @param prop - Property to update.
    *  @param value - Value to update with.
    */
-  public set<K extends keyof T>(prop: K, value: T[K]): void {
-    if (!Object.hasOwnProperty.call(new this.InitialState(), prop)) {
-      throw new Error('There is no such property in App State');
-    }
-
-    if (Object.hasOwnProperty.call(new this.InitialState(), prop)) {
-      this._state.next({ ...this.state, [prop]: this.cloneDeep(value) });
-    }
+  public set<K extends keyof S>(
+    prop: K,
+    value: PartialDeep<S[K]>,
+    { assign: shoudAssign = true }: ISetterOptions = { },
+  ): void {
+    const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(this.state[prop], value) : value;
+    this._state.next(assign(this.state, { [prop]: cloneDeep(computedValue) }));
   }
 
   /**
-   *  Getter for current state or state property.
+   *  Getter for current state/state property observable$
    *
-   *  @param prop - Optional state property to get.
+   *  @param prop - Optional state property to get observable for.
    */
-  public get(): T;
-  public get<K extends keyof T>(prop: K): T[K];
-  public get<K extends keyof T>(prop?: K): T | T[K] {
-    if (!prop) return this._state.getValue();
+  public get(): IStoreObservable<S>;
+  public get<P extends NestedKeys<S>>(prop: P): IStorePropertyObservable<Get<S, P>, PartialDeep<Get<S, P>>>
+  public get<P extends NestedKeys<S>>(prop?: P): IStoreObservable<S> | IStorePropertyObservable<Get<S, P> | S, PartialDeep<Get<S, P>>> {
+    const result = isNil(prop)
+      ? this.state$ as IStoreObservable<S>
+      : this.state$.pipe(
+        distinctUntilChanged((a, b) => isEqual(get(a, prop), get(b, prop))),
+        pluck(...toPath(prop)),
+        // switchMap((x) => {
+        //   return Array.isArray(x) ? of(...x) : of(x);
+        // })
+      ) as IStorePropertyObservable<Get<S, P> | S, PartialDeep<Get<S, P>>>;
 
-    return this.cloneDeep(this._state.getValue()[prop]);
-  }
+    const getValue = (): S => (isNil(prop) ? this.state : get(this.state, prop) as S);
+    Object.defineProperty(result, 'value', { get: getValue });
 
-  private cloneDeep<C>(value: C): C {
-    return value ? JSON.parse(JSON.stringify(value)) : value;
+    if (!isNil(prop)) {
+      (result as IStorePropertyObservable<Get<S, P> | S, PartialDeep<Get<S, P>>>).set = (
+        value,
+        { assign: shoudAssign = true } = { },
+      ) => {
+        // console.log('\n\n -------- ');
+        // console.log('prop >>>', prop, ':');
+        // console.log('currentValue >>>', result.value);
+        // console.log('inputValue >>>', value);
+
+        const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(result.value, value) : value;
+
+        // console.log('computedValue >>>', computedValue);
+        this._state.next(set(this.state, prop, cloneDeep(computedValue)));
+      };
+    }
+
+    return result;
   }
 }

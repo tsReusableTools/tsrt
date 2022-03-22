@@ -1,3 +1,6 @@
 **/node_modules/*
 **/lib/*
 **/dist/*
+
+### Fix for TS 4+ template types
+packages/store/src/types.ts
