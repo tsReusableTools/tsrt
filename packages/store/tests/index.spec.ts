@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import { skip } from 'rxjs/operators';
+import { skip, filter } from 'rxjs/operators';
 import { PartialDeep } from 'type-fest';
 
-import { RxStore } from '../src';
+import { RxStore, assignDeep } from '../src';
 
 import { Todo, Country, City, User, State } from './models.spec';
 
@@ -17,7 +17,7 @@ const user = new User({ name: 'Me', city });
 const version = 1;
 
 const state = new State({ user, todos, version });
-const store = new RxStore(state);
+const store = new RxStore(state, { assign: { object: true } });
 
 describe('Testing RxStore', () => {
   before(() => {
@@ -25,10 +25,43 @@ describe('Testing RxStore', () => {
   });
 
   beforeEach(() => {
-    // Reset to defaults before each test
-    store.set('user', user, { assign: false });
-    store.set('todos', todos, { assign: false });
-    store.set('version', version, { assign: false });
+    store.reset();
+  });
+
+  it('assignDeep(): should correctly assign deeply nested values', () => {
+    const testCountry = new Country({ code: 'UA' });
+    const testCity = new City({ name: 'Kiev', country: testCountry });
+
+    const users = [
+      new User({ name: 'F', city: testCity }),
+      new User({ name: 'S', city: testCity }),
+    ];
+
+    const existingItemsChanges = [
+      { name: 'F1' },
+      { name: 'F2' },
+    ];
+
+    const nonExistingItemsChanges = [
+      { name: 'F3' },
+      { name: 'F4' },
+    ];
+
+    const result = assignDeep(users, [...existingItemsChanges, ...nonExistingItemsChanges]);
+
+    [result[0], result[1]].forEach((item, index) => {
+      expect(item).to.be.instanceOf(User);
+      expect(item.city).to.be.instanceOf(City);
+      expect(item.city.country).to.be.instanceOf(Country);
+      expect(item.name).to.be.equal(existingItemsChanges[index].name);
+    });
+
+    [result[2], result[3]].forEach((item, index) => {
+      expect(item).not.to.be.instanceOf(User);
+      expect(item.city).to.be.equal(undefined);
+      expect(item.city?.country).be.equal(undefined);
+      expect(item.name).to.be.equal(nonExistingItemsChanges[index].name);
+    });
   });
 
   it(('RxStore.set(...): should set nested property value via setter'), () => {
@@ -155,13 +188,14 @@ describe('Testing RxStore', () => {
     let secondTodoChangesCount = 0;
     let secondTodoTitleChangesCount = 0;
 
-    const todosChanges: Todo[][] = [
+    const todosChanges: Array<Array<PartialDeep<Todo>>> = [
       [
         new Todo({ id: 1, title: 'Frist Array 1' }),
       ],
       [
         new Todo({ id: 2, title: 'Second Array 1' }),
         new Todo({ id: 3, title: 'Second Array 2' }),
+        { id: 4 },
       ],
     ];
     const secondTodoChanges: Array<PartialDeep<Todo>> = [
@@ -174,21 +208,28 @@ describe('Testing RxStore', () => {
     ];
 
     const todosSub = todosObs
-      .pipe(skip(1))
+      .pipe(skip(1)) // Skip current state
       .subscribe(() => todosChangesCount++);
 
     const secondTodoSub = secondTodoObs
-      .pipe(skip(1))
+      .pipe(
+        skip(1), // Skip current state
+        filter((item) => !!item), // Filter out those events when `todos` has less than 2 elements
+      )
       .subscribe(() => secondTodoChangesCount++);
 
     const secondTodoTitleSub = secondTodoTitleObs
-      .pipe(skip(1))
+      .pipe(
+        skip(1), // Skip current state
+        filter((item) => !!item), // Filter out those events when `todos` has less than 2 elements
+      )
       .subscribe(() => secondTodoTitleChangesCount++);
 
-    // todosChanges.forEach((item) => todosObs.set(item, { assign: false }));
+    // todosChanges.forEach((item) => todosObs.set(item, { assign: true }));
     todosChanges.forEach((item) => todosObs.set(item));
     secondTodoChanges.forEach((item) => secondTodoObs.set(item));
     secondTodoTitleChanges.forEach((item) => secondTodoTitleObs.set(item));
+    // todosChanges.forEach((item) => store.set('todos', item, { assign: true }));
     todosChanges.forEach((item) => store.set('todos', item));
 
     todosSub.unsubscribe();
