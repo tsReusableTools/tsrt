@@ -1,5 +1,5 @@
 import { BehaviorSubject, Observable } from 'rxjs';
-import { pluck, distinctUntilChanged } from 'rxjs/operators';
+import { pluck, distinctUntilChanged, map } from 'rxjs/operators';
 import { cloneDeep, assign, isNil, get, isEqual, toPath, set } from 'lodash';
 import { Get, PartialDeep } from 'type-fest';
 
@@ -64,16 +64,15 @@ export class Store<S extends object> {
   /**
    *  Setter (reducer) for state
    *
-   *  @param prop - Property to update.
+   *  @param prop - Property path to update.
    *  @param value - Value to update with.
    */
-  public set<K extends keyof S>(
-    prop: K,
-    value: PartialDeep<S[K]>,
+  public set<P extends NestedKeys<S>>(
+    prop: P,
+    value: PartialDeep<Get<S, P>>,
     { assign: shoudAssign = this._getAssignOptionValue(value) }: ISetterOptions = { },
   ): void {
-    const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(this.state[prop], value) : value;
-    this._state.next(assign(this.state, { [prop]: cloneDeep(computedValue) }));
+    this._setState(prop, value, shoudAssign);
   }
 
   /**
@@ -82,6 +81,7 @@ export class Store<S extends object> {
    * @example
    * const todosSubject = store.get(propertyName);
    * todos.value; // Current value;
+   * todos.select((todo) => todo.id) // Transform to some specific observable
    * todos.set([...], { assign?: boolean }); // Sets|assigns to selected store property
    *
    * const secondTodoTitleSubject = store.get('todos.1.title');
@@ -98,24 +98,44 @@ export class Store<S extends object> {
       ? this.state$ as IStoreSubject<S>
       : this.state$.pipe(
         distinctUntilChanged((a, b) => isEqual(get(a, prop), get(b, prop))),
+        // distinctUntilChanged((a, b) => get(a, prop) === get(b, prop)),
+        // distinctUntilChanged(),
         pluck(...toPath(prop)),
         // switchMap((x) => Array.isArray(x) ? of(...x) : of(x))
       ) as IStorePropertySubject<Get<S, P> | S, PartialDeep<Get<S, P>>>;
 
-    const getValue = (): S => (isNil(prop) ? this.state : get(this.state, prop) as S);
-    Object.defineProperty(result, 'value', { get: getValue });
-
-    if (!isNil(prop)) {
-      (result as IStorePropertySubject<Get<S, P> | S, PartialDeep<Get<S, P>>>).set = (
-        value,
-        { assign: shoudAssign = this._getAssignOptionValue(value) } = { },
-      ) => {
-        const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(result.value, value) : value;
-        this._state.next(set(this.state, prop, cloneDeep(computedValue)));
-      };
-    }
+    this._defineValueGetter(result, prop);
+    this._defineValueSelector(result);
+    this._defineValueSetter(result, prop);
 
     return result;
+  }
+
+  protected _defineValueGetter<T>(target: T, prop: string): void {
+    const valueGetter = (): S => (isNil(prop) ? this.state : get(this.state, prop) as S);
+    Object.defineProperty(target, 'value', { get: valueGetter });
+  }
+
+  protected _defineValueSelector<T extends IStoreSubject<S>>(target: T): void {
+    const select = <R>(callbackFn: (value: S extends Array<infer U> ? U : S) => R) => target.pipe(
+      map((val) => (Array.isArray(val) ? val.map(callbackFn) : callbackFn(val as never))),
+    );
+
+    Object.defineProperty(target, 'select', { value: select });
+  }
+
+  protected _defineValueSetter<T, P extends string>(target: T, prop: P): void {
+    if (isNil(prop)) return;
+
+    const valueSetter = (
+      value: PartialDeep<Get<S, P>>, { assign: shoudAssign = this._getAssignOptionValue(value) } = { },
+    ) => this._setState(prop, value, shoudAssign);
+    Object.defineProperty(target, 'set', { value: valueSetter });
+  }
+
+  protected _setState<P extends string | number | symbol, T>(prop: P, value: T, shoudAssign: boolean): void {
+    const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(get(this.state, prop), value) : value;
+    this._state.next(set(this.state, prop, cloneDeep(computedValue)));
   }
 
   protected _getAssignOptionValue<T>(value: T): boolean {

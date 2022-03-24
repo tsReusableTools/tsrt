@@ -18,9 +18,10 @@ export type NestedKeys<T> = T extends object
 export type ExcludeFunctions<T, ReturnType> = T extends Function ? never : ReturnType;
 
 export interface IStoreSubject<T> extends Observable<T> {
-// interface IStoreSubject<T> extends Observable<T extends Array<infer U> ? U : T> {
   /** Current value for selected store property */
   value: T;
+
+  select<R>(callbackFn: (value: T extends Array<infer U> ? U : T) => R): Observable<T extends Array<infer U> ? R[] : R>;
 }
 
 export interface IStorePropertySubject<T, V> extends IStoreSubject<T> {
