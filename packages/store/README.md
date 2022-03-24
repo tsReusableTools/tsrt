@@ -8,6 +8,7 @@ State management tool on top of great [RxJS](https://www.npmjs.com/package/rxjs)
 
 ## Usage
 
+__Note!__ This package uses [RxJS](#rxjs-usage-examples), thus any rxjs operators and knowledge could and should be used to play with state.
 
 ##### Prepare State
 
@@ -51,7 +52,7 @@ store.get('todos.1.title')
   .subscribe((secondTodoTitle) => { /* Get notified here on only second todo.title updates */ })
 ```
 
-_Selectors_
+###### Selectors
 
 ```ts
 store.get('user')
@@ -61,6 +62,27 @@ store.get('user')
 store.get('todos')
   .select((todo) => todo.id)
   .subscribe((todoIds) => { /* Get notified here on only todos updates, each value will be `number[]` (todo.id[]) */ })
+```
+
+###### RxJS usage examples
+
+```ts
+const todos$ = store.get('todos');
+const todosTotal$ = todos$.pipe(map((val) => val.length));
+
+todos$
+  .pipe(
+    withLatestFrom(todosTotal$)
+  )
+  .subscribe(([todos, total]) => { /* Get notified here on any todos updates. Receive todos and its total count */ })
+
+todos$
+  .pipe(
+    map((val) => val.filter((todo) => todo.id % 2 !== 0)),
+  )
+  .subscribe((todos) => { /* Get notified here on any todos updates. Leave only todos with even id */ })
+
+// And more ...
 ```
 
 ##### Provide test values

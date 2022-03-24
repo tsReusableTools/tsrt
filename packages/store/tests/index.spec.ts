@@ -20,10 +20,6 @@ const state = new State({ user, todos, version });
 const store = new Store(state, { assign: { object: true } });
 
 describe('Testing Store', () => {
-  before(() => {
-    //
-  });
-
   beforeEach(() => {
     store.reset();
   });
