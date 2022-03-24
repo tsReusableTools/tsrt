@@ -64,8 +64,9 @@ describe('Testing Store', () => {
     });
   });
 
-  it(('Store.set(...): should set nested property value via setter'), () => {
-    const name = 'Name 1';
+  it(('Store.set(prop?.nested): should set nested property value via setter'), () => {
+    // assign: true
+    const name = 'Name 1.1';
     const versionUpdated = 2;
 
     store.set('user', { name });
@@ -73,21 +74,25 @@ describe('Testing Store', () => {
 
     expect(store.state.user).to.be.instanceOf(User);
     expect(store.state.user.get()).to.be.equal(name);
-
     expect(store.state.version).to.be.equal(versionUpdated);
-  });
 
-  it(('Store.set(..., { assign: false }): should set objectLike value to new value via setter'), () => {
-    const name = 'Name 2';
-    const versionUpdated = 2;
+    // Nested selector
+    const cityName = 'cityName';
+    store.set('user.city', { name: cityName });
+    expect(store.state.user.city).to.be.instanceOf(City);
+    expect(store.state.user.city.name).to.be.equal(cityName);
+    expect(store.state.user.city.country).to.be.instanceOf(Country);
 
-    store.set('user', { name }, { assign: false });
-    store.set('version', versionUpdated, { assign: false });
+    // assign: false
+    const nameReassign = 'Name 1.3';
+    const versionUpdatedReassign = 3;
+
+    store.set('user', { name: nameReassign }, { assign: false });
+    store.set('version', versionUpdatedReassign, { assign: false });
 
     expect(store.state.user).not.to.be.instanceOf(User);
     expect(store.state.user.get).to.be.equal(undefined);
-
-    expect(store.state.version).to.be.equal(versionUpdated);
+    expect(store.state.version).to.be.equal(versionUpdatedReassign);
   });
 
   it(('Store.get(prop?.nested).set(value): should set nested property value via property observable setter'), () => {
@@ -101,11 +106,29 @@ describe('Testing Store', () => {
     expect(store.state.user).to.be.instanceOf(User);
     expect(store.state.user.get()).to.be.equal(name2);
 
+    const cityName = 'CityName';
+    store.get('user.city').set({ name: cityName });
+    expect(store.state.user.city).to.be.instanceOf(City);
+    expect(store.state.user.city.name).to.be.equal(cityName);
+
     const name3 = 'Name 3.3';
     store.get('user').set({ name: name3 }, { assign: false });
     expect(store.state.user).not.to.be.instanceOf(User);
     expect(store.state.user.name).to.be.equal(name3);
     expect(store.state.user.get).to.be.equal(undefined);
+  });
+
+  it('Store.get(prop).select(callbackFn): should correctly select (transform) nested property observable$ by callbackFn', () => {
+    const todoIds$ = store.get('todos').select((todo) => todo.id);
+
+    const todoIdsSub = todoIds$
+      .subscribe((value) => {
+        value.forEach((item) => expect(typeof item === 'number').to.be.equal(true));
+      });
+
+    store.set('todos', [{ id: 123 }]);
+
+    todoIdsSub.unsubscribe();
   });
 
   it(('Store.get(prop?.nested).value: should get (nested) property value via property observable value'), () => {

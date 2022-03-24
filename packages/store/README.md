@@ -36,19 +36,31 @@ export const store = new Store<IState>();
 import { store } from 'path/to/store';
 
 store.get('user')
-  .subscrbe((user) => { /* Get notified here upon any user updates */ })
+  .subscribe((user) => { /* Get notified here on any user updates */ })
 
 store.get('user.name')
-  .subscrbe((userName) => { /* Get notified here upon only user.name updates */ })
+  .subscribe((userName) => { /* Get notified here on only user.name updates */ })
 
 store.get('todos')
-  .subscrbe((todos) => { /* Get notified here upon any todos updates */ })
+  .subscribe((todos) => { /* Get notified here on any todos updates */ })
 
 store.get('todos.1')
-  .subscrbe((secondTodo) => { /* Get notified here upon only second todo updates */ })
+  .subscribe((secondTodo) => { /* Get notified here on only second todo updates */ })
 
 store.get('todos.1.title')
-  .subscrbe((secondTodoTitle) => { /* Get notified here upon only second todo.title updates */ })
+  .subscribe((secondTodoTitle) => { /* Get notified here on only second todo.title updates */ })
+```
+
+_Selectors_
+
+```ts
+store.get('user')
+  .select((user) => ({ pk: user.id, firstName: user.name }))
+  .subscribe((user) => { /* Get notified here on any user updates */ })
+
+store.get('todos')
+  .select((todo) => todo.id)
+  .subscribe((todoIds) => { /* Get notified here on only todos updates, each value will be `number[]` (todo.id[]) */ })
 ```
 
 ##### Provide test values
@@ -57,6 +69,7 @@ store.get('todos.1.title')
 store.set('user', { id: 1, name: 'Me' });
 store.set('todos', [{ id: 1, title: 'First Todo' }, { id: 2, title: 'Second Todo' }]);
 store.get('todos.1.title').set('Updated Second Todo Title');
+store.set('todos.1.title', 'Updated Again Second Todo Title');
 ```
 
 ##### Angular Example (optional)
