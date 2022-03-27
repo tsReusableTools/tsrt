@@ -6,7 +6,7 @@ import { Store, isEqual } from '../src';
 
 import { Todo, Country, City, User, State, state } from './models';
 
-const store = new Store(state, { assign: { object: true }, strictDistinct: false });
+const store = new Store(state, { assign: { object: true } });
 
 describe('Testing Store:', () => {
   beforeEach(() => { store.reset(); });

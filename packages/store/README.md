@@ -1,14 +1,17 @@
 # TsRT: Store
 
-[![npm version](https://img.shields.io/npm/v/@tsrt/store.svg)](https://www.npmjs.com/package/@tsrt/store)  [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE)  [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/store.svg)](https://www.npmjs.com/package/@tsrt/store)  [![Downloads](https://img.shields.io/npm/dm/@tsrt/store.svg)](https://www.npmjs.com/package/@tsrt/store)
+[![npm version](https://img.shields.io/npm/v/@tsrt/store.svg)](https://www.npmjs.com/package/@tsrt/store)  [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE)  [![Size](https://img.shields.io/bundlephobia/minzip/@tsrt/store.svg)](https://bundlephobia.com/package/@tsrt/store)  [![Downloads](https://img.shields.io/npm/dm/@tsrt/store.svg)](https://www.npmjs.com/package/@tsrt/store)
 
 
 <!-- Store service using `rxjs` under the hood. -->
 State management tool on top of great [RxJS](https://www.npmjs.com/package/rxjs).
 
-### Usage
+[Demo on Stackblitz](https://stackblitz.com/edit/angular-tsrt-store?file=src/app/todos.component.ts)
+
+## Usage
 
 __Note!__ This package uses [RxJS](#rxjs-usage-examples), thus any rxjs operators and knowledge could and should be used to play with state.
+
 
 ##### Prepare State
 
@@ -94,10 +97,6 @@ store.get('todos.1.title').set('Updated Second Todo Title');
 store.set('todos.1.title', 'Updated Again Second Todo Title');
 ```
 
-##### Angular Example (optional)
-
-[See on Stackblitz](https://stackblitz.com/edit/angular-tsrt-store?file=src/app/todos.component.ts)
-
 ### `assign` option
 
 ```ts
@@ -135,7 +134,7 @@ export interface IStoreOptions {
 }
 ```
 
-### Supported versions
+## Supported versions
 
 Version | Supported
 ------- | -----
@@ -143,7 +142,7 @@ Version | Supported
   1.x   | :x:
   0.x   | :x:
 
-### Disclaimer
+## Disclaimer
 
 For quite long time there was quite frequent necessity to use some centralized store, but without big complexity and overhead, which is provided by popular modern tools, such as NgRX, NgXS, Redux, etc.
 
