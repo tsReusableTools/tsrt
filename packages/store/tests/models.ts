@@ -69,3 +69,16 @@ export interface IState {
   todos?: ITodo[];
   version?: number;
 }
+
+export const todos: Todo[] = [
+  new Todo({ id: 1, title: 'F' }),
+  new Todo({ id: 2, title: 'S' }),
+];
+
+export const country = new Country({ code: 'UA' });
+
+export const city = new City({ name: 'Kiev', country });
+export const user = new User({ name: 'Me', city });
+export const version = 1;
+
+export const state = new State({ user, todos, version });

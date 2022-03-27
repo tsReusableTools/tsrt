@@ -2,82 +2,35 @@ import { expect } from 'chai';
 import { skip, filter } from 'rxjs/operators';
 import { PartialDeep } from 'type-fest';
 
-import { Store, assignDeep } from '../src';
+import { Store, isEqual } from '../src';
 
-import { Todo, Country, City, User, State } from './models.spec';
+import { Todo, Country, City, User, State, state } from './models';
 
-const todos: Todo[] = [
-  new Todo({ id: 1, title: 'F' }),
-  new Todo({ id: 2, title: 'S' }),
-];
+const store = new Store(state, { assign: { object: true }, strictDistinct: false });
 
-const country = new Country({ code: 'UA' });
-const city = new City({ name: 'Kiev', country });
-const user = new User({ name: 'Me', city });
-const version = 1;
-
-const state = new State({ user, todos, version });
-const store = new Store(state, { assign: { object: true } });
-
-describe('Testing Store', () => {
-  beforeEach(() => {
-    store.reset();
-  });
-
-  it('assignDeep(): should correctly assign deeply nested values', () => {
-    const testCountry = new Country({ code: 'UA' });
-    const testCity = new City({ name: 'Kiev', country: testCountry });
-
-    const users = [
-      new User({ name: 'F', city: testCity }),
-      new User({ name: 'S', city: testCity }),
-    ];
-
-    const existingItemsChanges = [
-      { name: 'F1' },
-      { name: 'F2' },
-    ];
-
-    const nonExistingItemsChanges = [
-      { name: 'F3' },
-      { name: 'F4' },
-    ];
-
-    const result = assignDeep(users, [...existingItemsChanges, ...nonExistingItemsChanges]);
-
-    [result[0], result[1]].forEach((item, index) => {
-      expect(item).to.be.instanceOf(User);
-      expect(item.city).to.be.instanceOf(City);
-      expect(item.city.country).to.be.instanceOf(Country);
-      expect(item.name).to.be.equal(existingItemsChanges[index].name);
-    });
-
-    [result[2], result[3]].forEach((item, index) => {
-      expect(item).not.to.be.instanceOf(User);
-      expect(item.city).to.be.equal(undefined);
-      expect(item.city?.country).be.equal(undefined);
-      expect(item.name).to.be.equal(nonExistingItemsChanges[index].name);
-    });
-  });
+describe('Testing Store:', () => {
+  beforeEach(() => { store.reset(); });
 
   it(('Store.set(prop?.nested): should set nested property value via setter'), () => {
-    // assign: true
     const name = 'Name 1.1';
     const versionUpdated = 2;
 
     store.set('user', { name });
     store.set('version', versionUpdated);
 
-    expect(store.state.user).to.be.instanceOf(User);
-    expect(store.state.user.get()).to.be.equal(name);
+    expect(store.state.user).not.to.be.instanceOf(User);
+    expect(store.state.user.name).to.be.equal(name);
+    expect(store.state.user.get).to.be.equal(undefined);
+    expect(store.state.user.city.name).to.be.equal(state.user.city.name);
     expect(store.state.version).to.be.equal(versionUpdated);
 
     // Nested selector
     const cityName = 'cityName';
     store.set('user.city', { name: cityName });
-    expect(store.state.user.city).to.be.instanceOf(City);
+    expect(store.state.user.city).not.to.be.instanceOf(City);
     expect(store.state.user.city.name).to.be.equal(cityName);
-    expect(store.state.user.city.country).to.be.instanceOf(Country);
+    expect(store.state.user.city.country).not.to.be.instanceOf(Country);
+    expect(store.state.user.city.country.code).to.be.equal(state.user.city.country.code);
 
     // assign: false
     const nameReassign = 'Name 1.3';
@@ -88,30 +41,38 @@ describe('Testing Store', () => {
 
     expect(store.state.user).not.to.be.instanceOf(User);
     expect(store.state.user.get).to.be.equal(undefined);
+    expect(store.state.user.name).to.be.equal(nameReassign);
+    expect(store.state.user.city).to.be.equal(undefined);
     expect(store.state.version).to.be.equal(versionUpdatedReassign);
   });
 
   it(('Store.get(prop?.nested).set(value): should set nested property value via property observable setter'), () => {
     const name = 'Name 3.1';
     store.get('user').set({ name });
-    expect(store.state.user).to.be.instanceOf(User);
-    expect(store.state.user.get()).to.be.equal(name);
+    expect(store.state.user).not.to.be.instanceOf(User);
+    expect(store.state.user.get).to.be.equal(undefined);
+    expect(store.state.user.name).to.be.equal(name);
 
     const name2 = 'Name 3.2';
+    store.reset();
     store.get('user.name').set(name2);
-    expect(store.state.user).to.be.instanceOf(User);
-    expect(store.state.user.get()).to.be.equal(name2);
+    expect(store.state.user).not.to.be.instanceOf(User);
+    expect(store.state.user.get).to.be.equal(undefined);
+    expect(store.state.user.name).to.be.equal(name2);
 
     const cityName = 'CityName';
+    store.reset();
     store.get('user.city').set({ name: cityName });
-    expect(store.state.user.city).to.be.instanceOf(City);
+    expect(store.state.user.city).not.to.be.instanceOf(City);
     expect(store.state.user.city.name).to.be.equal(cityName);
 
     const name3 = 'Name 3.3';
+    store.reset();
     store.get('user').set({ name: name3 }, { assign: false });
     expect(store.state.user).not.to.be.instanceOf(User);
-    expect(store.state.user.name).to.be.equal(name3);
     expect(store.state.user.get).to.be.equal(undefined);
+    expect(store.state.user.name).to.be.equal(name3);
+    expect(store.state.user.city).to.be.equal(undefined);
   });
 
   it('Store.get(prop).select(callbackFn): should correctly select (transform) nested property observable$ by callbackFn', () => {
@@ -129,12 +90,14 @@ describe('Testing Store', () => {
 
   it(('Store.get(prop?.nested).value: should get (nested) property value via property observable value'), () => {
     const stateValue = store.get().value;
-    expect(stateValue).to.be.instanceOf(State);
+    expect(stateValue).not.to.be.instanceOf(State);
     expect(store.state.user.name).to.be.equal(stateValue.user.name);
+    expect(store.state.todos.length).to.be.equal(state.todos.length);
+    expect(isEqual(stateValue, state)).to.be.equal(true);
 
     const userValue = store.get('user').value;
-    expect(userValue).to.be.instanceOf(User);
-    expect(store.state.user.get()).to.be.equal(userValue.get());
+    expect(userValue).not.to.be.instanceOf(User);
+    expect(isEqual(userValue, stateValue.user)).to.be.equal(true);
 
     const userCityCountryCodeValue = store.get('user.city.country.code').value;
     expect(store.state.user.city.country.code).to.be.equal(userCityCountryCodeValue);
@@ -150,6 +113,7 @@ describe('Testing Store', () => {
       .pipe(skip(1)) // Skip current state
       .subscribe((value) => { changes.push(value); });
 
+    // names.forEach((item) => nameObs.set(item, { assign: false }));
     names.forEach((item) => nameObs.set(item));
     subscription.unsubscribe();
 
@@ -166,6 +130,7 @@ describe('Testing Store', () => {
 
     const userChanges: Array<PartialDeep<User>> = [
       { name: 'Name' },
+      { name: 'Name' },
       { name: 'Name 2' },
       { city: { name: 'Kiev 2' } }, // This should be also calculated inside expect for userCityNameChangesCount
       { name: 'Name 3' },
@@ -173,6 +138,7 @@ describe('Testing Store', () => {
     ];
 
     const userCityNameChanges: string[] = [
+      'Kiev 3',
       'Kiev 3',
       'Lviv 1',
       'Kiev',
@@ -193,9 +159,10 @@ describe('Testing Store', () => {
     userCityNameSub.unsubscribe();
 
     const userChangesWhichAffectCityName = userChanges.filter((item) => !!item?.city?.name);
+    const uniqueUserCityNameChanges = Array.from(new Set(userCityNameChanges));
 
     expect(userChangesCount).to.be.equal(userChanges.length + userCityNameChanges.length);
-    expect(userCityNameChangesCount).to.be.equal(userCityNameChanges.length + userChangesWhichAffectCityName.length);
+    expect(userCityNameChangesCount).to.be.equal(uniqueUserCityNameChanges.length + userChangesWhichAffectCityName.length);
   });
 
   it('Store.get(array?.nested).set(): should correctly fire events and set values for arrays|nested items', () => {

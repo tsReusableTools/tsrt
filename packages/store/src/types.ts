@@ -70,4 +70,12 @@ export interface IStoreOptions {
     object?: boolean;
     array?: boolean;
   }
+
+  /**
+   * Wherther to use strict rule for deep equality via JSON.stringify for distinctUntilChanged by key
+   * This will prevent extra event firing if Object link changed but actual value is the same.
+   *
+   * @default false.
+   */
+  strictDistinct?: boolean;
 }
