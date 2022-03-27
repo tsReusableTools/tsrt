@@ -6,7 +6,7 @@
 <!-- Store service using `rxjs` under the hood. -->
 State management tool on top of great [RxJS](https://www.npmjs.com/package/rxjs).
 
-## Usage
+### Usage
 
 __Note!__ This package uses [RxJS](#rxjs-usage-examples), thus any rxjs operators and knowledge could and should be used to play with state.
 
@@ -124,15 +124,31 @@ export interface IStoreOptions {
       object?: boolean;
       array?: boolean;
   };
+
+  /**
+   * Wherther to use strict rule for deep equality via JSON.stringify for distinctUntilChanged by key
+   * This will prevent extra event firing if Object link changed but actual value is the same.
+   *
+   * @default false.
+   */
+  strictDistinct?: boolean;
 }
 ```
 
-## Disclaimer
+### Supported versions
+
+Version | Supported
+------- | -----
+  2.x   | :white_check_mark:
+  1.x   | :x:
+  0.x   | :x:
+
+### Disclaimer
 
 For quite long time there was quite frequent necessity to use some centralized store, but without big complexity and overhead, which is provided by popular modern tools, such as NgRX, NgXS, Redux, etc.
 
 This is a bit enhanced revision of already used and existing Store, including some useful modern APIs and still tiny solution without any boilerplate.
 
-## License
+### License
 
 This project is licensed under the terms of the [MIT license](https://github.com/tsReusableTools/tsrt/blob/master/LICENSE).

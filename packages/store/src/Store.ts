@@ -1,32 +1,11 @@
 import { BehaviorSubject, Observable } from 'rxjs';
 import { pluck, distinctUntilChanged, map } from 'rxjs/operators';
-import { cloneDeep, assign, isNil, get, isEqual, toPath, set } from 'lodash';
 import { Get, PartialDeep } from 'type-fest';
 
-import { IStoreSubject, IStorePropertySubject, ISetterOptions, NestedKeys, GenericObject, IStoreOptions } from './types';
+import { IStoreSubject, IStorePropertySubject, ISetterOptions, NestedKeys, IStoreOptions, GenericObject } from './types';
+import { isNil, toPath, cloneDeep, get, set, isEqual } from './utils';
 
-/**
- * Lodash.assing but also for deeply nested properties
- *
- * @Note mutates `source` object.
- *
- * @param - source object, to assign values to.
- * @param - object, to assign values from.
- */
-export function assignDeep<T extends GenericObject, R extends GenericObject>(source: T, newObject: R): T {
-  Object.entries(newObject).forEach(([key, value]) => {
-    if (typeof value === 'object' && Object.prototype.hasOwnProperty.call(source, key)) {
-      assignDeep(source[key], value);
-      assign(source[key], value);
-      /* eslint-disable-next-line no-param-reassign */
-    } else (source as GenericObject)[key] = value;
-  });
-
-  return source;
-}
-
-/* eslint-disable-next-line @typescript-eslint/ban-types */
-export class Store<S extends object> {
+export class Store<S extends GenericObject> {
   protected readonly _initialState: S;
   protected readonly _state: BehaviorSubject<S>;
   protected readonly _options: IStoreOptions;
@@ -43,12 +22,13 @@ export class Store<S extends object> {
         object: _options.assign?.object ?? false,
         array: _options.assign?.array ?? false,
       },
+      strictDistinct: _options.strictDistinct ?? false,
     };
   }
 
   /** Current state getter */
   public get state(): S {
-    return cloneDeep(this._state.getValue());
+    return this._state.getValue();
   }
 
   /** State obsevable getter */
@@ -97,11 +77,10 @@ export class Store<S extends object> {
     const result = isNil(prop)
       ? this.state$ as IStoreSubject<S>
       : this.state$.pipe(
-        distinctUntilChanged((a, b) => isEqual(get(a, prop), get(b, prop))),
-        // distinctUntilChanged((a, b) => get(a, prop) === get(b, prop)),
-        // distinctUntilChanged(),
+        distinctUntilChanged((a, b) => (this._options.strictDistinct
+          ? isEqual(get(a, prop), get(b, prop))
+          : get(a, prop) === get(b, prop))),
         pluck(...toPath(prop)),
-        // switchMap((x) => Array.isArray(x) ? of(...x) : of(x))
       ) as IStorePropertySubject<Get<S, P> | S, PartialDeep<Get<S, P>>>;
 
     this._defineValueGetter(result, prop);
@@ -111,7 +90,7 @@ export class Store<S extends object> {
     return result;
   }
 
-  protected _defineValueGetter<T>(target: T, prop: string): void {
+  protected _defineValueGetter<T, P extends NestedKeys<S>>(target: T, prop: P): void {
     const valueGetter = (): S => (isNil(prop) ? this.state : get(this.state, prop) as S);
     Object.defineProperty(target, 'value', { get: valueGetter });
   }
@@ -124,7 +103,7 @@ export class Store<S extends object> {
     Object.defineProperty(target, 'select', { value: select });
   }
 
-  protected _defineValueSetter<T, P extends string>(target: T, prop: P): void {
+  protected _defineValueSetter<T, P extends NestedKeys<S>>(target: T, prop: P): void {
     if (isNil(prop)) return;
 
     const valueSetter = (
@@ -133,9 +112,8 @@ export class Store<S extends object> {
     Object.defineProperty(target, 'set', { value: valueSetter });
   }
 
-  protected _setState<P extends string | number | symbol, T>(prop: P, value: T, shoudAssign: boolean): void {
-    const computedValue = shoudAssign && typeof value === 'object' ? assignDeep(get(this.state, prop), value) : value;
-    this._state.next(set(this.state, prop, cloneDeep(computedValue)));
+  protected _setState<P extends NestedKeys<S>>(prop: P, value: PartialDeep<Get<S, P>>, assign: boolean): void {
+    this._state.next(set(this.state, prop, value, { mutate: false, assign }));
   }
 
   protected _getAssignOptionValue<T>(value: T): boolean {
