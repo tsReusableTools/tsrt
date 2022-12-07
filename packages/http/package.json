@@ -19,7 +19,7 @@
     "@tsrt/types": "^0.8.0",
     "@tsrt/utils": "^0.8.0",
     "axios": "^0.21.1",
-    "qs": "6.9.4"
+    "qs": "6.9.7"
   },
   "devDependencies": {
     "tslib": "^2.0.3",
