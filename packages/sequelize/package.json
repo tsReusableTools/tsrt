@@ -30,7 +30,7 @@
   },
   "peerDependencies": {
     "reflect-metadata": "*",
-    "sequelize": "^5.22.2"
+    "sequelize": "^6.29.0"
   },
   "optionalDependencies": {
     "@types/pg": "^7.14.3",
@@ -51,7 +51,7 @@
     "dotenv": "^8.2.0",
     "mocha": "^8.2.1",
     "reflect-metadata": "^0.1.13",
-    "sequelize": "^5.22.2",
+    "sequelize": "^6.29.0",
     "sequelize-typescript": "^1.1.0",
     "sqlite3": "^4.0.0",
     "ts-node": "^9.1.0",
